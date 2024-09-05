@@ -38,7 +38,7 @@ LOG_LEVEL = Level.DEBUG
 
 # 数据基础路径
 BASE_CDAC_DATA_PATH = "B:/workspace/Argo_data/Argo_v3_core"
-BASE_BOA_ARGO_DATA_PATH = "B:/workspace/Argo_data"
+BASE_BOA_ARGO_DATA_PATH = "B:/workspace/Argo_data/ArgoDataset"
 
 # 太平洋区域经纬度范围
 LON_RANGE = [80, 140]
