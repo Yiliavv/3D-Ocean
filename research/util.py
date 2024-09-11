@@ -393,6 +393,33 @@ def import_argo_ocean_variables(nc_filename):
     return temperature, lon, lat, ild, mld, cmld
 
 
+def construct_argo_training_set(temperature, lon, lat, mld):
+    """构建Argo训练集
+
+    temperature -- 海洋温度数据
+    lon -- 经度数据
+    lat -- 纬度数据
+    ild -- 深度数据
+    mld -- 混合层深度数据
+    cmld -- 混合层深度数据
+    """
+
+    print(temperature.shape)
+
+    # 输入
+    _temp = temperature[160:180, 60:80, 0].reshape(-1)
+    _station = np.array([(lon[i], lat[j]) for i in range(160, 180) for j in range(60, 80)])
+    _mld = mld[160:180, 60:80].reshape(-1)
+    # 输出
+    _profile = temperature[160:180, 60:80, :].reshape(400, -1)
+
+    Log.d("Temperature shape: ", _temp.shape)
+    Log.d("Station shape: ", _station.shape)
+    Log.d("MLD shape: ", _mld.shape)
+    Log.d("Profile shape: ", _profile.shape)
+
+    return [_temp, _station, _mld], _profile
+
 # ---------------------------- EAR5 数据处理 ----------------------------
 
 def import_ear5_sst(nc_filename):

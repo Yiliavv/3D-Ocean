@@ -1,9 +1,9 @@
 # For plotting.
-import numpy as np
-from matplotlib import pyplot as plt
 import cartopy.crs as ccrs
+import numpy as np
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
-from mpl_toolkits.mplot3d.proj3d import transform
+from matplotlib import pyplot as plt
+from matplotlib.lines import fillStyles
 
 from research.config.params import LAT_RANGE, LON_RANGE
 from research.log import Log
@@ -21,7 +21,7 @@ def plot_cdac_argo_data_one_day(one_day_data, figure: plt.Figure = None, ax: plt
         figure = plt.figure(figsize=(10, 6))
         plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
     if ax is None:
-        ax = figure.add_subplot(111, projection = ccrs.PlateCarree())
+        ax = figure.add_subplot(111, projection=ccrs.PlateCarree())
 
     ax.set_extent([LON_RANGE[0], LON_RANGE[1], LAT_RANGE[0], LAT_RANGE[1]], crs=ccrs.PlateCarree())
     ax.stock_img()
@@ -41,7 +41,7 @@ def plot_cdac_argo_data_one_day(one_day_data, figure: plt.Figure = None, ax: plt
         lon.append(pos['lat'])
         lat.append(pos['lon'])
 
-    ax.scatter(lat, lon, s=20, transform = ccrs.PlateCarree(), marker="*", color='#2ca02c')
+    ax.scatter(lat, lon, s=20, transform=ccrs.PlateCarree(), marker="*", color='#2ca02c')
 
     plt.show()
 
@@ -146,6 +146,7 @@ def plot_cdac_argo_data_one_day_salinity_profile(one_day_data, figure: plt.Figur
 
     return figure, ax
 
+
 # 绘制 CDAC 数据的混合层深度
 def plot_cdac_mld_profile(mld, figure: plt.Figure = None, ax: plt.Axes = None):
     """
@@ -170,6 +171,7 @@ def plot_cdac_mld_profile(mld, figure: plt.Figure = None, ax: plt.Axes = None):
 
     return figure, ax
 
+
 def plot_cdac_mld_distribution(mld, positions, figure: plt.Figure = None, ax: plt.Axes = None):
     """
     绘制 CDAC 数据的混合层深度水平分布图
@@ -179,7 +181,7 @@ def plot_cdac_mld_distribution(mld, positions, figure: plt.Figure = None, ax: pl
         figure = plt.figure(figsize=(8, 10))
         plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
     if ax is None:
-        ax = figure.add_subplot(111, projection = ccrs.PlateCarree())
+        ax = figure.add_subplot(111, projection=ccrs.PlateCarree())
 
     ax.set_title('Argo Data MLD')
     ax.set_extent([LON_RANGE[0], LON_RANGE[1], LAT_RANGE[0], LAT_RANGE[1]], crs=ccrs.PlateCarree())
@@ -216,9 +218,12 @@ def plot_cdac_mld_distribution(mld, positions, figure: plt.Figure = None, ax: pl
             positions_300_plus.append(positions[i])
 
     # 不同深度绘制不同颜色和形状的点
-    ax.scatter([pos['lon'] for pos in positions_100], [pos['lat'] for pos in positions_100], s=20, transform = ccrs.PlateCarree(), marker="*", color='#2ca02c')
-    ax.scatter([pos['lon'] for pos in positions_300], [pos['lat'] for pos in positions_300], s=20, transform = ccrs.PlateCarree(), marker="o", color='#ff7f0e')
-    ax.scatter([pos['lon'] for pos in positions_300_plus], [pos['lat'] for pos in positions_300_plus], s=20, transform = ccrs.PlateCarree(), marker="x", color='#1f77b4')
+    ax.scatter([pos['lon'] for pos in positions_100], [pos['lat'] for pos in positions_100], s=20,
+               transform=ccrs.PlateCarree(), marker="*", color='#2ca02c')
+    ax.scatter([pos['lon'] for pos in positions_300], [pos['lat'] for pos in positions_300], s=20,
+               transform=ccrs.PlateCarree(), marker="o", color='#ff7f0e')
+    ax.scatter([pos['lon'] for pos in positions_300_plus], [pos['lat'] for pos in positions_300_plus], s=20,
+               transform=ccrs.PlateCarree(), marker="x", color='#1f77b4')
     plt.show()
 
     return figure, ax
@@ -227,7 +232,8 @@ def plot_cdac_mld_distribution(mld, positions, figure: plt.Figure = None, ax: pl
 # -------------------------- BOA Argo 绘图 --------------------------
 
 # 绘制 Argo 在浮标位置的温度剖面图
-def plot_argo_float_temperature_profile(temperatures, float_lon, float_lat, figure: plt.Figure = None, ax: plt.Axes = None):
+def plot_argo_float_temperature_profile(temperatures, float_lon, float_lat, figure: plt.Figure = None,
+                                        ax: plt.Axes = None):
     """
     绘制 Argo 在浮标位置的温度剖面图
     :param temperature: 3D array
@@ -255,8 +261,9 @@ def plot_argo_float_temperature_profile(temperatures, float_lon, float_lat, figu
     temperature = temperatures[float_lon, float_lat]
     Log.d("Temperature ", temperature)
     deeps = -np.array([0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 200,
-         220, 240, 260, 280, 300, 320, 340, 360, 380, 400, 420, 440, 460, 500, 550, 600, 650, 700,
-         750, 800, 850, 900, 950, 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1400, 1500, 1600, 1700, 1800, 1900, 1975])
+                       220, 240, 260, 280, 300, 320, 340, 360, 380, 400, 420, 440, 460, 500, 550, 600, 650, 700,
+                       750, 800, 850, 900, 950, 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1400, 1500, 1600, 1700, 1800,
+                       1900, 1975])
     Log.d("Deeps ", deeps)
 
     ax.plot(temperature, deeps, label='Temperature', color='#1f77b4')
@@ -264,6 +271,7 @@ def plot_argo_float_temperature_profile(temperatures, float_lon, float_lat, figu
     plt.show()
 
     return figure, ax
+
 
 # 绘制 Argo 数据的混合层深度
 def plot_argo_mld(mld, figure: plt.Figure = None, ax: plt.Axes = None):
@@ -275,7 +283,7 @@ def plot_argo_mld(mld, figure: plt.Figure = None, ax: plt.Axes = None):
         figure = plt.figure(figsize=(10, 8))
         plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
     if ax is None:
-        ax = figure.add_subplot(111, projection = ccrs.PlateCarree())
+        ax = figure.add_subplot(111, projection=ccrs.PlateCarree())
 
     ax.set_title('Argo Data MLD')
     ax.set_extent([LON_RANGE[0], LON_RANGE[1], LAT_RANGE[0], LAT_RANGE[1]], crs=ccrs.PlateCarree())
@@ -313,13 +321,84 @@ def plot_argo_mld(mld, figure: plt.Figure = None, ax: plt.Axes = None):
                 positions_300_plus.append((i + LON_RANGE[0], j + LAT_RANGE[0]))
 
     # 不同深度绘制不同颜色和形状的点
-    ax.scatter([pos[0] for pos in positions_100], [pos[1] for pos in positions_100], s=20, transform = ccrs.PlateCarree(), marker="*", color='#2ca02c')
-    ax.scatter([pos[0] for pos in positions_300], [pos[1] for pos in positions_300], s=20, transform = ccrs.PlateCarree(), marker="o", color='#ff7f0e')
-    ax.scatter([pos[0] for pos in positions_300_plus], [pos[1] for pos in positions_300_plus], s=20, transform = ccrs.PlateCarree(), marker="x", color='#1f77b4')
+    ax.scatter([pos[0] for pos in positions_100], [pos[1] for pos in positions_100], s=20, transform=ccrs.PlateCarree(),
+               marker="*", color='#2ca02c')
+    ax.scatter([pos[0] for pos in positions_300], [pos[1] for pos in positions_300], s=20, transform=ccrs.PlateCarree(),
+               marker="o", color='#ff7f0e')
+    ax.scatter([pos[0] for pos in positions_300_plus], [pos[1] for pos in positions_300_plus], s=20,
+               transform=ccrs.PlateCarree(), marker="x", color='#1f77b4')
     plt.show()
 
     return figure, ax
 
 
+# -------------------------- 通用绘图方法 --------------------------
+
+def plot_sst_distribution(sst, figure: plt.Figure = None, ax: plt.Axes = None):
+    """
+    绘制海表温度分布图
+    :param sst: 2D array representing sea surface temperature
+    :param figure: If None, a new figure will be created
+    :param ax: If None, a new axes will be created
+    :return: figure, ax
+    """
+    plt.style.use('_mpl-gallery')
+    if figure is None:
+        figure = plt.figure(figsize=(10, 8))
+        plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
+    if ax is None:
+        ax = figure.add_subplot(111, projection=ccrs.PlateCarree())
+
+    ax.set_title('SST Distribution')
+    # 设置地图刻度
+    ax.set_xticks(np.arange(-180, 181, 40), crs=ccrs.PlateCarree())
+    ax.set_yticks(np.arange(-90, 91, 20), crs=ccrs.PlateCarree())
+    ax.xaxis.set_major_formatter(LongitudeFormatter())
+    ax.yaxis.set_major_formatter(LatitudeFormatter())
+
+    # 绘制海表温度
+    lon = np.linspace(-180, 180, sst.shape[1])
+    lat = np.linspace(-90, 90, sst.shape[0])
+    lon, lat = np.meshgrid(lon, lat)
+    contour = ax.contourf(lon, lat, sst, transform=ccrs.PlateCarree(), cmap='coolwarm', levels=np.linspace(-5, 35, 9))
+
+    # 添加颜色条
+    cbar = figure.colorbar(contour, ax=ax, orientation='horizontal', pad=0.05, fraction=0.05)
+    cbar.set_label('Sea Surface Temperature (°C)')
+
+    plt.show()
+
+    return figure, ax
 
 
+def plot_temperature_profile_compare(argo_profile, ear_profile, title="", figrue: plt.Figure = None,
+                                     ax: plt.Axes = None):
+    """
+    绘制温度剖面图
+    :param title:
+    :param ear_profile:  1D array representing temperature profile
+    :param argo_profile:  1D array representing temperature profile
+    :param ax: If None, a new axes will be created
+    :param figrue: If None, a new figure will be created
+    """
+    plt.style.use('_mpl-gallery')
+    if figrue is None:
+        figrue = plt.figure(figsize=(8, 10))
+        plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
+    if ax is None:
+        ax = figrue.add_subplot(111)
+
+    ax.set_xlabel('Depth (m)')
+    ax.set_ylabel('Temperature (°C)')
+    # 限制y轴范围 0 ~ 40
+    ax.set_ylim(0, 40)
+
+    ax.plot(argo_profile, label='Argo Source', color='#1f77b4')
+    ax.plot(ear_profile, label='EAR5 Predicted', color='#ff7f0e', marker='o',  markevery=[0])
+    # 增加图例
+    ax.legend()
+
+    plt.title(title, pad=20)
+    plt.show()
+
+    return figrue, ax
