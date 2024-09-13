@@ -14,7 +14,7 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 from research.config.params import LAT_RANGE, LON_RANGE, MODEL_SAVE_PATH
 
 
-# -------------------------- CADC 数据处理 --------------------------
+# -------------------------- CDAC 数据处理 --------------------------
 
 def range_cdac_one_day_float_data(one_day_data):
     """
@@ -51,13 +51,13 @@ def linear_fit(x, y):
     return m, c
 
 
-def calculate_seawater_density(temperature, salinity, pressure):
+def calculate_seawater_density(temperature):
     """
-    使用温度（C）、盐度（PSU）和压强（dbar）计算海水密度（kg/m^3）
+    使用温度（C）计算海水密度（kg/m^3）
     """
 
     # Calculate density using the Gibbs SeaWater (GSW) Oceanographic Toolbox
-    density = gsw.density.rho(salinity, temperature, pressure)
+    density = gsw.density.rho(temperature)
 
     return density
 
@@ -114,7 +114,9 @@ def train_parameter_model_for_random_forest(input_set, output_set):
     """
 
     # Convert input_set and output_set to numpy arrays
-    input_set = np.array(input_set)  # Reshape to 2D array for sklearn
+    input_set = np.column_stack((input_set[0], input_set[1], input_set[2]))
+    print(f"input_set shape: {input_set.shape}")
+    # Reshape to 2D array for sklearn
     output_set = np.array(output_set)
 
     # Split the data into training and testing sets
