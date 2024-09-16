@@ -6,7 +6,6 @@ class Log:
 
     @staticmethod
     def d(*msg):
-        print(LOG_LEVEL)
         if LOG_LEVEL <= Level["DEBUG"]:
             print(*msg)
 

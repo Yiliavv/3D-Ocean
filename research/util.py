@@ -2,6 +2,8 @@ import os
 import re
 import numpy as np
 import netCDF4 as nc
+from numpy.ma.core import count
+
 from research.log import Log
 from datetime import datetime
 from research.config.params import BASE_CDAC_DATA_PATH
@@ -18,6 +20,7 @@ def list_data_dirs():
                 dirs.append(entry.name)
 
     return dirs
+
 
 # ---------------------------- CDAC Argo 数据导入 ----------------------------
 
@@ -301,12 +304,13 @@ def resource_monthly_data(month_data_dir):
         Log.i("one_day shape after range: ", len(daily[i]))
     return daily
 
+
 def max_angle_compute_mld(float_data):
     """
     最大角度法计算混合层深度
     """
     data = float_data['data']
-    pressures = data['pres'] # 1dbar = 1m, 压力即深度
+    pressures = data['pres']  # 1dbar = 1m, 压力即深度
     temperatures = data['temp']
     salinity = data['psal']
 
@@ -351,16 +355,18 @@ def max_angle_compute_mld(float_data):
     for i, pressure in enumerate(pressures):
         # 确定上方的点
         j = max(i - 1, 0)
-        if i < m: j = i - 1
-        elif i > m: j = m
+        if i < m:
+            j = i - 1
+        elif i > m:
+            j = m
 
         if i >= len(pressures) - 2: break
 
         # 线性拟合上方的点
-        m1, c1 = linear_fit([pressures[j], pressures[i+2]], [densities[j], densities[i+2]])
+        m1, c1 = linear_fit([pressures[j], pressures[i + 2]], [densities[j], densities[i + 2]])
 
         # 拟合下方的点
-        m2, c2 = linear_fit([pressures[i+1], pressures[i+2]], [densities[i+1], densities[i+2]])
+        m2, c2 = linear_fit([pressures[i + 1], pressures[i + 2]], [densities[i + 1], densities[i + 2]])
 
         # 计算正切
         tan_h = calculate_angle_tan(m1, m2)
@@ -372,6 +378,7 @@ def max_angle_compute_mld(float_data):
 
     return mixed_layer_depth
 
+
 # ---------------------------- BOA Argo 数据处理 ----------------------------
 
 def import_argo_ocean_variables(nc_filename):
@@ -380,45 +387,89 @@ def import_argo_ocean_variables(nc_filename):
     nc_filename -- Argo 数据集的文件路径
     """
 
-    nc_file = nc.Dataset(nc_filename, 'r')
+    nc_file = nc.Dataset(nc_filename,   'r')
     variables = nc_file.variables
 
     temperature = variables['temp'][0].transpose((2, 1, 0))
     lon = variables['lon'][:] - 0.5
     lat = variables['lat'][:] + 0.5
-    ild = variables['ILD'][:][0].transpose((1,0))
-    mld = variables['MLD'][:][0].transpose((1,0))
-    cmld = variables['CMLD'][:][0].transpose((1,0))
+    ild = variables['ILD'][:][0].transpose((1, 0))
+    mld = variables['MLD'][:][0].transpose((1, 0))
+    cmld = variables['CMLD'][:][0].transpose((1, 0))
 
     return temperature, lon, lat, ild, mld, cmld
 
 
-def construct_argo_training_set(temperature, lon, lat, mld):
-    """构建Argo训练集
+def resource_argo_monthly_data(argo_data_dir):
+    """
+    读取Argo数据
+    :param argo_data_dir: Argo数据目录
+    :return:
+    """
+    argo_datas = []
 
-    temperature -- 海洋温度数据
-    lon -- 经度数据
-    lat -- 纬度数据
-    ild -- 深度数据
-    mld -- 混合层深度数据
-    cmld -- 混合层深度数据
+    with os.scandir(argo_data_dir) as it:
+        for entry in it:
+            if entry.is_file() and entry.name.endswith('.nc') and entry.name.startswith('BOA_Argo'):
+                Log.i(f"Reading data file: {entry.path}")
+                one_month = {}
+                temperature, lon, lat, ild, mld, cmld = import_argo_ocean_variables(entry.path)
+                one_month['temp'] = temperature
+                one_month['lon'] = lon
+                one_month['lat'] = lat
+                one_month['mld'] = mld
+                one_month['year'] = int(entry.name.split('_')[2])
+                one_month['month'] = int(entry.name.split('_')[3].split('.')[0])
+                argo_datas.append(one_month)
+
+    return argo_datas
+
+
+def construct_argo_training_set(all_months):
+    """构建Argo训练集
     """
 
-    print(temperature.shape)
+    _all_stations = None
+    _all_years = None
+    _all_months = None
 
-    # 输入
-    _temp = temperature[160:180, 60:80, 0].reshape(-1)
-    _station = np.array([(lon[i], lat[j]) for i in range(160, 180) for j in range(60, 80)])
-    _mld = mld[160:180, 60:80].reshape(-1)
-    # 输出
-    _profile = temperature[160:180, 60:80, :].reshape(400, -1)
+    _all_profiles = None
 
-    Log.d("Temperature shape: ", _temp.shape)
-    Log.d("Station shape: ", _station.shape)
-    Log.d("MLD shape: ", _mld.shape)
-    Log.d("Profile shape: ", _profile.shape)
+    for one_month in all_months:
+        temperature = one_month['temp']
+        lon = one_month['lon']
+        lat = one_month['lat']
 
-    return [_temp, _station, _mld], _profile
+        # 输入
+        _station = np.array([(lon[i], lat[j]) for i in range(160, 180) for j in range(60, 80)])
+        _year = np.array([one_month['year']] * 400)
+        _month = np.array([one_month['month']] * 400)
+        # 输出
+        _profile = temperature[160:180, 60:80, :].reshape(400, -1)
+
+        if one_month['year'] == 2023 and one_month['month'] == 9:
+            Log.i("2023年9月数据: ")
+            Log.i("海表温度: ", temperature[160:180, 60:80, 0].reshape(400, -1).reshape(-1))
+            Log.i("经纬度: ", _station)
+            Log.i("年份: ", _year)
+            Log.i("月份: ", _month)
+            Log.i("剖面温度序列: ", _profile)
+
+        if _all_years is None:
+            _all_stations = _station
+            _all_years = _year
+            _all_months = _month
+
+            _all_profiles = _profile
+        else:
+            _all_stations = np.concatenate((_all_stations, _station))
+            _all_years = np.concatenate((_all_years, _year))
+            _all_months = np.concatenate((_all_months, _month))
+
+            _all_profiles = np.concatenate((_all_profiles, _profile))
+
+    return [_all_stations, _all_years, _all_months], _all_profiles
+
 
 # ---------------------------- EAR5 数据处理 ----------------------------
 

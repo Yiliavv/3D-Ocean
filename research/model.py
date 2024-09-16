@@ -1,17 +1,13 @@
 # For data handler, to data model.
-import os
 
 import gsw
 import numpy as np
-from onnxconverter_common import FloatTensorType
-from skl2onnx import to_onnx
-from sklearn.linear_model import LinearRegression
 from sklearn.ensemble import RandomForestRegressor
-from sklearn.gaussian_process import GaussianProcessRegressor
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import mean_absolute_error, mean_squared_error
+from sklearn.model_selection import train_test_split
 
-from research.config.params import LAT_RANGE, LON_RANGE, MODEL_SAVE_PATH
+from research.config.params import LAT_RANGE, LON_RANGE
+from research.log import Log
 
 
 # -------------------------- CDAC 数据处理 --------------------------
@@ -72,40 +68,7 @@ def calculate_angle_tan(g1, g2):
     return abs(g2 - g1) / (1 + g1 * g2)
 
 
-# -------------------------- 机器学习模型 --------------------------
-
-def train_single_parameter_model_for_linear_regression(input_set, output_set):
-    """
-    训练海洋单参数线性回归模型
-    """
-
-    # Convert input_set and output_set to numpy arrays
-    input_set = np.array(input_set).reshape(-1, 1)  # Reshape to 2D array for sklearn
-    output_set = np.array(output_set)
-
-    # Split the data into training and testing sets
-    X_train, X_test, y_train, y_test = train_test_split(input_set, output_set, test_size=0.2, random_state=42)
-
-    print(f"X_train shape: {X_train.shape}")
-    print(f"y_train shape: {y_train.shape}")
-    print(f"X_test shape: {X_test.shape}")
-
-    # Initialize the model
-    model = LinearRegression()
-
-    # Train the model
-    model.fit(X_train, y_train)
-
-    # Evaluate the model
-    score = model.score(X_test, y_test)
-    print(f"Model R^2 score: {score}")
-
-    # Persist the model
-    onx = to_onnx(model, initial_types=[('input', FloatTensorType([None, 1]))])
-    with open(MODEL_SAVE_PATH + "/Linear.onnx", "wb") as f:
-        f.write(onx.SerializeToString())
-
-    return model
+# -------------------------- 机器学习模型  --------------------------
 
 
 def train_parameter_model_for_random_forest(input_set, output_set):
@@ -127,7 +90,7 @@ def train_parameter_model_for_random_forest(input_set, output_set):
     print(f"X_test shape: {X_test.shape}")
 
     # Initialize the model
-    model = RandomForestRegressor(n_estimators=100, random_state=42)
+    model = RandomForestRegressor(n_estimators=300, random_state=42, verbose=True)
 
     # Train the model
     model.fit(X_train, y_train)
@@ -137,49 +100,38 @@ def train_parameter_model_for_random_forest(input_set, output_set):
     print(f"Model R^2 score: {score}")
 
     #
-    if os.path.exists(MODEL_SAVE_PATH + "/RandomForest.onnx"):
-        return model
+    # if os.path.exists(MODEL_SAVE_PATH + "/RandomForest.onnx"):
+    #     return model
+    #
+    # onx = to_onnx(model, initial_types=[('input', FloatTensorType([None, 1]))])
+    # with open(MODEL_SAVE_PATH + "/RandomForest.onnx", "wb") as f:
+    #     f.write(onx.SerializeToString())
 
-    onx = to_onnx(model, initial_types=[('input', FloatTensorType([None, 1]))])
-    with open(MODEL_SAVE_PATH + "/RandomForest.onnx", "wb") as f:
-        f.write(onx.SerializeToString())
-
-    return model
+    return model, X_test, y_test
 
 
-def train_single_parameter_model_for_gpr(input_set, output_set):
+def train_parameter_model_for_RNN(datas):
     """
-    训练海洋单参数支持向量机模型
+    训练海洋循环神经网络模型
+
+    :param datas: 数据集
     """
-    input_set = np.array(input_set).reshape(-1, 1)  # Reshape to 2D array for sklearn
-    output_set = np.array(output_set)
 
-    # Split the data into training and testing sets
-    X_train, X_test, y_train, y_test = train_test_split(input_set, output_set, test_size=0.2, random_state=42)
+    Log.d("数据集大小：", len(datas))
+    # 数据集处理
+    # 时间周期化
+    for one_month_data in datas:
+        one_month_year = one_month_data['year']
+        one_month_month = one_month_data['month']
+        months = one_month_year * 12 + one_month_month
+        one_month_data['Season sin'] = np.sin(months * (2 * np.pi / 3))
+        Log.d("Season sin: ", one_month_data['Season sin'])
+        one_month_data['Season cos'] = np.cos(months * (2 * np.pi / 3))
+        one_month_data['Month sin'] = np.sin(months * (2 * np.pi / 3))
+        one_month_data['Month cos'] = np.cos(months * (2 * np.pi / 3))
 
-    print(f"X_train shape: {X_train.shape}")
-    print(f"y_train shape: {y_train.shape}")
-    print(f"X_test shape: {X_test.shape}")
+    # 数据集划分
 
-    # Initialize the model
-    model = GaussianProcessRegressor()
-
-    # Train the model
-    model.fit(X_train, y_train)
-
-    # Evaluate the model
-    score = model.score(X_test, y_test)
-    print(f"ModelR ^2 score: {score}")
-
-    if os.path.exists(MODEL_SAVE_PATH + "/GMM.onnx"):
-        return model
-
-    # Persist the model
-    onx = to_onnx(model, initial_types=[('input', FloatTensorType([None, 1]))])
-    with open(MODEL_SAVE_PATH + "/GMM.onnx", "wb") as f:
-        f.write(onx.SerializeToString())
-
-    return model
 
 
 # -------------------------- 模型评估 --------------------------

@@ -40,7 +40,7 @@ LOG_LEVEL = Level.DEBUG
 
 # 数据基础路径
 BASE_CDAC_DATA_PATH = "B:/workspace/Argo_data/Argo_v3_core"
-BASE_BOA_ARGO_DATA_PATH = "B:/workspace/Argo_data/ArgoDataset"
+BASE_BOA_ARGO_DATA_PATH = "D:/ArgoDataset"
 
 # 模型保存路径
 MODEL_SAVE_PATH = "B:/workspace/tensorflow/research/output"

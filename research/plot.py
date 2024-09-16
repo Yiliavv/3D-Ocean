@@ -236,7 +236,7 @@ def plot_argo_float_temperature_profile(temperatures, float_lon, float_lat, figu
                                         ax: plt.Axes = None):
     """
     绘制 Argo 在浮标位置的温度剖面图
-    :param temperature: 3D array
+    :param temperatures: 3D array
     :param float_lon: Float position longitude
     :param float_lat: Float position latitude
     :param figure:  If None, a new figure will be created
@@ -334,9 +334,10 @@ def plot_argo_mld(mld, figure: plt.Figure = None, ax: plt.Axes = None):
 
 # -------------------------- 通用绘图方法 --------------------------
 
-def plot_sst_distribution(sst, figure: plt.Figure = None, ax: plt.Axes = None):
+def plot_sst_distribution(sst, title='Sea Surface Temperature (°C)', figure: plt.Figure = None, ax: plt.Axes = None):
     """
     绘制海表温度分布图
+    :param title: title of the plot
     :param sst: 2D array representing sea surface temperature
     :param figure: If None, a new figure will be created
     :param ax: If None, a new axes will be created
@@ -349,26 +350,64 @@ def plot_sst_distribution(sst, figure: plt.Figure = None, ax: plt.Axes = None):
     if ax is None:
         ax = figure.add_subplot(111, projection=ccrs.PlateCarree())
 
-    ax.set_title('SST Distribution')
+    ax.set_title(title)
     # 设置地图刻度
-    ax.set_xticks(np.arange(-180, 181, 40), crs=ccrs.PlateCarree())
-    ax.set_yticks(np.arange(-90, 91, 20), crs=ccrs.PlateCarree())
+    ax.set_xticks(np.arange(160, 181, 5), crs=ccrs.PlateCarree())
+    ax.set_yticks(np.arange(-19, 1, 5), crs=ccrs.PlateCarree())
     ax.xaxis.set_major_formatter(LongitudeFormatter())
     ax.yaxis.set_major_formatter(LatitudeFormatter())
 
     # 绘制海表温度
-    lon = np.linspace(-180, 180, sst.shape[1])
-    lat = np.linspace(-90, 90, sst.shape[0])
+    lon = np.arange(160, 180)
+    lat = np.arange(-19, 1)
     lon, lat = np.meshgrid(lon, lat)
-    contour = ax.contourf(lon, lat, sst, transform=ccrs.PlateCarree(), cmap='coolwarm', levels=np.linspace(-5, 35, 9))
+    contour = ax.contourf(lon, lat, sst, cmap='coolwarm', transform=ccrs.PlateCarree(), levels=30)
 
     # 添加颜色条
     cbar = figure.colorbar(contour, ax=ax, orientation='horizontal', pad=0.05, fraction=0.05)
-    cbar.set_label('Sea Surface Temperature (°C)')
 
     plt.show()
 
     return figure, ax
+
+
+def plot_sst_distribution_compare(sst1, sst2, title='Sea Surface Temperature (°C)'):
+    """
+    绘制海表温度分布图
+    :param title: title of the plot
+    :param sst1: 2D array representing sea surface temperature
+    :param sst2: 2D array representing sea surface temperature
+    """
+    plt.style.use('_mpl-gallery')
+    figure, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8), subplot_kw={'projection': ccrs.PlateCarree()})
+    figure.suptitle(title)
+    plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1, wspace=0.3)
+
+    # 设置地图刻度
+    for ax in [ax1, ax2]:
+        ax.set_xticks(np.arange(160, 181, 5), crs=ccrs.PlateCarree())
+        ax.set_yticks(np.arange(-19, 1, 5), crs=ccrs.PlateCarree())
+        ax.xaxis.set_major_formatter(LongitudeFormatter())
+        ax.yaxis.set_major_formatter(LatitudeFormatter())
+
+    # 绘制第一个海表温度
+    lon = np.arange(160, 180)
+    lat = np.arange(-19, 1)
+    lon, lat = np.meshgrid(lon, lat)
+    levels = np.arange(round(min(sst1.min(), sst2.min()), 1), round(max(sst1.max(), sst2.max()), 1), 0.05)
+    contour1 = ax1.contourf(lon, lat, sst1, cmap='coolwarm', transform=ccrs.PlateCarree(), levels=levels)
+    ax1.set_title('SST1')
+
+    # 绘制第二个海表温度
+    contour2 = ax2.contourf(lon, lat, sst2, cmap='coolwarm', transform=ccrs.PlateCarree(), levels=levels)
+    ax2.set_title('SST2')
+
+    # 添加共享颜色条
+    cbar = figure.colorbar(contour1, ax=[ax1, ax2], orientation='horizontal', pad=0.05, fraction=0.05)
+
+    plt.show()
+
+    return figure, (ax1, ax2)
 
 
 def plot_temperature_profile_compare(argo_profile, ear_profile, title="", figrue: plt.Figure = None,
@@ -394,7 +433,7 @@ def plot_temperature_profile_compare(argo_profile, ear_profile, title="", figrue
     ax.set_ylim(0, 40)
 
     ax.plot(argo_profile, label='Argo Source', color='#1f77b4')
-    ax.plot(ear_profile, label='EAR5 Predicted', color='#ff7f0e', marker='o',  markevery=[0])
+    ax.plot(ear_profile, label='EAR5 Predicted', color='#ff7f0e', marker='o', markevery=[0])
     # 增加图例
     ax.legend()
 
@@ -402,3 +441,84 @@ def plot_temperature_profile_compare(argo_profile, ear_profile, title="", figrue
     plt.show()
 
     return figrue, ax
+
+
+def plot_profile_for_predicted_in_lat(pres, figure=None, ax=None):
+    """
+    绘制沿纬度方向的预测海温剖面图
+    """
+    plt.style.use('_mpl-gallery')
+    if figure is None:
+        figure = plt.figure(figsize=(8, 10))
+        plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
+    if ax is None:
+        ax = figure.add_subplot(111)
+
+    deeps = -np.array([0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 200,
+                       220, 240, 260, 280, 300, 320, 340, 360, 380, 400, 420, 440, 460, 500, 550, 600, 650, 700,
+                       750, 800, 850, 900, 950, 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1400, 1500, 1600, 1700, 1800,
+                       1900, 1975])
+
+    lon = np.arange(160, 180)
+
+    X, Y = np.meshgrid(lon, deeps)
+
+    pres_in_lon = np.transpose(pres.reshape(20, 20, 58)[:, 19, :], (1, 0))
+    contour = ax.contourf(X, Y, pres_in_lon, cmap='coolwarm', levels=50)
+    figure.colorbar(contour, ax=ax)
+
+    plt.show()
+
+    return figure, ax
+
+
+def plot_profile_for_predicted_in_lon(pres, figure=None, ax=None):
+    """
+    绘制沿经度方向的预测海温剖面图
+    """
+    plt.style.use('_mpl-gallery')
+    if figure is None:
+        figure = plt.figure(figsize=(8, 10))
+        plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1)
+    if ax is None:
+        ax = figure.add_subplot(111)
+
+
+def plot_compared_profile_for_predicted(origin, predicted):
+    """
+    绘制对比的预测海温剖面图
+    """
+
+    plt.style.use('_mpl-gallery')
+
+    figure, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
+    plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1, wspace=0.3)
+
+    deeps = -np.array([0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 200,
+                       220, 240, 260, 280, 300, 320, 340, 360, 380, 400, 420, 440, 460, 500, 550, 600, 650, 700,
+                       750, 800, 850, 900, 950, 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1400, 1500, 1600, 1700, 1800,
+                       1900, 1975])
+
+    lon = np.arange(160, 180)
+    lat = 9
+
+    figure.suptitle('Profile compare in Latitude {}°S'.format(19 - lat))
+
+    X, Y = np.meshgrid(lon, deeps)
+
+    predicted = predicted.reshape(20, 20, 58)
+
+    # 绘制对比
+    origin_in_lon = np.transpose(origin[:, 14, :], (1, 0))
+    predicted_in_lon = np.transpose(predicted[:, 14, :], (1, 0))
+
+    contour1 = ax1.contourf(X, Y, origin_in_lon, cmap='coolwarm', levels=50)
+    ax1.set_title('Origin')
+
+    contour2 = ax2.contourf(X, Y, predicted_in_lon, cmap='coolwarm', levels=50)
+    ax2.set_title('Predicted')
+
+    # 添加共享颜色条
+    figure.colorbar(contour1, ax=[ax1, ax2], orientation='horizontal', pad=0.05, fraction=0.05)
+
+    plt.show()
