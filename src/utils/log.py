@@ -1,5 +1,4 @@
-# Config for researches.
-# 日志级别
+# log class for logging
 from enum import Enum, auto
 
 
@@ -36,15 +35,33 @@ class Level(Enum):
         return NotImplemented
 
 
+# 定义日志级别
 LOG_LEVEL = Level.DEBUG
 
-# 数据基础路径
-BASE_CDAC_DATA_PATH = "B:/workspace/Argo_data/Argo_v3_core"
-BASE_BOA_ARGO_DATA_PATH = "D:/ArgoDataset"
 
-# 模型保存路径
-MODEL_SAVE_PATH = "B:/workspace/tensorflow/research/output"
+class Log:
 
-# 太平洋区域经纬度范围
-LON_RANGE = [80, 140]
-LAT_RANGE = [-40, 40]
+    @staticmethod
+    def d(*msg):
+        if LOG_LEVEL <= Level["DEBUG"]:
+            print(*msg)
+
+    @staticmethod
+    def i(*msg):
+        if LOG_LEVEL <= Level["INFO"]:
+            print(*msg)
+
+    @staticmethod
+    def w(*msg):
+        if LOG_LEVEL <= Level["WARNING"]:
+            print(*msg)
+
+    @staticmethod
+    def e(*msg):
+        if LOG_LEVEL <= Level["ERROR"]:
+            print(*msg)
+
+    @staticmethod
+    def c(*msg):
+        if LOG_LEVEL <= Level["CRITICAL"]:
+            print(*msg)

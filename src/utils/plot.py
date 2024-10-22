@@ -3,10 +3,10 @@ import cartopy.crs as ccrs
 import numpy as np
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 from matplotlib import pyplot as plt
-from matplotlib.lines import fillStyles
+from tensorflow.python.keras.losses import mean_absolute_error
 
-from research.config.params import LAT_RANGE, LON_RANGE
-from research.log import Log
+from src.config.params import LAT_RANGE, LON_RANGE
+from src.utils.log import Log
 
 
 # -------------------------- CADC 绘图 --------------------------
@@ -358,10 +358,10 @@ def plot_sst_distribution(sst, title='Sea Surface Temperature (°C)', figure: pl
     ax.yaxis.set_major_formatter(LatitudeFormatter())
 
     # 绘制海表温度
-    lon = np.arange(160, 180)
-    lat = np.arange(-19, 1)
+    lon = np.arange(160, 180, 1)
+    lat = np.arange(-19, 1, 1)
     lon, lat = np.meshgrid(lon, lat)
-    contour = ax.contourf(lon, lat, sst, cmap='coolwarm', transform=ccrs.PlateCarree(), levels=30)
+    contour = ax.contourf(lon, lat, sst, cmap='coolwarm', transform=ccrs.PlateCarree(), levels=60)
 
     # 添加颜色条
     cbar = figure.colorbar(contour, ax=ax, orientation='horizontal', pad=0.05, fraction=0.05)
@@ -394,7 +394,7 @@ def plot_sst_distribution_compare(sst1, sst2, title='Sea Surface Temperature (°
     lon = np.arange(160, 180)
     lat = np.arange(-19, 1)
     lon, lat = np.meshgrid(lon, lat)
-    levels = np.arange(round(min(sst1.min(), sst2.min()), 1), round(max(sst1.max(), sst2.max()), 1), 0.05)
+    levels = np.arange(min(np.min(sst1), np.min(sst2)), max(np.max(sst1), np.max(sst2)), 0.1)
     contour1 = ax1.contourf(lon, lat, sst1, cmap='coolwarm', transform=ccrs.PlateCarree(), levels=levels)
     ax1.set_title('SST1')
 
@@ -459,11 +459,11 @@ def plot_profile_for_predicted_in_lat(pres, figure=None, ax=None):
                        750, 800, 850, 900, 950, 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1400, 1500, 1600, 1700, 1800,
                        1900, 1975])
 
-    lon = np.arange(160, 180)
+    lon = np.arange(160, 180, 0.5)
 
     X, Y = np.meshgrid(lon, deeps)
 
-    pres_in_lon = np.transpose(pres.reshape(20, 20, 58)[:, 19, :], (1, 0))
+    pres_in_lon = np.transpose(pres.reshape(40, 40, 58)[:, 39, :], (1, 0))
     contour = ax.contourf(X, Y, pres_in_lon, cmap='coolwarm', levels=50)
     figure.colorbar(contour, ax=ax)
 
@@ -500,7 +500,7 @@ def plot_compared_profile_for_predicted(origin, predicted):
                        1900, 1975])
 
     lon = np.arange(160, 180)
-    lat = 9
+    lat = 5
 
     figure.suptitle('Profile compare in Latitude {}°S'.format(19 - lat))
 
@@ -509,14 +509,64 @@ def plot_compared_profile_for_predicted(origin, predicted):
     predicted = predicted.reshape(20, 20, 58)
 
     # 绘制对比
-    origin_in_lon = np.transpose(origin[:, 14, :], (1, 0))
-    predicted_in_lon = np.transpose(predicted[:, 14, :], (1, 0))
+    origin_in_lon = np.transpose(origin[:, lat, :], (1, 0))
+    predicted_in_lon = np.transpose(predicted[:, lat, :], (1, 0))
 
-    contour1 = ax1.contourf(X, Y, origin_in_lon, cmap='coolwarm', levels=50)
+    mse = mean_absolute_error(origin_in_lon, predicted_in_lon)
+    Log.d("MSE : ", mse)
+    rmse = np.sqrt(mse)
+    Log.d("RMSE : ", rmse)
+
+    contour1 = ax1.contourf(X, Y, origin_in_lon, cmap='coolwarm', levels=20)
     ax1.set_title('Origin')
 
-    contour2 = ax2.contourf(X, Y, predicted_in_lon, cmap='coolwarm', levels=50)
+    contour2 = ax2.contourf(X, Y, predicted_in_lon, cmap='coolwarm', levels=20)
     ax2.set_title('Predicted')
+
+    # 添加共享颜色条
+    figure.colorbar(contour1, ax=[ax1, ax2], orientation='horizontal', pad=0.05, fraction=0.05)
+
+    plt.show()
+
+
+def plot_compared_profile_for_predicted_with_different(low_, high_):
+    """
+    绘制对比的预测海温剖面图
+    """
+
+    plt.style.use('_mpl-gallery')
+
+    figure, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8))
+    plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1, wspace=0.3)
+
+    deeps = -np.array([0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100, 110, 120, 130, 140, 150, 160, 170, 180, 200,
+                       220, 240, 260, 280, 300, 320, 340, 360, 380, 400, 420, 440, 460, 500, 550, 600, 650, 700,
+                       750, 800, 850, 900, 950, 1000, 1050, 1100, 1150, 1200, 1250, 1300, 1400, 1500, 1600, 1700, 1800,
+                       1900, 1975])
+
+    if low_.shape[0] == 400:
+        low_ = low_.reshape(20, 20, 58)
+    high_ = high_.reshape(40, 40, 58)
+
+    low_lon = np.arange(160, 180)
+    low_lat = 19
+    high_lon = np.arange(160, 180, 0.5)
+    high_lat = low_lat * 2 + 1
+
+    figure.suptitle('Profile compare in Latitude {}°S'.format(20 - low_lat - 1))
+
+    low_X, low_Y = np.meshgrid(low_lon, deeps)
+    high_X, high_Y = np.meshgrid(high_lon, deeps)
+
+    # 绘制对比
+    low_in_lon = np.transpose(low_[:, low_lat, :], (1, 0))
+    high_in_lon = np.transpose(high_[:, high_lat, :], (1, 0))
+
+    contour1 = ax1.contourf(low_X, low_Y, low_in_lon, cmap='coolwarm', levels=50)
+    ax1.set_title('Low Resolution Origin')
+
+    contour2 = ax2.contourf(high_X, high_Y, high_in_lon, cmap='coolwarm', levels=50)
+    ax2.set_title('High Resolution Predicted')
 
     # 添加共享颜色条
     figure.colorbar(contour1, ax=[ax1, ax2], orientation='horizontal', pad=0.05, fraction=0.05)

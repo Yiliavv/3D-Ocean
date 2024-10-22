@@ -2,12 +2,11 @@ import os
 import re
 import numpy as np
 import netCDF4 as nc
-from numpy.ma.core import count
 
-from research.log import Log
+from src.utils.log import Log
 from datetime import datetime
-from research.config.params import BASE_CDAC_DATA_PATH
-from research.model import calculate_seawater_density, linear_fit, calculate_angle_tan, range_cdac_one_day_float_data
+from src.config.params import BASE_CDAC_DATA_PATH
+from src.models.model import calculate_seawater_density, linear_fit, calculate_angle_tan, range_cdac_one_day_float_data
 
 
 # 数据列表
@@ -429,6 +428,7 @@ def construct_argo_training_set(all_months):
     """构建Argo训练集
     """
 
+    _all_sst = None
     _all_stations = None
     _all_years = None
     _all_months = None
@@ -441,6 +441,7 @@ def construct_argo_training_set(all_months):
         lat = one_month['lat']
 
         # 输入
+        _sst = temperature[160:180, 60:80, 0].reshape(400, -1).reshape(-1)
         _station = np.array([(lon[i], lat[j]) for i in range(160, 180) for j in range(60, 80)])
         _year = np.array([one_month['year']] * 400)
         _month = np.array([one_month['month']] * 400)
@@ -456,12 +457,14 @@ def construct_argo_training_set(all_months):
             Log.i("剖面温度序列: ", _profile)
 
         if _all_years is None:
+            _all_sst = _sst
             _all_stations = _station
             _all_years = _year
             _all_months = _month
 
             _all_profiles = _profile
         else:
+            _all_sst = np.concatenate((_all_sst, _sst))
             _all_stations = np.concatenate((_all_stations, _station))
             _all_years = np.concatenate((_all_years, _year))
             _all_months = np.concatenate((_all_months, _month))
@@ -469,6 +472,7 @@ def construct_argo_training_set(all_months):
             _all_profiles = np.concatenate((_all_profiles, _profile))
 
     return [_all_stations, _all_years, _all_months], _all_profiles
+    # return [_all_sst, _all_stations, _all_years, _all_months], _all_profiles
 
 
 # ---------------------------- EAR5 数据处理 ----------------------------

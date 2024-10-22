@@ -1,0 +1,12 @@
+# Tensorflow cpu-only version (needed for testing).
+tensorflow-cpu~=2.17.0  # Pin to TF 2.16
+
+# Torch with cuda support.
+--extra-index-url https://download.pytorch.org/whl/cu121
+torch==2.4.1+cu121
+torchvision==0.19.1+cu121
+
+# Jax cpu-only version (needed for testing).
+jax[cpu]
+
+-r requirements-common.txt
