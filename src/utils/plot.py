@@ -361,7 +361,7 @@ def plot_sst_distribution(sst, title='Sea Surface Temperature (°C)', figure: pl
     lon = np.arange(160, 180, 1)
     lat = np.arange(-19, 1, 1)
     lon, lat = np.meshgrid(lon, lat)
-    contour = ax.contourf(lon, lat, sst, cmap='coolwarm', transform=ccrs.PlateCarree(), levels=60)
+    contour = ax.contourf(lon, lat, sst, cmap='coolwarm', transform=ccrs.PlateCarree(), levels=50)
 
     # 添加颜色条
     cbar = figure.colorbar(contour, ax=ax, orientation='horizontal', pad=0.05, fraction=0.05)

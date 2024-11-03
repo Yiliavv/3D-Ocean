@@ -21,19 +21,29 @@ class LSTMNetwork(nn.Module):
         self.loss = nn.functional.mse_loss # 损失函数
         
 
-    def forward(self, x):
+    def forward(self, x, y):
+        batch_size = x.shape[0]
+        
+        for i in range(batch_size):
+            input = x[i, :, :, :]
+            
+            train_output = self.train(input, )
+            ur_output= y[i, ]
+            
+            loss = self.loss(train_output, ur_output)
+            loss.backward()
+    
+    def train(self, x):
+        """
+        训练网络
+        """
         x = self.conv1(x)
         print("卷积： ", x.shape)
         x = self.pool1(x)
         print("池化： ", x.shape)
-        return x
-    
-    def train(self, x, y):
-        """
-        训练网络
-        """
-        x = self.forward(x)
-        x = self.fc1(x)
         x = self.activation1(x)
-        x = self.loss(x, y)
+        print("激活: ", x.shape)
+        x = self.fc1(x.shape)
+        print("全连接：", x.shape)
+        
         return x

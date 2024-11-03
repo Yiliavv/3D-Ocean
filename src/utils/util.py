@@ -477,7 +477,7 @@ def construct_argo_training_set(all_months):
 
 # ---------------------------- EAR5 数据处理 ----------------------------
 
-def import_ear5_sst(nc_filename):
+def import_era5_sst(nc_filename):
     """导入EAR5海洋数据变量
 
     nc_filename -- EAR5 数据集的文件路径
