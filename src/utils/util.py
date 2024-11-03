@@ -1,12 +1,14 @@
-import os
+import os, sys
 import re
 import numpy as np
 import netCDF4 as nc
-
-from src.utils.log import Log
 from datetime import datetime
-from src.config.params import BASE_CDAC_DATA_PATH
-from src.models.model import calculate_seawater_density, linear_fit, calculate_angle_tan, range_cdac_one_day_float_data
+
+sys.path.insert(0, "../")
+
+from utils.log import Log
+from config.params import BASE_CDAC_DATA_PATH
+from models.model import calculate_seawater_density, linear_fit, calculate_angle_tan
 
 
 # 数据列表
@@ -299,7 +301,6 @@ def resource_monthly_data(month_data_dir):
     Log.i("daily shape: ", daily.shape)
     for i in range(len(daily)):
         Log.i("one_day shape: ", len(daily[i]))
-        daily[i] = range_cdac_one_day_float_data(daily[i])
         Log.i("one_day shape after range: ", len(daily[i]))
     return daily
 
@@ -410,12 +411,11 @@ def resource_argo_monthly_data(argo_data_dir):
     with os.scandir(argo_data_dir) as it:
         for entry in it:
             if entry.is_file() and entry.name.endswith('.nc') and entry.name.startswith('BOA_Argo'):
-                Log.i(f"Reading data file: {entry.path}")
                 one_month = {}
                 temperature, lon, lat, ild, mld, cmld = import_argo_ocean_variables(entry.path)
                 one_month['temp'] = temperature
-                one_month['lon'] = lon
-                one_month['lat'] = lat
+                one_month['lon'] = lon                                                                                                                                          
+                one_month['lat'] = lat 
                 one_month['mld'] = mld
                 one_month['year'] = int(entry.name.split('_')[2])
                 one_month['month'] = int(entry.name.split('_')[3].split('.')[0])

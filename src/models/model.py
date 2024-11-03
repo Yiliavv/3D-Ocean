@@ -1,6 +1,6 @@
 # For data handler, to data model.
 
-import gsw
+import gsw, sys, os
 import numpy as np
 import tensorflow as tf
 from sklearn.ensemble import RandomForestRegressor
@@ -8,8 +8,10 @@ from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.model_selection import train_test_split
 from joblib import dump, load
 
-from src.config.params import LAT_RANGE, LON_RANGE, MODEL_SAVE_PATH
-from src.utils.log import Log
+sys.path.insert(0, '../')
+
+from config.params import LAT_RANGE, LON_RANGE, MODEL_SAVE_PATH
+from utils.log import Log
 
 
 # -------------------------- CDAC 数据处理 --------------------------
@@ -100,7 +102,7 @@ def train_parameter_model_for_random_forest(input_set, output_set):
     # Train the model
     model.fit(X_train, y_train)
 
-    save_model(model, MODEL_SAVE_PATH + "/random_forest_model.joblib")
+    # save_model(model, MODEL_SAVE_PATH + "/random_forest_model.joblib")
 
     # Evaluate the model
     score = model.score(X_test, y_test)

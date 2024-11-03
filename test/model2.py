@@ -2,11 +2,12 @@ import os
 import numpy as np
 import torch
 import tensorflow as tf
+from matplotlib import pyplot as plt
 
 from src.utils.log import Log
 from src.utils.plot import plot_sst_distribution_compare
 
-import matplotlib.pyplot as plt
+import matplotlib.pyplot as pltg
 
 os.environ['KERAS_BACKEND'] = 'torch'
 os.environ['CUDA_VISIBLE_DEVICES'] = '0'
@@ -106,8 +107,8 @@ if model is None:
     history = model.fit(x_train, y_train, epochs=epochs, batch_size=batch_size, validation_data=(x_test, y_test))
 
     # 绘制训练 & 验证的损失值
-    plt.title('SSIM')
-    plt.plot(history.history['loss'])
+    # plt.title('SSIM')
+    # plt.plot(history.history['loss'])
 
     model.save("model.keras", overwrite=True)
 
@@ -132,4 +133,11 @@ for i in range(2):
     Log.d(TAG, "origin sst: ", origin)
     r2 = np.corrcoef(prediction.flatten(), origin.flatten())
     Log.d(TAG, "r2: ", r2)
+
+    mse = np.nanmean((prediction - origin) ** 2)
+    rmse = np.sqrt(mse)
+    print(f"RMSE: {rmse}")
+
     plot_sst_distribution_compare(prediction, origin)
+
+

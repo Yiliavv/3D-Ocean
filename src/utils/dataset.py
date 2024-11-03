@@ -1,68 +1,78 @@
 import os
+import sys
 import numpy as np
-from netCDF4 import Dataset
+from enum import Enum
+
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
+# 获取项目根目录
+project_root = os.path.abspath(os.path.join(current_dir, os.pardir, os.pardir))
+
+# 将项目根目录添加到 sys.path
+sys.path.append(project_root)
 
 from src.config.params import BASE_BOA_ARGO_DATA_PATH
 from src.utils.log import Log
+from src.utils.util import resource_argo_monthly_data
 
 ArgoDataset_3Dim_Sequence = None
 
 
-def load_3Dim_Sequence():
-    dir_name = BASE_BOA_ARGO_DATA_PATH
-    TAG = "3Dim_Sequence"
+# Argo 三维网格数据集
+class FrameType(Enum):
+        surface = 0
+        mld = 1
 
-    files = []
+class Argo3DTemperatureDataset:
+    def __init__(self):
+        self.data = resource_argo_monthly_data(BASE_BOA_ARGO_DATA_PATH)
 
-    with os.scandir(dir_name) as entries:
-        for entry in entries:
-            if entry.is_file() and entry.name.endswith(".nc"):
-                files.append(entry.name)
-    files = files[:240]
-    total_size = len(files)
-    Log.d(TAG, "total files: ", total_size)
+    def __len__(self):
+        return len(self.data)
 
-    print(total_size)
-
-    # init 3Dim_Sequence
-    global ArgoDataset_3Dim_Sequence
-    if ArgoDataset_3Dim_Sequence is not None: return
-    ArgoDataset_3Dim_Sequence = np.empty((total_size,2, 20, 20), dtype=float)
-
-    lat_range = [60, 80]
-    lon_range = [160, 180]
-
-    for file in files:
-        month_file = dir_name + "/" + file
-        nc_file = Dataset(month_file, "r")
-        temperature = nc_file.variables["temp"][0][:2, lat_range[0]:lat_range[1], lon_range[0]:lon_range[1]]
-        # 处理缺失值
-        for i in range(2):
-            deal_with_one_surface(temperature[i, :, :])
-        # Log.d("temperature max: ", np.max(temperature[i, :, :]))
-
-        ArgoDataset_3Dim_Sequence[files.index(file)] = temperature
-        # Log.d(TAG, "3Dim_Sequence max: ", np.max(ArgoDataset_3Dim_Sequence))
-
-    Log.d(TAG, "3Dim_Sequence shape: ", ArgoDataset_3Dim_Sequence.shape)
-    return ArgoDataset_3Dim_Sequence
-
-
-def load_surface_Sequence():
-    Sequence_3Dim = load_3Dim_Sequence()
-
-    surface_sequence = Sequence_3Dim[:, 0, :, :]
-
-    for i in range(1):
-        surface_sequence = np.concatenate((surface_sequence, Sequence_3Dim[:, i+1, :, :]), axis=0)
-
-    Log.d("surface_Sequence shape: ", surface_sequence.shape)
-
-    return surface_sequence
-
-
-def deal_with_one_surface(surface):
-    for i in range(20):
-        for j in range(20):
-            if surface[i, j] > 999 or np.isnan(surface[i, j]) or np.ma.is_masked(surface[i, j]):
-                surface[i, j] = np.nanmean(surface)
+    def __getitem__(self, index):
+        return None
+    
+    def shape(self, type = FrameType.surface):
+        """
+        Get the shape of the argo ocean dataset.
+        
+        Args:
+            type: The type of the frame.
+        """
+        
+        if type == FrameType.surface:
+            return self.data[0]['temp'].shape
+        elif type == FrameType.mld:
+            return self.data[0]['mld'].shape
+        else:
+            return None
+    
+    def getFrame(self, type = FrameType.surface, time = (0, 0), lon = (0, 0), lat = (0, 0), depth = (0, 0)):
+        """
+        Get a frame of the argo ocean dataset.
+        
+        Args:
+            type: The type of the frame.
+            lon: The range of longitude.
+            lat: The range of latitude.
+            time: The range of time.
+            depth: The range of depth.
+        """
+        
+        time_slice_of_data = np.array(self.data[time[0]:time[1]])
+        frame = []
+        
+        match type:
+              case FrameType.surface:
+                for i in range(time_slice_of_data.shape[0]):
+                    surface_temp = time_slice_of_data[i]['temp']
+                    surface_temp = surface_temp[lat[0]:lat[1], lon[0]:lon[1], depth[0]:depth[1]]
+                    frame.append(surface_temp)
+              case FrameType.mld:
+                for i  in range(time_slice_of_data.shape[0]):
+                    mld = time_slice_of_data[i]['mld']
+                    mld = mld[lat[0]:lat[1], lon[0]:lon[1], depth[0]:depth[1]]
+                    frame.append(mld)
+        
+        return np.array(frame)

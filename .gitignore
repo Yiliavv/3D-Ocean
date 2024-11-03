@@ -1,3 +1,5 @@
 .venv
 .idea
 *.onnx
+__pycache__
+output/
