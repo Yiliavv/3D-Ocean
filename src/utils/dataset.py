@@ -1,99 +1,91 @@
-import sys, os
-import numpy as np
+import os
+
 from enum import Enum
 
-sys.path.insert(0, '../')
+import numpy as np
+from torch.utils.data import Dataset, DataLoader
 
-from config.params import BASE_BOA_ARGO_DATA_PATH, BASE_ERA5_DATA_PATH
-from utils.util import resource_argo_monthly_data, import_era5_sst
+from src.config.params import BASE_BOA_ARGO_DATA_PATH, BASE_ERA5_DATA_PATH
+from src.utils.util import resource_argo_monthly_data, import_era5_sst
+
 
 class FrameType(Enum):
-        surface = 0
-        mld = 1
+    surface = 0
+    mld = 1
 
-class Argo3DTemperatureDataset:
-    '''
+
+class Argo3DTemperatureDataset(Dataset):
+    """
     Argo 三维温度数据集
-    '''
-    def __init__(self):
+    """
+
+    def __init__(self, step=1, lon=(0, 0), lat=(0, 0), depth=(0, 0), dtype=FrameType.surface, *args):
+        super().__init__(*args)
+        self.step = step
+        self.lon = lon
+        self.lat = lat
+        self.depth = depth
+        self.dtype = dtype
         self.data = resource_argo_monthly_data(BASE_BOA_ARGO_DATA_PATH)
 
     def __len__(self):
-        return len(self.data)
+        return len(self.data) / self.step
 
     def __getitem__(self, index):
-        return None
-    
-    def shape(self, type = FrameType.surface):
-        """
-        Get the shape of the argo ocean dataset.
-        
-        Args:
-            type: The type of the frame.
-        """
-        
-        if type == FrameType.surface:
-            return self.data[0]['temp'].shape
-        elif type == FrameType.mld:
-            return self.data[0]['mld'].shape
-        else:
-            return None
-    
-    def getFrame(self, type = FrameType.surface, time = (0, 0), lon = (0, 0), lat = (0, 0), depth = (0, 0)):
-        """
-        Get a frame of the argo ocean dataset.
-        
-        Args:
-            type: The type of the frame.
-            lon: The range of longitude.
-            lat: The range of latitude.
-            time: The range of time.
-            depth: The range of depth.
-        """
-        
-        time_slice_of_data = np.array(self.data[time[0]:time[1]])
-        frame = []
-        
-        match type:
-              case FrameType.surface:
-                for i in range(time_slice_of_data.shape[0]):
-                    surface_temp = time_slice_of_data[i]['temp']
-                    surface_temp = surface_temp[lon[0]:lon[1], lat[0]:lat[1], depth[0]:depth[1]]
-                    frame.append(surface_temp)
-              case FrameType.mld:
-                for i  in range(time_slice_of_data.shape[0]):
-                    mld = time_slice_of_data[i]['mld']
-                    mld = mld[lon[0]:lon[1], lat[0]:lat[1], depth[0]:depth[1]]
-                    frame.append(mld)
-        
-        return np.array(frame)
-    
-    
+        cur = index * self.step
+        match self.dtype:
+            case FrameType.surface:
+                return self.data[cur:cur + self.step]['temp'][self.lon[0]:self.lon[1], self.lat[0]:self.lat[1],
+                       self.depth[0]:self.depth[1]]
+            case FrameType.mld:
+                return self.data[cur:cur + self.step]['mld'][self.lon[0]:self.lon[1], self.lat[0]:self.lat[1],
+                       self.depth[0]:self.depth[1]]
+
+
 # ERA5 三维数据集
-class ERA5SstDataset:
-    def __init__(self):
+class ERA5SstDataset(Dataset):
+    """
+    ERA5 SST 数据集
+
+    :arg  width: 序列长度宽度
+    :arg  step: 时间平移步长
+    :arg  lon: 经度范围
+    :arg  lat: 纬度范围
+    """
+
+    def __init__(self, width=10, step=10, lon=None, lat=None, *args):
+        super().__init__(*args)
+        if lat is None:
+            lat = np.array([0, 0])
+        if lon is None:
+            lon = np.array([0, 0])
+
+        self.precision = 4
+
+        self.width = width
+        self.step = step
+        self.lon = np.array(lon) * self.precision
+        self.lat = np.array(lat) * self.precision
+
         first_file = None
-        
+
         with os.scandir(BASE_ERA5_DATA_PATH) as files:
             for entry in files:
                 if entry.is_file() and entry.name.endswith('.nc'):
                     first_file = entry.path
                     break
-        if (first_file is not None):
-            self.data = np.transpose(import_era5_sst(first_file), (0, 2, 1)) # 交换位置保证经度在前
-            self.data.precision = 0.25
-        else: self.data = np.empty(0)
+        if first_file is not None:
+            self.file = first_file
+            sst, shape, time = import_era5_sst(self.file)
+            self.shape = shape
+            self.time = time
+        else:
+            self.file = None
 
     def __len__(self):
-        return len(self.data)
+        return int(self.shape[0] / self.step)
 
     def __getitem__(self, index):
-        return self.data[index]
-
-    def shape(self):
-        return self.data.shape
-
-    def getFrame(self, time = (0, 0), lon = (0, 0), lat = (0, 0)):
-        lon = tuple([int(item / self.data.precision) for item in lon])
-        lat = tuple([int(item / self.data.precision) for item in lat])
-        return np.array(self.data[time[0]:time[1], lon[0]:lon[1], lat[0]:lat[1]])
+        cur = index * self.step
+        sst, shape, time = import_era5_sst(self.file, cur, cur + self.width)
+        return sst[:, self.lon[0]:self.lon[1], self.lat[0]:self.lat[1]] - 273.15, time

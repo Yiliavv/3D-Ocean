@@ -4,11 +4,9 @@ import numpy as np
 import netCDF4 as nc
 from datetime import datetime
 
-sys.path.insert(0, "../")
-
-from utils.log import Log
-from config.params import BASE_CDAC_DATA_PATH
-from models.model import calculate_seawater_density, linear_fit, calculate_angle_tan
+from src.utils.log import Log
+from src.config.params import BASE_CDAC_DATA_PATH
+from src.models.model import calculate_seawater_density, linear_fit, calculate_angle_tan
 
 
 # 数据列表
@@ -387,7 +385,7 @@ def import_argo_ocean_variables(nc_filename):
     nc_filename -- Argo 数据集的文件路径
     """
 
-    nc_file = nc.Dataset(nc_filename,   'r')
+    nc_file = nc.Dataset(nc_filename, 'r')
     variables = nc_file.variables
 
     temperature = variables['temp'][0].transpose((2, 1, 0))
@@ -414,8 +412,8 @@ def resource_argo_monthly_data(argo_data_dir):
                 one_month = {}
                 temperature, lon, lat, ild, mld, cmld = import_argo_ocean_variables(entry.path)
                 one_month['temp'] = temperature
-                one_month['lon'] = lon                                                                                                                                          
-                one_month['lat'] = lat 
+                one_month['lon'] = lon
+                one_month['lat'] = lat
                 one_month['mld'] = mld
                 one_month['year'] = int(entry.name.split('_')[2])
                 one_month['month'] = int(entry.name.split('_')[3].split('.')[0])
@@ -477,7 +475,7 @@ def construct_argo_training_set(all_months):
 
 # ---------------------------- EAR5 数据处理 ----------------------------
 
-def import_era5_sst(nc_filename):
+def import_era5_sst(nc_filename, start=0, end=0):
     """导入EAR5海洋数据变量
 
     nc_filename -- EAR5 数据集的文件路径
@@ -486,6 +484,9 @@ def import_era5_sst(nc_filename):
     nc_file = nc.Dataset(nc_filename, 'r')
     variables = nc_file.variables
 
-    sst = variables['sst'][:, 1, :, :]
+    sst = variables['sst'][start:end, :, :]
+    time = variables['valid_time'][start:end]
+    shape = variables['sst'].shape
+    nc_file.close()
 
-    return sst
+    return sst, shape, time

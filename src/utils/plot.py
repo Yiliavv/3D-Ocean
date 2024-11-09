@@ -3,7 +3,6 @@ import cartopy.crs as ccrs
 import numpy as np
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 from matplotlib import pyplot as plt
-from tensorflow.python.keras.losses import mean_absolute_error
 
 from src.config.params import LAT_RANGE, LON_RANGE
 from src.utils.log import Log
@@ -358,8 +357,8 @@ def plot_sst_distribution(sst, title='Sea Surface Temperature (°C)', figure: pl
     ax.yaxis.set_major_formatter(LatitudeFormatter())
 
     # 绘制海表温度
-    lon = np.arange(160, 180, 1)
-    lat = np.arange(-19, 1, 1)
+    lon = np.arange(160, 180, 0.25)
+    lat = np.arange(-19, 1, 0.25)
     lon, lat = np.meshgrid(lon, lat)
     contour = ax.contourf(lon, lat, sst, cmap='coolwarm', transform=ccrs.PlateCarree(), levels=50)
 
@@ -511,11 +510,6 @@ def plot_compared_profile_for_predicted(origin, predicted):
     # 绘制对比
     origin_in_lon = np.transpose(origin[:, lat, :], (1, 0))
     predicted_in_lon = np.transpose(predicted[:, lat, :], (1, 0))
-
-    mse = mean_absolute_error(origin_in_lon, predicted_in_lon)
-    Log.d("MSE : ", mse)
-    rmse = np.sqrt(mse)
-    Log.d("RMSE : ", rmse)
 
     contour1 = ax1.contourf(X, Y, origin_in_lon, cmap='coolwarm', levels=20)
     ax1.set_title('Origin')
