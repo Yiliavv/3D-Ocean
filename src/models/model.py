@@ -6,33 +6,11 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.model_selection import train_test_split
 from joblib import dump, load
+from torch import nn, optim
+import tensorflow as tf
 
-from src.config.params import LAT_RANGE, LON_RANGE, MODEL_SAVE_PATH
+from src.config.params import MODEL_SAVE_PATH
 from src.utils.log import Log
-
-
-# -------------------------- CDAC 数据处理 --------------------------
-
-def range_cdac_one_day_float_data(one_day_data):
-    """
-    将浮标数据约束在指定的经纬度范围内
-    """
-    ranged = []
-    for float_data in one_day_data:
-        pos = float_data['pos']
-        if LAT_RANGE[0] <= pos['lat'] <= LAT_RANGE[1] and LON_RANGE[0] <= pos['lon'] <= LON_RANGE[1]:
-            ranged.append(float_data)
-
-    return ranged
-
-
-# -------------------------- Argo 数据处理 --------------------------
-
-def range_argo_mld_data(mld):
-    """
-    将Argo数据约束在指定的经纬度范围内
-    """
-    return mld[LON_RANGE[0] + 180:LON_RANGE[1] + 180, LAT_RANGE[0] + 80:LAT_RANGE[1] + 80]
 
 
 # -------------------------- 数学方法 --------------------------
@@ -127,8 +105,29 @@ def profile_error(origin, predict):
     origin = np.array(origin)
     predict = np.array(predict)
 
+def ssim_loss(y_true, y_pred):
+    return 1 - tf.reduce_mean(tf.image.ssim(y_true, y_pred, max_val=1.0))
+
 
 # -------------------------- 模型工具 --------------------------
+
+def train(model, x_train, label_train, epoches: int = 10, loss_function=None, optimizer=None):
+    """
+    训练模型
+    """
+    if loss_function is None:
+        loss_function = nn.MSELoss()
+    if optimizer is None:
+        optimizer = optim.Adam(model.parameters(), lr=0.01)
+
+    for epoch in range(epoches):
+        optimizer.zero_grad()
+        output = model(x_train)
+        loss = loss_function(output, label_train)
+        loss.backward()
+        optimizer.step()
+        print(f"Epoch {epoch}: Loss {loss.item()}")
+
 
 def save_model(model, path):
     """

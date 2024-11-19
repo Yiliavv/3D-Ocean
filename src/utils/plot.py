@@ -360,7 +360,7 @@ def plot_sst_distribution(sst, title='Sea Surface Temperature (°C)', figure: pl
     lon = np.arange(160, 180, 0.25)
     lat = np.arange(-19, 1, 0.25)
     lon, lat = np.meshgrid(lon, lat)
-    contour = ax.contourf(lon, lat, sst, cmap='coolwarm', transform=ccrs.PlateCarree(), levels=50)
+    contour = ax.contourf(lon, lat, sst, cmap='viridis', transform=ccrs.PlateCarree(), levels=50)
 
     # 添加颜色条
     cbar = figure.colorbar(contour, ax=ax, orientation='horizontal', pad=0.05, fraction=0.05)
@@ -390,15 +390,15 @@ def plot_sst_distribution_compare(sst1, sst2, title='Sea Surface Temperature (°
         ax.yaxis.set_major_formatter(LatitudeFormatter())
 
     # 绘制第一个海表温度
-    lon = np.arange(160, 180)
-    lat = np.arange(-19, 1)
+    lon = np.arange(160, 180, 0.25)
+    lat = np.arange(-19, 1, 0.25)
     lon, lat = np.meshgrid(lon, lat)
     levels = np.arange(min(np.min(sst1), np.min(sst2)), max(np.max(sst1), np.max(sst2)), 0.1)
-    contour1 = ax1.contourf(lon, lat, sst1, cmap='coolwarm', transform=ccrs.PlateCarree(), levels=levels)
+    contour1 = ax1.contourf(lon, lat, sst1, cmap='coolwarm', transform=ccrs.PlateCarree(),levels=levels)
     ax1.set_title('SST1')
 
     # 绘制第二个海表温度
-    contour2 = ax2.contourf(lon, lat, sst2, cmap='coolwarm', transform=ccrs.PlateCarree(), levels=levels)
+    contour2 = ax2.contourf(lon, lat, sst2, cmap='coolwarm', transform=ccrs.PlateCarree(),levels=levels)
     ax2.set_title('SST2')
 
     # 添加共享颜色条

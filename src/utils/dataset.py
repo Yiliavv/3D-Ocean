@@ -67,6 +67,10 @@ class ERA5SstDataset(Dataset):
         self.lon = np.array(lon) * self.precision
         self.lat = np.array(lat) * self.precision
 
+        self.page_size = 5000
+        self.page_start = 0
+        self.cache = None
+
         first_file = None
 
         with os.scandir(BASE_ERA5_DATA_PATH) as files:
@@ -76,9 +80,11 @@ class ERA5SstDataset(Dataset):
                     break
         if first_file is not None:
             self.file = first_file
-            sst, shape, time = import_era5_sst(self.file)
+            page_end = self.page_start + self.page_size
+            sst, shape, time = import_era5_sst(self.file, self.page_start, page_end)
             self.shape = shape
             self.time = time
+            self.cache = sst
         else:
             self.file = None
 
@@ -86,6 +92,38 @@ class ERA5SstDataset(Dataset):
         return int(self.shape[0] / self.step)
 
     def __getitem__(self, index):
-        cur = index * self.step
-        sst, shape, time = import_era5_sst(self.file, cur, cur + self.width)
-        return sst[:, self.lon[0]:self.lon[1], self.lat[0]:self.lat[1]] - 273.15, time
+        # 数据的区间
+        start = index * self.step
+        end = start + self.width
+
+        # 缓存的区间
+        page_end = self.page_start + self.page_size
+
+        # 如果取的数据在缓存内
+        if (self.page_start <= start) and (end < page_end):
+            start = start - self.page_start
+            end = start + self.width
+            sst = self.cache[start:end]
+        else:
+            # 更新数据
+            self.page_start = start
+            page_end = start + self.page_size
+            sst, shape, time = import_era5_sst(self.file, self.page_start, page_end)
+            self.cache = sst
+
+            start = start - self.page_start
+            end = start + self.width
+
+            sst = sst[start:end]
+
+        sst = sst[:, self.lon[0]:self.lon[1], self.lat[0]:self.lat[1]] - 273.15
+
+        fore_ = sst[:self.width - 1, ...]
+        last_ = sst[-1, ...]
+
+        return fore_, last_
+
+
+argo_dataset = Argo3DTemperatureDataset()
+
+print(argo_dataset.__len__())
