@@ -485,7 +485,7 @@ def import_era5_sst(nc_filename, start=0, end=0):
     variables = nc_file.variables
 
     sst = variables['sst'][start:end, :, :]
-    time = variables['valid_time'][start:end]
+    time = variables['valid_time'][:]
     shape = variables['sst'].shape
     nc_file.close()
 

@@ -6,7 +6,7 @@ BASE_BOA_ARGO_DATA_PATH = "D:/ArgoDataset"
 BASE_ERA5_DATA_PATH = "B:/era5"
 
 # 模型保存路径
-MODEL_SAVE_PATH = "D:/tensorflow/research/output"
+MODEL_SAVE_PATH = "D:/tensorflow/output/models"
 
 # 太平洋区域经纬度范围
 LON_RANGE = [80, 140]

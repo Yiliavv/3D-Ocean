@@ -153,9 +153,6 @@ from keras import Model, Sequential, Input, layers, saving
 class Conv2DLSTMNetwork(Model):
     def __init__(self, shape: tuple[int, int, int], **kwargs):
         super(Conv2DLSTMNetwork, self).__init__(**kwargs)
-
-        print("Conv2DLSTMNetwork init shape: " + str(shape))
-
         self.model = Sequential([
             Input(batch_shape=shape),
             layers.ConvLSTM2D(
@@ -164,35 +161,35 @@ class Conv2DLSTMNetwork(Model):
                 padding="same",
                 activation="sigmoid",
                 return_sequences=True
-            ),  # output = (100, 14, 80, 80, 64)
+            ),
             layers.ConvLSTM2D(
                 filters=64,
                 kernel_size=(5, 5),
                 padding="same",
                 activation="sigmoid",
                 return_sequences=True
-            ),  # output = (100, 14, 80, 80, 64)
+            ),
             layers.ConvLSTM2D(
                 filters=64,
                 kernel_size=(5, 5),
                 padding="same",
                 activation="sigmoid",
                 return_sequences=True
-            ),  # output = (100, 14, 80, 80, 64)
+            ),
             layers.ConvLSTM2D(
                 filters=64,
                 kernel_size=(5, 5),
                 padding="same",
                 activation="sigmoid",
                 return_sequences=False
-            ),  # output = (100, 14, 80, 80, 64)
+            ),
             layers.BatchNormalization(),
             layers.Conv2D(
                 filters=1,
                 kernel_size=(3, 3),
                 padding="same",
                 activation="relu"
-            ),  # output = (100, 80, 80, 1)
+            ),
         ])
 
     def get_config(self):
@@ -200,7 +197,8 @@ class Conv2DLSTMNetwork(Model):
 
     @classmethod
     def from_config(cls, config, custom_objects=None):
-        return cls(**config)
+        shape = config.pop('shape')
+        return cls(shape=shape, **config)
 
     def call(self, *args, **kwargs):
         return self.model(*args, **kwargs)
