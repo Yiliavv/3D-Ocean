@@ -27,7 +27,7 @@ class TestDataSet(unittest.TestCase):
                 break
 
     def test_argo_3d_temperature_dataset(self):
-        data_set = Argo3DTemperatureDataset(step=1, lon=[60, 80], lat=[160, 180], depth=[0, 10])
+        data_set = Argo3DTemperatureDataset(step=1, lat=[60, 80], lon=[160, 180], depth=[0, 10])
         data_loader = DataLoader(data_set)
         loader_itr = iter(data_loader)
 
@@ -35,7 +35,7 @@ class TestDataSet(unittest.TestCase):
 
         while True:
             try:
-                train_data = next(loader_itr)
+                train_data, train_label = next(loader_itr)
                 print(train_data.shape)
             except StopIteration:
                 break

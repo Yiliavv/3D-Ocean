@@ -1,4 +1,4 @@
-# For data handler, to data model.
+# For models
 
 import gsw
 import numpy as np
@@ -6,7 +6,7 @@ from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.model_selection import train_test_split
 from joblib import dump, load
-from torch import nn, optim
+from torch import nn, optim, mean, sqrt
 import tensorflow as tf
 
 from src.config.params import MODEL_SAVE_PATH
@@ -104,6 +104,7 @@ def profile_error(origin, predict):
     """
     origin = np.array(origin)
     predict = np.array(predict)
+
 
 def ssim_loss(y_true, y_pred):
     return 1 - tf.reduce_mean(tf.image.ssim(y_true, y_pred, max_val=1.0))

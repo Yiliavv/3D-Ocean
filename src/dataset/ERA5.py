@@ -1,61 +1,15 @@
 import os
-import pandas
-
-from enum import Enum
-
 import numpy as np
-from torch.utils.data import Dataset, DataLoader
 
-from src.config.params import BASE_BOA_ARGO_DATA_PATH, BASE_ERA5_DATA_PATH
-from src.utils.log import Log
-from src.utils.util import resource_argo_monthly_data, import_era5_sst
+from torch import tensor, unsqueeze
+from torch.utils.data import Dataset
 
+from pandas import to_datetime
 
-class FrameType(Enum):
-    surface = 0
-    mld = 1
+from src.config.params import BASE_ERA5_DATA_PATH
+from src.utils.util import import_era5_sst
 
-
-class Argo3DTemperatureDataset(Dataset):
-    """
-    Argo 三维温度数据集
-    """
-
-    def __init__(self, step=1, lon=None, lat=None, depth=None, dtype=FrameType.surface, *args):
-        super().__init__(*args)
-
-        if lon is None:
-            lon = np.array([0, 0])
-        if lat is None:
-            lat = np.array([0, 0])
-        if depth is None:
-            depth = np.array([0, 0])
-
-        self.step = step
-        self.lon = lon
-        self.lat = lat
-        self.depth = depth
-        self.dtype = dtype
-        self.data = resource_argo_monthly_data(BASE_BOA_ARGO_DATA_PATH)
-
-    def __len__(self):
-        return int(len(self.data) / self.step)
-
-    def __getitem__(self, index):
-        cur = index * self.step
-
-        temp_3d = None
-
-        match self.dtype:
-            case FrameType.surface:
-                temp_3d = np.array([temp['temp'] for temp in self.data[cur:cur + self.step]])
-            case FrameType.mld:
-                temp_3d = np.array([temp['mld'] for temp in self.data[cur:cur + self.step]])
-
-        return temp_3d[self.lon[0]:self.lon[1], self.lat[0]:self.lat[1], self.depth[0]:self.depth[1]]
-
-
-# ERA5 三维数据集
+# ERA5 海表数据集
 class ERA5SstDataset(Dataset):
     """
     ERA5 SST 数据集
@@ -82,9 +36,11 @@ class ERA5SstDataset(Dataset):
         self.lon = np.array(lon) * self.precision
         self.lat = np.array(lat) * self.precision
 
-        self.page_size = 1000
+        self.page_size = 100
         self.page_start = offset * step
         self.cache = None
+
+        self.current = 0
 
         first_file = None
 
@@ -98,8 +54,8 @@ class ERA5SstDataset(Dataset):
             page_end = self.page_start + self.page_size
             sst, shape, times = import_era5_sst(self.file, self.page_start, page_end)
             self.shape = shape
-            self.times = times
-            self.cache = sst
+            self.times = np.array(times)
+            self.cache = np.array(sst)
         else:
             self.file = None
 
@@ -107,7 +63,7 @@ class ERA5SstDataset(Dataset):
         return int((self.shape[0] - self.width) / self.step) - self.offset
 
     def __getitem__(self, index):
-        Log.d(f"Get data from {index + self.offset}")
+        self.current = index + self.offset
 
         # 数据的区间
         start = (index + self.offset) * self.step
@@ -126,23 +82,26 @@ class ERA5SstDataset(Dataset):
             self.page_start = start
             page_end = start + self.page_size
             sst, shape, times = import_era5_sst(self.file, self.page_start, page_end)
-            self.cache = sst
+            self.cache = np.array(sst)
 
             new_start = start - self.page_start
             new_end = start + self.width
 
-            sst = sst[new_start:new_end]
+            sst = sst[new_start:new_end].copy()
 
-        sst = sst[:, self.lon[0]:self.lon[1], self.lat[0]:self.lat[1]] - 273.15
+        sst = tensor(sst[:, self.lon[0]:self.lon[1], self.lat[0]:self.lat[1]] - 273.15)
 
         fore_ = sst[:self.width - 1, ...]
         last_ = sst[-1, ...]
 
-        # 去掉小时
-        start_time = str(pandas.to_datetime(self.times[start], unit='s'))[:-9]
-        end_time = str(pandas.to_datetime(self.times[end], unit='s'))[:-9]
+        # 增加一个通道维度, 通道数为 1, 即 (seq_len, width, height) -> (seq_len, 1,  width, height)
+        fore_ = unsqueeze(fore_, dim=1)
+        last_ = unsqueeze(last_, dim=0)
 
-        Log.d(f"Time: {start_time} - {end_time}")
+        # 去掉小时
+        start_time, end_time = self.getTime(index)
+
+        print(f'\n[{start_time} - {end_time}]')
 
         return fore_, last_
 
@@ -150,7 +109,10 @@ class ERA5SstDataset(Dataset):
         start = (index + self.offset) * self.step
         end = start + self.width
 
-        start_time = str(pandas.to_datetime(self.times[start], unit='s'))[:-9]
-        end_time = str(pandas.to_datetime(self.times[end], unit='s'))[:-9]
+        start_time = str(to_datetime(self.times[start], unit='s'))[:-9]
+        end_time = str(to_datetime(self.times[end], unit='s'))[:-9]
 
         return start_time, end_time
+
+    def get(self, index):
+        return self.__getitem__(index)

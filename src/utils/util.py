@@ -4,6 +4,8 @@ import numpy as np
 import netCDF4 as nc
 from datetime import datetime
 
+from memory_profiler import profile
+
 from src.utils.log import Log
 from src.config.params import BASE_CDAC_DATA_PATH
 from src.models.model import calculate_seawater_density, linear_fit, calculate_angle_tan
@@ -428,8 +430,6 @@ def construct_argo_training_set(all_months):
 
     _all_sst = None
     _all_stations = None
-    _all_years = None
-    _all_months = None
 
     _all_profiles = None
 
@@ -441,8 +441,7 @@ def construct_argo_training_set(all_months):
         # 输入
         _sst = temperature[160:180, 60:80, 0].reshape(400, -1).reshape(-1)
         _station = np.array([(lon[i], lat[j]) for i in range(160, 180) for j in range(60, 80)])
-        _year = np.array([one_month['year']] * 400)
-        _month = np.array([one_month['month']] * 400)
+
         # 输出
         _profile = temperature[160:180, 60:80, :].reshape(400, -1)
 
@@ -450,27 +449,20 @@ def construct_argo_training_set(all_months):
             Log.i("2023年9月数据: ")
             Log.i("海表温度: ", temperature[160:180, 60:80, 0].reshape(400, -1).reshape(-1))
             Log.i("经纬度: ", _station)
-            Log.i("年份: ", _year)
-            Log.i("月份: ", _month)
             Log.i("剖面温度序列: ", _profile)
 
-        if _all_years is None:
+        if _all_sst is None:
             _all_sst = _sst
             _all_stations = _station
-            _all_years = _year
-            _all_months = _month
 
             _all_profiles = _profile
         else:
             _all_sst = np.concatenate((_all_sst, _sst))
             _all_stations = np.concatenate((_all_stations, _station))
-            _all_years = np.concatenate((_all_years, _year))
-            _all_months = np.concatenate((_all_months, _month))
 
             _all_profiles = np.concatenate((_all_profiles, _profile))
 
-    return [_all_stations, _all_years, _all_months], _all_profiles
-    # return [_all_sst, _all_stations, _all_years, _all_months], _all_profiles
+    return [_all_sst, _all_stations], _all_profiles
 
 
 # ---------------------------- EAR5 数据处理 ----------------------------
@@ -484,9 +476,10 @@ def import_era5_sst(nc_filename, start=0, end=0):
     nc_file = nc.Dataset(nc_filename, 'r')
     variables = nc_file.variables
 
-    sst = variables['sst'][start:end, :, :]
-    time = variables['valid_time'][:]
-    shape = variables['sst'].shape
+    sst = variables['sst'][start:end, :, :].copy()
+    time = variables['valid_time'][:].copy()
+    shape = tuple(variables['sst'].shape)
     nc_file.close()
+    del variables
 
     return sst, shape, time

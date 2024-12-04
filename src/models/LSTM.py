@@ -1,204 +1,203 @@
-from torch import nn, tensor, cat, split, relu, sigmoid, tanh, zeros, stack, unsqueeze, optim
-from torch.utils.data import DataLoader
+import torch
+from torch import nn, manual_seed, optim
+from lightning import LightningModule
 
-from src.utils.log import Log
+from src.models.model import ssim_loss
 
 
-class ConvLSTCell(nn.Module):
+class ConvLSTMCell(LightningModule):
     """
-    2D ConvLSTM for Ocean SST
+    Initialize ConvLSTM cell.
+
+    Parameters
+    ----------
+    input_dim: int
+        Number of channels of input tensor.
+    hidden_dim: int
+        Number of channels of hidden state.
+    kernel_size: (int, int)
+        Size of the convolutional kernel.
+    bias: bool
+        Whether to add the bias.
     """
 
-    def __init__(self, kernel_size: tuple[int, int], bias: bool):
-        super(ConvLSTCell, self).__init__()
-        # 海洋数据的通道始终为1
-        self.input_channels = 1
-        self.hidden_channels = 1
+    def __init__(self, input_dim, hidden_dim, kernel_size, bias):
+        manual_seed(1)
 
+        super(ConvLSTMCell, self).__init__()
+
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
         self.kernel_size = kernel_size
-        self.padding = kernel_size[0] // 2, kernel_size[1] // 2
         self.bias = bias
 
-        self.conv = nn.Conv2d(in_channels=self.input_channels + self.hidden_channels,
-                              out_channels=4 * self.hidden_channels,
+        self.conv = nn.Conv2d(in_channels=self.input_dim + self.hidden_dim,
+                              out_channels=4 * self.hidden_dim,
                               kernel_size=self.kernel_size,
-                              padding=self.padding,
-                              bias=self.bias).to('cuda')
+                              padding='same',
+                              bias=self.bias)
 
-    def forward(self, inputs, state):
-        inputs = unsqueeze(inputs, dim=1)  # 增加一个通道维度
+    def forward(self, input_tensor, cur_state):
+        h_cur, c_cur = cur_state
 
-        h_cur, c_cur = state
+        combined = torch.cat([input_tensor, h_cur], dim=1)  # concatenate along channel axis
 
-        conv_inputs = cat([inputs, h_cur], dim=1)
-        conv_outputs = self.conv(conv_inputs)
+        print(f"conv: {combined.shape}")
 
-        co_i, co_f, co_g, co_o = split(conv_outputs, self.hidden_channels, dim=1)
+        combined_conv = self.conv(combined)
+        cc_i, cc_f, cc_o, cc_g = torch.split(combined_conv, self.hidden_dim, dim=1)
+        i = torch.sigmoid(cc_i)
+        f = torch.sigmoid(cc_f)
+        o = torch.sigmoid(cc_o)
+        g = torch.tanh(cc_g)
 
-        i = relu(co_i)
-        f = relu(co_f)
-        g = relu(co_g)
-        o = relu(co_o)
+        c_next = f * c_cur + i * g
+        h_next = o * torch.tanh(c_next)
 
-        next_state = f * c_cur + i * g
-        next_hidden_state = o * tanh(next_state)
+        return h_next, c_next
 
-        return next_hidden_state, next_state
-
-    def init(self, batch_size, shape):
-        height, width = shape
-
-        return (zeros(batch_size, self.hidden_channels, height, width).to("cuda"),
-                zeros(batch_size, self.hidden_channels, height, width).to("cuda"))
+    def init_hidden(self, batch_size, image_size):
+        height, width = image_size
+        return (torch.zeros(batch_size, self.hidden_dim, height, width, device=self.conv.weight.device),
+                torch.zeros(batch_size, self.hidden_dim, height, width, device=self.conv.weight.device))
 
 
-class ConvLSTMNetwork(nn.Module):
-    """
-    定义2D卷积长短期神经网络
+class ConvLSTM(LightningModule):
     """
 
-    def __init__(self, kernel_size: tuple[int, int],
-                 bias: bool = True, num_layers: int = 2):
-        super(ConvLSTMNetwork, self).__init__()
+    Parameters:
+        input_dim: Number of channels in input
+        hidden_dim: Number of hidden channels
+        kernel_size: Size of kernel in convolutions
+        num_layers: Number of LSTM layers stacked on each other
+        batch_first: Whether dimension 0 is the batch or not
+        bias: Bias or no bias in Convolution
+        return_all_layers: Return the list of computations for all layers
+        # Note: Will do same padding.
 
+    Input:
+        A tensor of size B, T, C, H, W or T, B, C, H, W
+    Output:
+        A tuple of two lists of length num_layers (or length 1 if return_all_layers is False).
+            0 - layer_output_list is the list of lists of length T of each output
+            1 - last_state_list is the list of last states
+                    each element of the list is a tuple (h, c) for hidden state and memory
+    Example:
+        >> x = torch.rand((32, 10, 64, 128, 128))
+        >> conv_lstm = ConvLSTM(64, 16, 3, 1, True, True, False)
+        >> _, last_states = conv_lstm(x)
+        >> h = last_states[0][0]  # 0 for layer index, 0 for h index
+    """
+
+    def __init__(self, input_dim, hidden_dim, kernel_size, num_layers,
+                 batch_first=False, bias=True, return_all_layers=False):
+        super(ConvLSTM, self).__init__()
+
+        manual_seed(1)
+
+        self._check_kernel_size_consistency(kernel_size)
+
+        # Make sure that both `kernel_size` and `hidden_dim` are lists having len == num_layers
+        kernel_size = self._extend_for_multilayer(kernel_size, num_layers)
+        hidden_dim = self._extend_for_multilayer(hidden_dim, num_layers)
+        if not len(kernel_size) == len(hidden_dim) == num_layers:
+            raise ValueError('Inconsistent list length.')
+
+        self.input_dim = input_dim
+        self.hidden_dim = hidden_dim
         self.kernel_size = kernel_size
-        self.bias = bias  # 是否使用学习偏差
-        self.num_layers = num_layers  # 神经元数量
+        self.num_layers = num_layers
+        self.batch_first = batch_first
+        self.bias = bias
+        self.return_all_layers = return_all_layers
 
-        # 初始化神经元
-        cells = nn.ModuleList()
+        cell_list = []
+        for i in range(0, self.num_layers):
+            cur_input_dim = self.input_dim if i == 0 else self.hidden_dim[i - 1]
 
+            cell_list.append(ConvLSTMCell(input_dim=cur_input_dim,
+                                          hidden_dim=self.hidden_dim[i],
+                                          kernel_size=self.kernel_size[i],
+                                          bias=self.bias))
+
+        self.cell_list = nn.ModuleList(cell_list)
+
+    def training_step(self, batch, batch_index):
+        # 训练循环
+        # x - 输入的时间序列
+        # y - 输出的时间序列
+        x, y = batch
+        print(x.shape)
+        print(y.shape)
+        print(batch_index)
+
+        if not self.batch_first:
+            # (t, b, c, h, w) -> (b, t, c, h, w)
+            x = x.permute(1, 0, 2, 3, 4)
+
+        # b - batch_size: Number of images in each batch
+        # t - seq_len: Number of images in each sequence
+        # c - Number of channels in the input
+        # h - Height of the image
+        # w - Width of the image
+        b, t, c, h, w = x.size()
+
+        # Implement stateful ConvLSTM
+
+        hidden_state = self._init_hidden(batch_size=b,
+                                         image_size=(h, w))
+
+        layer_output_list = []
+        last_state_list = []
+
+        seq_len = x.size(1)
+        cur_layer_input = x
+
+        # 每一层进行计算
+        for layer_idx in range(self.num_layers):
+
+            # 保存每一层的输出
+            h, c = hidden_state[layer_idx]
+            print(f"layer: {layer_idx}, h: {h.shape}, c: {c.shape}")
+            output_inner = []
+            # 每一个时间步进行计算
+            for t in range(seq_len):
+                cell = self.cell_list[layer_idx]
+                h, c = cell(input_tensor=cur_layer_input[:, t, :, :, :],
+                            cur_state=[h, c])
+                print(f"layer: {layer_idx}, time: {t}")
+                output_inner.append(h)
+
+            layer_output = torch.stack(output_inner, dim=1)
+            cur_layer_input = layer_output
+
+            layer_output_list.append(layer_output)
+            last_state_list.append([h, c])
+
+        if not self.return_all_layers:
+            layer_output_list = layer_output_list[-1:]
+            last_state_list = last_state_list[-1:]
+
+        return layer_output_list, last_state_list
+
+    def configure_optimizers(self):
+        optimizer = optim.Adam(self.parameters(), lr=1e-3)
+        return optimizer
+
+    def _init_hidden(self, batch_size, image_size):
+        init_states = []
         for i in range(self.num_layers):
-            cell = ConvLSTCell(kernel_size=self.kernel_size, bias=self.bias)
-            cells.append(cell)
+            init_states.append(self.cell_list[i].init_hidden(batch_size, image_size))
+        return init_states
 
-        self.cells = cells
+    @staticmethod
+    def _check_kernel_size_consistency(kernel_size):
+        if not (isinstance(kernel_size, tuple) or
+                (isinstance(kernel_size, list) and all([isinstance(elem, tuple) for elem in kernel_size]))):
+            raise ValueError('`kernel_size` must be tuple or list of tuples')
 
-    def forward(self, inputs: tensor, states: tensor = None):
-        # 默认 batch_first
-        batch_size = inputs.shape[0]
-        time_seq_length = inputs.shape[1]
-        shape = inputs.shape[2:]
-
-        if states is None:
-            # 初始化状态
-            states = [cell.init(batch_size, shape) for cell in self.cells]
-
-        layers_outputs = []
-        history_states = []
-
-        for index in range(self.num_layers):
-
-            h_state, c_state = states[index]
-            # 当前层的输出
-            outputs = []
-
-            for time in range(time_seq_length):
-                cell = self.cells[index]
-                cell_inputs = inputs[:, time, ...]  # 3D
-                h_state, c_state = cell(cell_inputs, (h_state, c_state))
-                outputs.append(h_state)
-
-            outputs = stack(outputs, dim=1)
-            layers_outputs.append(outputs)
-            history_states.append([h_state, c_state])
-
-        return layers_outputs[-1].squeeze(dim=2), [state.squeeze(dim=1) for state in history_states[-1]]
-
-    def fit(self, inputs: tensor or DataLoader, labels: tensor = None,
-            epochs: int = 10, loss_function=None, optimizer=None):
-        """
-        训练模型
-        """
-        if loss_function is None:
-            loss_function = nn.MSELoss()
-        if optimizer is None:
-            optimizer = optim.Adam(self.parameters(), lr=0.01)
-
-        use_loader = isinstance(inputs, DataLoader)
-
-        print(optimizer)
-
-        if use_loader:
-            x, label = next(iter(inputs))
-            batch_size = x.shape[0]
-
-            for epoch in range(epochs):
-                self.train(True)
-                Log.i(f"Epoch {epoch + 1}\n---------------------------------")
-                for sample_index in range(0, batch_size, 2):
-                    sample_x = x[sample_index:sample_index + 1, ...].clone().detach().to('cuda:0')
-                    sample_label = label[sample_index:sample_index + 1, ...].clone().detach().to('cuda:0')
-
-                    output, (h_state, c_state) = self.forward(sample_x)
-                    loss = loss_function(c_state, sample_label)
-                    loss.backward()
-                    optimizer.step()
-                    optimizer.zero_grad()
-
-                    Log.i(f" loss: is {loss.item()}")
-
-        return self
-
-
-# Keras Model --------------------------------------------------------------
-
-import os
-os.environ["KERAS_BACKEND"] = "torch"
-os.environ['CUDA_VISIBLE_DEVICES'] = '0'
-
-from keras import Model, Sequential, Input, layers, saving
-
-@saving.register_keras_serializable(package="Custom", name="Conv2DLSTMNetwork")
-class Conv2DLSTMNetwork(Model):
-    def __init__(self, shape: tuple[int, int, int], **kwargs):
-        super(Conv2DLSTMNetwork, self).__init__(**kwargs)
-        self.model = Sequential([
-            Input(batch_shape=shape),
-            layers.ConvLSTM2D(
-                filters=64,
-                kernel_size=(5, 5),
-                padding="same",
-                activation="sigmoid",
-                return_sequences=True
-            ),
-            layers.ConvLSTM2D(
-                filters=64,
-                kernel_size=(5, 5),
-                padding="same",
-                activation="sigmoid",
-                return_sequences=True
-            ),
-            layers.ConvLSTM2D(
-                filters=64,
-                kernel_size=(5, 5),
-                padding="same",
-                activation="sigmoid",
-                return_sequences=True
-            ),
-            layers.ConvLSTM2D(
-                filters=64,
-                kernel_size=(5, 5),
-                padding="same",
-                activation="sigmoid",
-                return_sequences=False
-            ),
-            layers.BatchNormalization(),
-            layers.Conv2D(
-                filters=1,
-                kernel_size=(3, 3),
-                padding="same",
-                activation="relu"
-            ),
-        ])
-
-    def get_config(self):
-        return {"shape": self.model.input_shape}
-
-    @classmethod
-    def from_config(cls, config, custom_objects=None):
-        shape = config.pop('shape')
-        return cls(shape=shape, **config)
-
-    def call(self, *args, **kwargs):
-        return self.model(*args, **kwargs)
+    @staticmethod
+    def _extend_for_multilayer(param, num_layers):
+        if not isinstance(param, list):
+            param = [param] * num_layers
+        return param
