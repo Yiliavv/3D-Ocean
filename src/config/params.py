@@ -7,6 +7,7 @@ BASE_ERA5_DATA_PATH = "B:/era5"
 
 # 临时文件夹
 TEMP_FILE = "B:/era5/temp"
+CHECK_POINT = "B:/temp"
 
 # 模型保存路径
 MODEL_SAVE_PATH = "D:/tensorflow/output/models"

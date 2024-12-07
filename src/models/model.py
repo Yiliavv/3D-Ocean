@@ -2,12 +2,11 @@
 
 import gsw
 import numpy as np
-import torch
 from sklearn.ensemble import RandomForestRegressor
 from sklearn.metrics import mean_absolute_error, mean_squared_error
 from sklearn.model_selection import train_test_split
 from joblib import dump, load
-from torch import nn, optim, mean, sqrt, tensor
+from torch import nn, optim, mean, sqrt, tensor, Tensor
 import tensorflow as tf
 
 from src.config.params import MODEL_SAVE_PATH
@@ -107,9 +106,10 @@ def profile_error(origin, predict):
     predict = np.array(predict)
 
 
-def ssim_loss(y_true, y_pred):
+def ssim_loss(y_true: Tensor, y_pred: Tensor):
     y_t = y_true.detach().cpu()
     y_p = y_pred.detach().cpu()
+    print(f"y_t: {y_t.mean()}, y_p: {y_p.mean()}")
     loss = 1 - tf.reduce_mean(tf.image.ssim(y_t, y_p, max_val=1.0))
     return loss.numpy()
 

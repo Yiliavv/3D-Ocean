@@ -1,4 +1,7 @@
+from typing import Any
+
 import torch
+from lightning.pytorch.utilities.types import STEP_OUTPUT
 from torch import nn, manual_seed, optim, tensor, mean
 from lightning import LightningModule
 
@@ -89,8 +92,6 @@ class ConvLSTM(LightningModule):
     def __init__(self, input_dim, hidden_dim, kernel_size, num_layers, bias=True):
         super(ConvLSTM, self).__init__()
 
-        manual_seed(1)
-
         self._check_kernel_size_consistency(kernel_size)
 
         # Make sure that both `kernel_size` and `hidden_dim` are lists having len == num_layers
@@ -117,14 +118,8 @@ class ConvLSTM(LightningModule):
         self.cell_list = nn.ModuleList(cell_list)
         self.fc = nn.Linear(5 * 80 * 80, 1 * 80 * 80)
 
-    def training_step(self, batch, batch_index):
-        # 训练循环
-        # x - 输入的时间序列
-        # y - 输出的时间序列
-        x, y = batch
+    def forward(self, x):
         Log.d(x.shape)
-        Log.d(y.shape)
-        Log.d(batch_index)
 
         # b - batch_size: Number of images in each batch
         # t - seq_len: Number of images in each sequence
@@ -133,9 +128,6 @@ class ConvLSTM(LightningModule):
         # w - Width of the image
         b, t, c, h, w = x.shape
         Log.d(f"b: {b}, t: {t}, c: {c}, h: {h}, w: {w}")
-
-        # Implement stateful ConvLSTM
-
         hidden_state = self._init_hidden(batch_size=b,
                                          image_size=(h, w))
 
@@ -187,21 +179,42 @@ class ConvLSTM(LightningModule):
 
         Log.d(f"output_seq: {output_seq.shape}, output_h: {output_h.shape}, output_c: {output_c.shape}")
 
+        return output_c
+
+    def training_step(self, batch, batch_index):
+        # 训练循环
+        # x - 输入的时间序列
+        # y - 输出的时间序列
+        x, y = batch
+
+        # b - batch_size: Number of images in each batch
+        # t - seq_len: Number of images in each sequence
+        # c - Number of channels in the input
+        # h - Height of the image
+        # w - Width of the image
+        b, t, c, h, w = x.shape
+
+        Log.d(batch_index)
+
+        output = self(x)
+        print(f"output: {output.shape}")
+
         losses = []
 
         for i in range(b):
-            loss = ssim_loss(output_c[i, 0:].reshape(80, 80, 1),
-                             y[i, :].reshape(80, 80, 1))
+            loss = nn.functional.mse_loss(output[i, 0:].reshape(80, 80, 1),
+                                          y[i, :].reshape(80, 80, 1))
             losses.append(loss)
 
         Log.d(f"losses: {losses}")
         Log.d(f"losses: {len(losses)}")
 
-        mean_loss = mean(tensor(losses, dtype=torch.float32, requires_grad=True))
+        print(f"losses: {losses[0]}")
 
-        Log.w(f"mean_loss: {mean_loss}")
+        return losses[0]
 
-        return mean_loss
+    def validation_step(self, batch, batch_index):
+        return self.training_step(batch, batch_index)
 
     def configure_optimizers(self):
         optimizer = optim.Adam(self.parameters(), lr=1e-4)

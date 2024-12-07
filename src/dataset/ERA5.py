@@ -38,6 +38,8 @@ class ERA5SSTDataset(Dataset):
         self.lon = np.array(lon) * self.precision
         self.lat = np.array(lat) * self.precision
 
+        self.current = 0
+
         # 导入 netcdf 数据， 创建临时文件进行重新分块
         first_file = None
 
@@ -97,6 +99,8 @@ class ERA5SSTDataset(Dataset):
         return int((self.data.shape[0] - self.width) / self.step) - self.offset
 
     def __getitem__(self, index):
+        self.current = index
+
         start = self.offset + index
         end = start + self.width
 
@@ -108,11 +112,6 @@ class ERA5SSTDataset(Dataset):
         # 增加一个通道维度, 通道数为 1, 即 (seq_len, width, height) -> (seq_len, 1,  width, height)
         fore_ = unsqueeze(fore_, dim=1)
         last_ = unsqueeze(last_, dim=0)
-
-        # 去掉小时
-        start_time, end_time = self.getTime(index)
-
-        print(f"start time: {start_time}, end time: {end_time}")
 
         return fore_, last_
 
