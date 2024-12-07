@@ -1,8 +1,9 @@
 import torch
-from torch import nn, manual_seed, optim
+from torch import nn, manual_seed, optim, tensor, mean
 from lightning import LightningModule
 
 from src.models.model import ssim_loss
+from src.utils.log import Log
 
 
 class ConvLSTMCell(LightningModule):
@@ -31,7 +32,7 @@ class ConvLSTMCell(LightningModule):
         self.kernel_size = kernel_size
         self.bias = bias
 
-        self.conv = nn.Conv2d(in_channels=self.input_dim + self.hidden_dim,
+        self.conv = nn.Conv2d(in_channels=self.input_dim + self.hidden_dim,  #
                               out_channels=4 * self.hidden_dim,
                               kernel_size=self.kernel_size,
                               padding='same',
@@ -41,8 +42,6 @@ class ConvLSTMCell(LightningModule):
         h_cur, c_cur = cur_state
 
         combined = torch.cat([input_tensor, h_cur], dim=1)  # concatenate along channel axis
-
-        print(f"conv: {combined.shape}")
 
         combined_conv = self.conv(combined)
         cc_i, cc_f, cc_o, cc_g = torch.split(combined_conv, self.hidden_dim, dim=1)
@@ -70,15 +69,13 @@ class ConvLSTM(LightningModule):
         hidden_dim: Number of hidden channels
         kernel_size: Size of kernel in convolutions
         num_layers: Number of LSTM layers stacked on each other
-        batch_first: Whether dimension 0 is the batch or not
         bias: Bias or no bias in Convolution
-        return_all_layers: Return the list of computations for all layers
         # Note: Will do same padding.
 
     Input:
         A tensor of size B, T, C, H, W or T, B, C, H, W
     Output:
-        A tuple of two lists of length num_layers (or length 1 if return_all_layers is False).
+        A tuple of two lists of length num_layers.
             0 - layer_output_list is the list of lists of length T of each output
             1 - last_state_list is the list of last states
                     each element of the list is a tuple (h, c) for hidden state and memory
@@ -89,8 +86,7 @@ class ConvLSTM(LightningModule):
         >> h = last_states[0][0]  # 0 for layer index, 0 for h index
     """
 
-    def __init__(self, input_dim, hidden_dim, kernel_size, num_layers,
-                 batch_first=False, bias=True, return_all_layers=False):
+    def __init__(self, input_dim, hidden_dim, kernel_size, num_layers, bias=True):
         super(ConvLSTM, self).__init__()
 
         manual_seed(1)
@@ -107,9 +103,7 @@ class ConvLSTM(LightningModule):
         self.hidden_dim = hidden_dim
         self.kernel_size = kernel_size
         self.num_layers = num_layers
-        self.batch_first = batch_first
         self.bias = bias
-        self.return_all_layers = return_all_layers
 
         cell_list = []
         for i in range(0, self.num_layers):
@@ -121,36 +115,37 @@ class ConvLSTM(LightningModule):
                                           bias=self.bias))
 
         self.cell_list = nn.ModuleList(cell_list)
+        self.fc = nn.Linear(5 * 80 * 80, 1 * 80 * 80)
 
     def training_step(self, batch, batch_index):
         # 训练循环
         # x - 输入的时间序列
         # y - 输出的时间序列
         x, y = batch
-        print(x.shape)
-        print(y.shape)
-        print(batch_index)
-
-        if not self.batch_first:
-            # (t, b, c, h, w) -> (b, t, c, h, w)
-            x = x.permute(1, 0, 2, 3, 4)
+        Log.d(x.shape)
+        Log.d(y.shape)
+        Log.d(batch_index)
 
         # b - batch_size: Number of images in each batch
         # t - seq_len: Number of images in each sequence
         # c - Number of channels in the input
         # h - Height of the image
         # w - Width of the image
-        b, t, c, h, w = x.size()
+        b, t, c, h, w = x.shape
+        Log.d(f"b: {b}, t: {t}, c: {c}, h: {h}, w: {w}")
 
         # Implement stateful ConvLSTM
 
         hidden_state = self._init_hidden(batch_size=b,
                                          image_size=(h, w))
 
+        # 所有层的输出
         layer_output_list = []
+        # 通过最后一个神经元的状态
         last_state_list = []
 
         seq_len = x.size(1)
+        # 当前层的输入，从前一层继承输出
         cur_layer_input = x
 
         # 每一层进行计算
@@ -158,30 +153,58 @@ class ConvLSTM(LightningModule):
 
             # 保存每一层的输出
             h, c = hidden_state[layer_idx]
-            print(f"layer: {layer_idx}, h: {h.shape}, c: {c.shape}")
+            Log.d(f"layer: {layer_idx}, h: {h.shape}, c: {c.shape}")
             output_inner = []
             # 每一个时间步进行计算
             for t in range(seq_len):
                 cell = self.cell_list[layer_idx]
                 h, c = cell(input_tensor=cur_layer_input[:, t, :, :, :],
                             cur_state=[h, c])
-                print(f"layer: {layer_idx}, time: {t}")
                 output_inner.append(h)
 
+            Log.d(f"out_h: {h.shape}, out_c: {c.shape}")
+
+            # 一个层输出的时间序列
             layer_output = torch.stack(output_inner, dim=1)
+            Log.d(f"layer_output: {layer_output.shape}")
+
+            # 更新当前层的输入
             cur_layer_input = layer_output
 
             layer_output_list.append(layer_output)
             last_state_list.append([h, c])
 
-        if not self.return_all_layers:
-            layer_output_list = layer_output_list[-1:]
-            last_state_list = last_state_list[-1:]
+        # 获取最后的输出
+        output_seq = layer_output_list[-1]
+        output_h = last_state_list[-1][0]
+        output_c = last_state_list[-1][1]
 
-        return layer_output_list, last_state_list
+        output_c = output_c.view(b, -1)
+        Log.d(f"output_c 1: {output_c.shape}")
+        output_c = self.fc(output_c)
+        Log.d(f"output_c 2: {output_c.shape}")
+        output_c = output_c.view(b, 1, 80, 80)
+
+        Log.d(f"output_seq: {output_seq.shape}, output_h: {output_h.shape}, output_c: {output_c.shape}")
+
+        losses = []
+
+        for i in range(b):
+            loss = ssim_loss(output_c[i, 0:].reshape(80, 80, 1),
+                             y[i, :].reshape(80, 80, 1))
+            losses.append(loss)
+
+        Log.d(f"losses: {losses}")
+        Log.d(f"losses: {len(losses)}")
+
+        mean_loss = mean(tensor(losses, dtype=torch.float32, requires_grad=True))
+
+        Log.w(f"mean_loss: {mean_loss}")
+
+        return mean_loss
 
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.parameters(), lr=1e-3)
+        optimizer = optim.Adam(self.parameters(), lr=1e-4)
         return optimizer
 
     def _init_hidden(self, batch_size, image_size):

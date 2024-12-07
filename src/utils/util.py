@@ -467,19 +467,3 @@ def construct_argo_training_set(all_months):
 
 # ---------------------------- EAR5 数据处理 ----------------------------
 
-def import_era5_sst(nc_filename, start=0, end=0):
-    """导入EAR5海洋数据变量
-
-    nc_filename -- EAR5 数据集的文件路径
-    """
-
-    nc_file = nc.Dataset(nc_filename, 'r')
-    variables = nc_file.variables
-
-    sst = variables['sst'][start:end, :, :].copy()
-    time = variables['valid_time'][:].copy()
-    shape = tuple(variables['sst'].shape)
-    nc_file.close()
-    del variables
-
-    return sst, shape, time

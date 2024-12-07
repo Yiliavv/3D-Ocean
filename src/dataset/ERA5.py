@@ -1,16 +1,17 @@
 import os
 import numpy as np
+import netCDF4 as nc
 
 from torch import tensor, unsqueeze
 from torch.utils.data import Dataset
 
 from pandas import to_datetime
 
-from src.config.params import BASE_ERA5_DATA_PATH
-from src.utils.util import import_era5_sst
+from src.config.params import BASE_ERA5_DATA_PATH, TEMP_FILE
+
 
 # ERA5 海表数据集
-class ERA5SstDataset(Dataset):
+class ERA5SSTDataset(Dataset):
     """
     ERA5 SST 数据集
 
@@ -28,6 +29,7 @@ class ERA5SstDataset(Dataset):
         if lon is None:
             lon = np.array([0, 0])
 
+        # 初始化属性
         self.precision = 4
 
         self.width = width
@@ -36,12 +38,7 @@ class ERA5SstDataset(Dataset):
         self.lon = np.array(lon) * self.precision
         self.lat = np.array(lat) * self.precision
 
-        self.page_size = 100
-        self.page_start = offset * step
-        self.cache = None
-
-        self.current = 0
-
+        # 导入 netcdf 数据， 创建临时文件进行重新分块
         first_file = None
 
         with os.scandir(BASE_ERA5_DATA_PATH) as files:
@@ -49,47 +46,61 @@ class ERA5SstDataset(Dataset):
                 if entry.is_file() and entry.name.endswith('.nc'):
                     first_file = entry.path
                     break
+
         if first_file is not None:
-            self.file = first_file
-            page_end = self.page_start + self.page_size
-            sst, shape, times = import_era5_sst(self.file, self.page_start, page_end)
-            self.shape = shape
-            self.times = np.array(times)
-            self.cache = np.array(sst)
+            # 读取变量
+            nc_file = nc.Dataset(first_file, 'r', format='NETCDF4')
+            variables = nc_file.variables
+
+            sst = variables['sst']
+            time = variables['valid_time']
+            lon = variables['longitude']
+            lat = variables['latitude']
+
+            if os.path.exists(TEMP_FILE + "/sst.nc"):
+                self.temp_file = nc.Dataset(TEMP_FILE + "/sst.nc", 'r', format='NETCDF4')
+            else:
+                open(TEMP_FILE + "/sst.nc", 'w').close()
+                # 创建临时文件
+                self.temp_file = nc.Dataset(TEMP_FILE + "/sst.nc", 'w', format='NETCDF4')
+                # 创建变量
+                self.temp_file.createDimension('valid_time', time.shape[0])
+                self.temp_file.createDimension('longitude', lon.shape[0])
+                self.temp_file.createDimension('latitude', lat.shape[0])
+
+                chunk_sst = self.temp_file.createVariable('sst', 'float32',
+                                                          dimensions=sst.dimensions,
+                                                          chunksizes=(1, sst.shape[1], sst.shape[2]))
+                # 写入数据
+                chunk_size = 1000  # Adjust this value based on your memory capacity
+                num_chunks = sst.shape[0] // chunk_size
+
+                for i in range(num_chunks):
+                    start = i * chunk_size
+                    end = start + chunk_size
+                    print(start, end)
+                    chunk_sst[start:end, :, :] = sst[start:end, :, :]
+
+                if sst.shape[0] % chunk_size != 0:
+                    start = num_chunks * chunk_size
+                    chunk_sst[start:, :, :] = sst[start:, :, :]
         else:
-            self.file = None
+            raise FileNotFoundError("No NetCDF file found in the directory")
+
+        sst = self.temp_file.variables['sst']
+
+        # 初始化属性
+        self.data = sst
+        self.times = time[:]
 
     def __len__(self):
-        return int((self.shape[0] - self.width) / self.step) - self.offset
+        return int((self.data.shape[0] - self.width) / self.step) - self.offset
 
     def __getitem__(self, index):
-        self.current = index + self.offset
-
-        # 数据的区间
-        start = (index + self.offset) * self.step
+        start = self.offset + index
         end = start + self.width
 
-        # 缓存的区间
-        page_end = self.page_start + self.page_size
-
-        # 如果取的数据在缓存内
-        if (self.page_start <= start) and (end < page_end):
-            new_start = start - self.page_start
-            new_end = start + self.width
-            sst = self.cache[new_start:new_end]
-        else:
-            # 更新数据
-            self.page_start = start
-            page_end = start + self.page_size
-            sst, shape, times = import_era5_sst(self.file, self.page_start, page_end)
-            self.cache = np.array(sst)
-
-            new_start = start - self.page_start
-            new_end = start + self.width
-
-            sst = sst[new_start:new_end].copy()
-
-        sst = tensor(sst[:, self.lon[0]:self.lon[1], self.lat[0]:self.lat[1]] - 273.15)
+        sst = tensor(self.data[start:end, self.lon[0]:self.lon[1], self.lat[0]:self.lat[1]] - 273.15, requires_grad=True)
 
         fore_ = sst[:self.width - 1, ...]
         last_ = sst[-1, ...]
@@ -101,7 +112,7 @@ class ERA5SstDataset(Dataset):
         # 去掉小时
         start_time, end_time = self.getTime(index)
 
-        print(f'\n[{start_time} - {end_time}]')
+        print(f"start time: {start_time}, end time: {end_time}")
 
         return fore_, last_
 
@@ -116,3 +127,7 @@ class ERA5SstDataset(Dataset):
 
     def get(self, index):
         return self.__getitem__(index)
+
+    def __del__(self):
+        # 生命周期结束关闭文件
+        self.temp_file.close()
