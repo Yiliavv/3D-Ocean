@@ -333,9 +333,10 @@ def plot_argo_mld(mld, figure: plt.Figure = None, ax: plt.Axes = None):
 
 # -------------------------- 通用绘图方法 --------------------------
 
-def plot_sst_distribution(sst, title='Sea Surface Temperature (°C)', figure: plt.Figure = None, ax: plt.Axes = None):
+def plot_sst_distribution(sst, title='Sea Surface Temperature (°C)', figure: plt.Figure = None, ax: plt.Axes = None, precision=1):
     """
     绘制海表温度分布图
+    :param precision: precision of the plot
     :param title: title of the plot
     :param sst: 2D array representing sea surface temperature
     :param figure: If None, a new figure will be created
@@ -351,14 +352,14 @@ def plot_sst_distribution(sst, title='Sea Surface Temperature (°C)', figure: pl
 
     ax.set_title(title)
     # 设置地图刻度
-    ax.set_xticks(np.arange(160, 181, 5), crs=ccrs.PlateCarree())
-    ax.set_yticks(np.arange(-19, 1, 5), crs=ccrs.PlateCarree())
+    ax.set_xticks(np.arange(150, 170, 5), crs=ccrs.PlateCarree())
+    ax.set_yticks(np.arange(20, 40, 5), crs=ccrs.PlateCarree())
     ax.xaxis.set_major_formatter(LongitudeFormatter())
     ax.yaxis.set_major_formatter(LatitudeFormatter())
 
     # 绘制海表温度
-    lon = np.arange(160, 180, 0.25)
-    lat = np.arange(-19, 1, 0.25)
+    lon = np.arange(150, 170, 1 / precision)
+    lat = np.arange(20,40, 1 / precision)
     lon, lat = np.meshgrid(lon, lat)
     contour = ax.contourf(lon, lat, sst, cmap='viridis', transform=ccrs.PlateCarree(), levels=50)
 
@@ -370,7 +371,7 @@ def plot_sst_distribution(sst, title='Sea Surface Temperature (°C)', figure: pl
     return figure, ax
 
 
-def plot_sst_distribution_compare(sst1, sst2, title='Sea Surface Temperature (°C)'):
+def plot_sst_distribution_compare(sst1, sst2, title='Sea Surface Temperature (°C)', precision=1):
     """
     绘制海表温度分布图
     :param title: title of the plot
@@ -378,22 +379,22 @@ def plot_sst_distribution_compare(sst1, sst2, title='Sea Surface Temperature (°
     :param sst2: 2D array representing sea surface temperature
     """
     plt.style.use('_mpl-gallery')
-    figure, (ax1, ax2) = plt.subplots(1, 2, figsize=(20, 8), subplot_kw={'projection': ccrs.PlateCarree()})
+    figure, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8), subplot_kw={'projection': ccrs.PlateCarree()})
     figure.suptitle(title)
     plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1, wspace=0.3)
 
     # 设置地图刻度
     for ax in [ax1, ax2]:
-        ax.set_xticks(np.arange(160, 181, 5), crs=ccrs.PlateCarree())
-        ax.set_yticks(np.arange(-19, 1, 5), crs=ccrs.PlateCarree())
+        ax.set_xticks(np.arange(20, 40, 5), crs=ccrs.PlateCarree())
+        ax.set_yticks(np.arange(-40, -20, 5), crs=ccrs.PlateCarree())
         ax.xaxis.set_major_formatter(LongitudeFormatter())
         ax.yaxis.set_major_formatter(LatitudeFormatter())
 
     # 绘制第一个海表温度
-    lon = np.arange(160, 180, 0.25)
-    lat = np.arange(-19, 1, 0.25)
+    lon = np.arange(20, 40,  1 / precision)
+    lat = np.arange(-40, -20, 1 / precision)
     lon, lat = np.meshgrid(lon, lat)
-    levels = np.arange(min(np.min(sst1), np.min(sst2)), max(np.max(sst1), np.max(sst2)), 0.1)
+    levels = np.arange(min(np.nanmin(sst1), np.nanmin(sst2)), max(np.nanmax(sst1), np.nanmax(sst2)), 0.05)
     contour1 = ax1.contourf(lon, lat, sst1, cmap='coolwarm', transform=ccrs.PlateCarree(),levels=levels)
     ax1.set_title('SST1')
 

@@ -85,7 +85,7 @@ class ERA5SSTDataset(Dataset):
 
                 if sst.shape[0] % chunk_size != 0:
                     start = num_chunks * chunk_size
-                    chunk_sst[start:, :, :] = sst[start:, :, :]
+                    chunk_sst[start::self, :, :] = sst[start:, :, :]
         else:
             raise FileNotFoundError("No NetCDF file found in the directory")
 
@@ -104,7 +104,7 @@ class ERA5SSTDataset(Dataset):
         start = self.offset + index
         end = start + self.width
 
-        sst = tensor(self.data[start:end, self.lon[0]:self.lon[1], self.lat[0]:self.lat[1]] - 273.15, requires_grad=True)
+        sst = tensor(self.data[start:end, self.lon[0]:self.lon[1]:self.precision, self.lat[0]:self.lat[1]:self.precision] - 273.15, requires_grad=True)
 
         fore_ = sst[:self.width - 1, ...]
         last_ = sst[-1, ...]

@@ -1,11 +1,10 @@
 from typing import Any
 
 import torch
-from lightning.pytorch.utilities.types import STEP_OUTPUT
 from torch import nn, manual_seed, optim, tensor, mean
 from lightning import LightningModule
 
-from src.models.model import ssim_loss
+from src.models.model import ssim
 from src.utils.log import Log
 
 
@@ -94,15 +93,13 @@ class ConvLSTM(LightningModule):
 
         self._check_kernel_size_consistency(kernel_size)
 
+        self.input_dim = input_dim
+        self.hidden_dim = self._extend_for_multilayer(hidden_dim, num_layers)
+        self.kernel_size = self._extend_for_multilayer(kernel_size, num_layers)
         # Make sure that both `kernel_size` and `hidden_dim` are lists having len == num_layers
-        kernel_size = self._extend_for_multilayer(kernel_size, num_layers)
-        hidden_dim = self._extend_for_multilayer(hidden_dim, num_layers)
-        if not len(kernel_size) == len(hidden_dim) == num_layers:
+        if not len(self.kernel_size) == len(self.hidden_dim) == num_layers:
             raise ValueError('Inconsistent list length.')
 
-        self.input_dim = input_dim
-        self.hidden_dim = hidden_dim
-        self.kernel_size = kernel_size
         self.num_layers = num_layers
         self.bias = bias
 
@@ -116,7 +113,8 @@ class ConvLSTM(LightningModule):
                                           bias=self.bias))
 
         self.cell_list = nn.ModuleList(cell_list)
-        self.fc = nn.Linear(5 * 80 * 80, 1 * 80 * 80)
+        self.fc = nn.Sequential(nn.Sigmoid(), nn.Linear(hidden_dim * 20 * 20, 1 * 20 * 20, bias=True))
+        self.nor = nn.BatchNorm2d(20)
 
     def forward(self, x):
         Log.d(x.shape)
@@ -171,15 +169,16 @@ class ConvLSTM(LightningModule):
         output_h = last_state_list[-1][0]
         output_c = last_state_list[-1][1]
 
-        output_c = output_c.view(b, -1)
-        Log.d(f"output_c 1: {output_c.shape}")
-        output_c = self.fc(output_c)
-        Log.d(f"output_c 2: {output_c.shape}")
-        output_c = output_c.view(b, 1, 80, 80)
+        output = output_c
+        output = self.nor(output)
+        output = output.view(b, -1)
+        output = self.fc(output)
+        output = output.view(b, 1, 20, 20)
 
         Log.d(f"output_seq: {output_seq.shape}, output_h: {output_h.shape}, output_c: {output_c.shape}")
 
-        return output_c
+        # 返回最后一个时间步的输出
+        return output
 
     def training_step(self, batch, batch_index):
         # 训练循环
@@ -197,28 +196,19 @@ class ConvLSTM(LightningModule):
         Log.d(batch_index)
 
         output = self(x)
-        print(f"output: {output.shape}")
 
-        losses = []
+        loss = nn.functional.mse_loss(output, y)
+        self.log('loss', loss)
+        print(f" --- loss: {loss}")
 
-        for i in range(b):
-            loss = nn.functional.mse_loss(output[i, 0:].reshape(80, 80, 1),
-                                          y[i, :].reshape(80, 80, 1))
-            losses.append(loss)
-
-        Log.d(f"losses: {losses}")
-        Log.d(f"losses: {len(losses)}")
-
-        print(f"losses: {losses[0]}")
-
-        return losses[0]
+        return loss
 
     def validation_step(self, batch, batch_index):
         return self.training_step(batch, batch_index)
 
     def configure_optimizers(self):
-        optimizer = optim.Adam(self.parameters(), lr=1e-4)
-        return optimizer
+        a_opt = optim.Adam(self.parameters(), lr=1e-4)
+        return a_opt
 
     def _init_hidden(self, batch_size, image_size):
         init_states = []
