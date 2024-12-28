@@ -406,7 +406,7 @@ def resource_argo_monthly_data(argo_data_dir):
     :param argo_data_dir: Argo数据目录
     :return:
     """
-    argo_datas = []
+    argo_data = []
 
     with os.scandir(argo_data_dir) as it:
         for entry in it:
@@ -419,9 +419,9 @@ def resource_argo_monthly_data(argo_data_dir):
                 one_month['mld'] = mld
                 one_month['year'] = int(entry.name.split('_')[2])
                 one_month['month'] = int(entry.name.split('_')[3].split('.')[0])
-                argo_datas.append(one_month)
+                argo_data.append(one_month)
 
-    return argo_datas
+    return argo_data
 
 
 def construct_argo_training_set(all_months):
@@ -463,7 +463,3 @@ def construct_argo_training_set(all_months):
             _all_profiles = np.concatenate((_all_profiles, _profile))
 
     return [_all_sst, _all_stations], _all_profiles
-
-
-# ---------------------------- EAR5 数据处理 ----------------------------
-
