@@ -36,7 +36,7 @@ class Level(Enum):
 
 
 # 定义日志级别
-LOG_LEVEL = Level.WARNING
+LOG_LEVEL = Level.DEBUG
 
 
 class Log:

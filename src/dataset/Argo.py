@@ -65,10 +65,6 @@ class Argo3DTemperatureDataset(Dataset):
         
         width = lon_end - lon_start
         height = lat_end - lat_start
-        
-        print("temp: ", temp.shape)
-        print(lon_start, lon_end, lat_start, lat_end)
-        print(lon, lat)
 
         # 输入
         _sst = (temp[lon_start:lon_end, lat_start:lat_end, 0]
@@ -77,8 +73,6 @@ class Argo3DTemperatureDataset(Dataset):
         _station = np.array(
             [(lon[i], lat[j]) for i in range(lon_start, lon_end) for j in range(lat_start, lat_end)]
         )
-
-        print(_sst.shape)
         # 输出
         _profile = temp[lon_start:lon_end, lat_start:lat_end, :].reshape(width * height, -1).copy()
     

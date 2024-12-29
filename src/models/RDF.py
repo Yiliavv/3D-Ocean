@@ -5,7 +5,10 @@ from torch import nn
 class RDFNetwork(nn.Module):
     def __init__(self):
         super(RDFNetwork, self).__init__()
-        self.model = RandomForestRegressor(n_estimators=300, random_state=42, max_features=5, verbose=True)
+        self.model = RandomForestRegressor(
+            n_estimators=500, random_state=42, max_features=5, 
+            criterion='friedman_mse', verbose=True
+            )
 
     def get_config(self):
         return {"shape": self.model}
