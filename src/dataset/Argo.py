@@ -78,5 +78,5 @@ class Argo3DTemperatureDataset(Dataset):
     
         return [_sst, _station], _profile
 
-    def current(self):
+    def current_month(self):
         return self.data[self.current]

@@ -1,13 +1,16 @@
 # 画海表温度图的函数
 
-from numpy import arange, meshgrid, nanmin, nanmax
+from numpy import arange, meshgrid, linspace, nanmin, nanmax, floor, ceil
+from cmocean import cm
 
-from matplotlib import ticker as tk
 from matplotlib import pyplot as plt
+from cartopy.mpl import ticker as tk
+from cartopy import crs as ccrs
 
-from src.plot.base import create_ax, create_shared_axes
+from src.utils.log import Log
+from src.plot.base import create_ax, create_shared_axes, create_carto_ax
 
-COLOR_MAP = 'thermal'
+COLOR_MAP = cm.thermal
 
 def _range(range, step=1):
     """
@@ -23,10 +26,13 @@ def set_ticker(ax, lon, lat):
     :param ax: 子图对象
     :param lon: 经度范围 [起始经度, 结束经度]
     :param lat: 纬度范围 [起始纬度, 结束纬度]
-    """
+    """    
+    # 计算合适的经纬度刻度
+    lon_ticks = linspace(lon[0], lon[1], 10)
+    lat_ticks = linspace(lat[0], lat[1], 9)
     
-    ax.set_xticks(_range(lon))
-    ax.set_yticks(_range(lat))
+    ax.set_xticks(lon_ticks)
+    ax.set_yticks(lat_ticks)
     ax.xaxis.set_major_formatter(tk.LongitudeFormatter())
     ax.yaxis.set_major_formatter(tk.LatitudeFormatter())
 
@@ -44,7 +50,7 @@ def plot_sst(sst, lon, lat):
     set_ticker(ax, lon, lat)
     
     # 生成网格点
-    lon_grid, lat_grid = meshgrid(_range(lon), _range(lat))
+    lon_grid, lat_grid = meshgrid(_range(lat), _range(lon))
     contour = ax.contourf(lon_grid, lat_grid, sst, cmap=COLOR_MAP)
     
     plt.colorbar(contour, ax=ax,
@@ -57,25 +63,41 @@ def plot_sst(sst, lon, lat):
 
 def plot_sst_l(sst, lon, lat):
     """
-    绘制海表温度图，标注等高线以及数值
+    使用 cartopy 投影地图绘制海表温度图，标注等高线以及数值
     """
-    ax = create_ax()
+    ax = create_carto_ax()
+    
+    projection = ccrs.PlateCarree(central_longitude=-180)
+    
+    ax.set_extent([*lon, *lat], crs=projection)
     
     set_ticker(ax, lon, lat)
     
+    sst = sst.T # 转置
+    
     # 生成网格点
-    lon_grid, lat_grid = meshgrid(_range(lon), _range(lat))
-    contour = ax.contourf(lon_grid, lat_grid, sst, cmap=COLOR_MAP)
+    lon_grid, lat_grid = meshgrid( _range(lon), _range(lat))
+    contour = ax.contourf(lon_grid, lat_grid, sst, cmap=COLOR_MAP, transform=projection, levels=30)
     
-    # 添加等高线
-    contour_lines = ax.contour(lon_grid, lat_grid, sst, colors='black', linewidths=0.5)
+    # 添加等高线, 每 1 度一个浅色等高线，每 5 度一个深色等高线
+    # 绘制等高线
+    ax.contour(lon_grid, lat_grid, sst, 
+                colors='black', alpha=0.2, linewidths=0.2,
+                levels=arange(floor(nanmin(sst)), ceil(nanmax(sst)), 1),
+                transform=projection)
     
-    # 在等高线上标注数值
-    ax.clabel(contour_lines, inline=True, fontsize=8, fmt='%.1f')
+    # 绘制主要等高线(每5度)
+    contour_lines_major = ax.contour(lon_grid, lat_grid, sst,
+                                    colors='black', alpha=0.9, linewidths=0.5,
+                                    transform=projection)
+    
+    
+    # 在深色等高线上标注数值
+    ax.clabel(contour_lines_major, inline=True, fontsize=5, fmt='%d')
     
     plt.colorbar(contour, ax=ax,
                 orientation='horizontal',
-                pad=0.05,
+                pad=0.1,
                 fraction=0.05,
                 label='temperature (°C)')
     
@@ -99,7 +121,7 @@ def plot_sst_comparison(sst1, sst2, lon, lat):
         set_ticker(ax, lon, lat)
     
     # 生成网格点
-    lon_grid, lat_grid = meshgrid(_range(lon), _range(lat))
+    lon_grid, lat_grid = meshgrid(_range(lat), _range(lon))
     
     # 计算共同的色标范围
     vmin = min(nanmin(sst1), nanmin(sst2))
@@ -119,7 +141,7 @@ def plot_sst_comparison(sst1, sst2, lon, lat):
     plt.colorbar(_,
                 ax=axes,
                 orientation='horizontal',
-                pad=0.05, 
+                pad=0.1, 
                 fraction=0.05,
                 label='temperature (°C)')
     

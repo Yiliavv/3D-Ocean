@@ -1,6 +1,8 @@
 # 基础画图模块和工具
 
 from matplotlib import pyplot as plt
+from cartopy import crs as ccrs
+from cartopy import feature as cfeat
 
 def create_base_figure():
     """
@@ -31,14 +33,7 @@ def create_axes(row=1, col=1):
     :param col: 子图的列数
     :return: 返回一个包含所有子图的列表
     """
-    figure = create_base_figure()
-    
-    axes = []
-    
-    for m in range(row):
-        for n in range(col):
-            index = m * row + n
-            axes.append(figure.add_subplot(row, col, index))
+    _, axes = plt.subplots(row, col, dpi = 1200)
     
     return axes
 
@@ -51,9 +46,6 @@ def create_shared_axes(row=1, col=1, shared='all'):
     :param shared: 共享类型,可选值为 'all'(共享 x 和 y 轴),'x'(仅共享 x 轴),'y'(仅共享 y 轴)
     :return: 返回一个包含所有子图的列表
     """
-    figure = create_base_figure()
-    
-    axes = []
     
     match shared:
         case 'all':
@@ -67,17 +59,36 @@ def create_shared_axes(row=1, col=1, shared='all'):
         case _:
             sharex = sharey = False
             
-    for m in range(row):
-        for n in range(col):
-            index = m * row + n
-            if index == 0:
-                axes.append(figure.add_subplot(row, col, index + 1))
-            else:
-                axes.append(figure.add_subplot(row, col, index + 1, 
-                                             sharex=axes[0] if sharex else None,
-                                             sharey=axes[0] if sharey else None))
+    _, axes = plt.subplots(row, col, dpi = 1200, sharex=sharex, sharey=sharey)
     
     return axes
+
+# cartopy 投影
+
+def create_carto_ax():
+    """
+    创建一个基础投影地图
+    """
+    figure = create_base_figure()
+    ax = figure.add_subplot(111, projection=ccrs.PlateCarree())
+    
+    # 添加基础地图特征
+    ax.add_feature(cfeat.LAND)
+    ax.add_feature(cfeat.COASTLINE, linewidth=0.5)
+    
+    return ax
+
+def create_carto_axes(row=1, col=1):
+    """
+    创建多个基础投影地图
+    """
+    axes = []
+    for m in range(row):
+        for n in range(col):
+            axes.append(create_carto_ax())
+            
+    return axes
+
 
 # 3D 绘图
 
@@ -100,13 +111,9 @@ def create_3d_axes(row=1, col=1):
     :param col: 子图的列数
     :return: 返回一个包含所有3D子图的列表
     """
-    figure = create_base_figure()
     
-    axes = []
-    for m in range(row):
-        for n in range(col):
-            axes.append(figure.add_subplot(row, col, m * row + n + 1, projection='3d'))
-    
+    _, axes = plt.subplots(row, col, dpi = 1200, projection='3d')
+
     return axes
 
 def create_shared_3d_axes(row=1, col=1, shared='all'):
@@ -137,16 +144,6 @@ def create_shared_3d_axes(row=1, col=1, shared='all'):
         case _:
             sharex = sharey = sharez = False
             
-    for m in range(row):
-        for n in range(col):
-            index = m * row + n
-            if index == 0:
-                axes.append(figure.add_subplot(row, col, index + 1, projection='3d'))
-            else:
-                axes.append(figure.add_subplot(row, col, index + 1, projection='3d',
-                                             sharex=axes[0] if sharex else None,
-                                             sharey=axes[0] if sharey else None))
-                if sharez:
-                    axes[-1].set_zlim(axes[0].get_zlim())
+    _, axes = plt.subplots(row, col, dpi = 1200, sharex=sharex, sharey=sharey, sharez=sharez, projection='3d')
     
     return axes

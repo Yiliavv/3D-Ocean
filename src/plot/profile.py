@@ -17,12 +17,10 @@ def plot_3d_temperature(temp, lon, lat, depth):
     :param depth: 深度列表
     :return: 返回3D图像对象
     """
-    
-    
     ax = create_3d_ax()
     
     # 生成网格点
-    lon_grid, lat_grid = meshgrid(_range(lon), _range(lat))
+    lon_grid, lat_grid = meshgrid(_range(lat), _range(lon))
     
     # 计算色标范围
     vmin = nanmin(temp)
@@ -61,12 +59,11 @@ def plot_3d_temperature_comparison(temp1, temp2, lon, lat, depth):
     :param depth: 深度列表
     :return: 返回包含两个3D子图的列表
     """
-
     # 创建两个共享坐标轴的3D子图
     axes = create_shared_3d_axes(1, 2, shared='all')
 
     # 生成网格点
-    lon_grid, lat_grid = meshgrid(_range(lon), _range(lat))
+    lon_grid, lat_grid = meshgrid(_range(lat), _range(lon))
 
     # 计算两个数据集的共同色标范围
     vmin = min(nanmin(temp1), nanmin(temp2))
