@@ -63,7 +63,7 @@ def plot_3d_temperature_comparison(temp1, temp2, lon, lat, depth):
     axes = create_shared_3d_axes(1, 2, shared='all')
 
     # 生成网格点
-    lon_grid, lat_grid = meshgrid(_range(lat), _range(lon))
+    x_grid, y_grid, z_grid = meshgrid(_range(lat), _range(lon), -depth)
 
     # 计算两个数据集的共同色标范围
     vmin = min(nanmin(temp1), nanmin(temp2))
@@ -76,21 +76,21 @@ def plot_3d_temperature_comparison(temp1, temp2, lon, lat, depth):
             'vmax': vmax,
             'levels': linspace(vmin, vmax, 20),
         }
+    
+    print(x_grid.shape, y_grid.shape, z_grid.shape)
 
     # 在两个子图上分别绘制等温面
     for ax, temp in zip(axes, [temp1, temp2]):
-        # 绘制每一层的等温面
-        for i, d in enumerate(depth):
-            temp_layer = transpose(temp[:, :, i], (1, 0))
-            
-            _ = ax.contourf(lon_grid, lat_grid, temp_layer,
-                        zdir='z', offset=-d,
-                        **kw)
+        for d_index in range(len(depth)):
+            # 绘制每一层的等温面
+            _ = ax.contourf(x_grid[:, :, d_index], y_grid[:, :, d_index], temp[:, :, d_index],
+                           zdir='z', offset=-depth[d_index],
+                           **kw)
         
-        # 设置坐标轴范围
-        ax.set_xlim(lon)
-        ax.set_ylim(lat)
-        ax.set_zlim(-max(depth), 0)
+            # 设置坐标轴范围
+            ax.set_xlim(x_grid.min(), x_grid.max())
+            ax.set_ylim(y_grid.min(), y_grid.max())
+            ax.set_zlim(z_grid.min(), z_grid.max())
 
     # 添加色标
     plt.colorbar(_, ax=axes,

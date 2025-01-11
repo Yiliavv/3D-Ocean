@@ -114,7 +114,7 @@ class ConvLSTM(LightningModule):
 
         self.cell_list = nn.ModuleList(cell_list)
         self.fc = nn.Sequential(nn.Sigmoid(), nn.Linear(hidden_dim * 20 * 20, 1 * 20 * 20, bias=True))
-        self.nor = nn.BatchNorm2d(20)
+        self.nor = nn.BatchNorm2d(10)
 
     def forward(self, x):
         Log.d(x.shape)
@@ -125,7 +125,6 @@ class ConvLSTM(LightningModule):
         # h - Height of the image
         # w - Width of the image
         b, t, c, h, w = x.shape
-        Log.d(f"b: {b}, t: {t}, c: {c}, h: {h}, w: {w}")
         hidden_state = self._init_hidden(batch_size=b,
                                          image_size=(h, w))
 
@@ -143,7 +142,7 @@ class ConvLSTM(LightningModule):
 
             # 保存每一层的输出
             h, c = hidden_state[layer_idx]
-            Log.d(f"layer: {layer_idx}, h: {h.shape}, c: {c.shape}")
+            # Log.d(f"layer: {layer_idx}, h: {h.shape}, c: {c.shape}")
             output_inner = []
             # 每一个时间步进行计算
             for t in range(seq_len):
@@ -152,11 +151,11 @@ class ConvLSTM(LightningModule):
                             cur_state=[h, c])
                 output_inner.append(h)
 
-            Log.d(f"out_h: {h.shape}, out_c: {c.shape}")
+            # Log.d(f"out_h: {h.shape}, out_c: {c.shape}")
 
             # 一个层输出的时间序列
             layer_output = torch.stack(output_inner, dim=1)
-            Log.d(f"layer_output: {layer_output.shape}")
+            # Log.d(f"layer_output: {layer_output.shape}")
 
             # 更新当前层的输入
             cur_layer_input = layer_output
@@ -165,8 +164,6 @@ class ConvLSTM(LightningModule):
             last_state_list.append([h, c])
 
         # 获取最后的输出
-        output_seq = layer_output_list[-1]
-        output_h = last_state_list[-1][0]
         output_c = last_state_list[-1][1]
 
         output = output_c
@@ -175,9 +172,8 @@ class ConvLSTM(LightningModule):
         output = self.fc(output)
         output = output.view(b, 1, 20, 20)
 
-        Log.d(f"output_seq: {output_seq.shape}, output_h: {output_h.shape}, output_c: {output_c.shape}")
+        # Log.d(f"output_seq: {output_seq.shape}, output_h: {output_h.shape}, output_c: {output_c.shape}")
 
-        # 返回最后一个时间步的输出
         return output
 
     def training_step(self, batch, batch_index):
@@ -196,10 +192,11 @@ class ConvLSTM(LightningModule):
         Log.d(batch_index)
 
         output = self(x)
+        
+        # Log.d(f"output: {output}")
 
         loss = nn.functional.mse_loss(output, y)
-        self.log('loss', loss)
-        print(f" --- loss: {loss}")
+        self.log('train_loss', loss, prog_bar=True)
 
         return loss
 

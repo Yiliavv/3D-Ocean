@@ -1,77 +1,75 @@
-from torch import manual_seed, zeros, sin, cos, exp, arange, log, tensor, meshgrid
-from torch.nn import Module, Embedding, Transformer, Softmax, init
+from torch import manual_seed, nn
+from torch.nn import Transformer, Linear
+from torch.optim import Adam
+from lightning import LightningModule
+from src.models.model import SSIM
 
+class SSTTransformer(LightningModule):
+    def __init__(self):
+        manual_seed(1)
+        super().__init__()
+        
+        # 修改模型参数
+        self.d_model = 512  # 增加模型维度以处理复杂的空间信息
+        self.transformer = Transformer(
+            d_model=self.d_model, 
+            nhead=16, 
+            num_encoder_layers=3,
+            num_decoder_layers=3,
+            dim_feedforward=1024,
+            activation='gelu',
+            dropout=0.1
+        )
+        
+        # 输入投影层：将(20,20)的空间特征映射到d_model维度
+        self.input_projection = Linear(400, self.d_model)  # 20*20=400
+        
+        # 输出投影层：将d_model维度映射回(20,20)空间
+        self.output_projection = Linear(self.d_model, 400)  # 400=20*20
+    
+    def forward(self, x):
+        batch_size = x.shape[0]
+        
+        # 重塑输入: [batch, 14, 20, 20] -> [batch, 14, 400]
+        x = x.view(batch_size, 14, -1)
+        
+        # 投影到transformer维度: [batch, 14, 400] -> [batch, 14, d_model]
+        x = self.input_projection(x)
+        
+        # 创建一个目标序列（用最后一个时间步作为初始目标）
+        tgt = x[:, -1:, :]  # [batch, 1, d_model]
+        
+        # Transformer期望的输入格式是 [seq_len, batch, d_model]
+        x = x.permute(1, 0, 2)
+        tgt = tgt.permute(1, 0, 2)
+        
+        # 通过transformer
+        output = self.transformer(x, tgt)  # [1, batch, d_model]
+        
+        # 转回原始维度顺序
+        output = output.permute(1, 0, 2)  # [batch, 1, d_model]
+        
+        # 投影回空间维度
+        output = self.output_projection(output)  # [batch, 1, 400]
+        
+        # 重塑回空间维度 [batch, 1, 20, 20]
+        output = output.view(batch_size, 1, 20, 20)
+        
+        return output
+    
+    def training_step(self, batch):
+        x, y = batch  # x: [batch, 14, 20, 20], y: [batch, 1, 20, 20]
+        y_pred = self(x)
+        loss = nn.MSELoss()(y_pred, y)
+        self.log('train_loss', loss, prog_bar=True)
+        return loss
 
-class SSTTransformer(Module):
-    def __init__(self, shape):
-        super(SSTTransformer, self).__init__()
+    def validation_step(self, batch):
+        x, y = batch
+        y_pred = self(x)
+        val_loss = nn.MSELoss()(y_pred, y)
+        self.log('val_loss', val_loss)
+        return val_loss
 
-        manual_seed(0)
-
-        self.embedding = Embedding(num_embeddings=6400, embedding_dim=512)
-
-        # Transformer编码器-解码器
-        self.transformer = Transformer(d_model=512, nhead=8,
-                                       num_encoder_layers=6,
-                                       num_decoder_layers=6,
-                                       dim_feedforward=2048,
-                                       dropout=0.2, batch_first=True)
-
-        self.position_encoding = PositionalEncoding(shape[0], shape[1], 512)
-
-        self.fc = Softmax(dim=1)
-
-        self.initialize()
-
-    def forward(self, src, tgt):
-        # Transformer
-        embed_x = self.embedding(src)
-        embed_y = self.embedding(tgt)
-
-        print(embed_x.shape)
-        print(embed_y.shape)
-
-        embed_x = self.position_encoding(embed_x)
-        embed_y = self.position_encoding(embed_y)
-
-        print(embed_x.shape)
-        print(embed_y.shape)
-
-        out = self.transformer(embed_x, embed_y)
-
-        return out[:, :, -1]
-
-    def initialize(self):
-        init.kaiming_normal_(self.embedding.weight)
-
-
-class PositionalEncoding(Module):
-    def __init__(self, width, height, d_model):
-        super(PositionalEncoding, self).__init__()
-
-        pe = zeros(width, height, d_model)
-
-        position_x, position_y = meshgrid(arange(0, width), arange(0, height))
-        position_x.unsqueeze(1)
-        position_y.unsqueeze(1)
-
-        div_term = exp(arange(0, d_model, 2).float() * (-log(tensor(10000.0) / d_model)))
-
-        print(position_x.shape)
-        print(position_y.shape)
-        print(div_term.shape)
-
-        pe[:, 0::2, :] = sin(position_x * div_term)
-        pe[:, 1::2, :] = cos(position_x * div_term)
-        pe[:, :, 0::2] = cos(position_y * div_term)
-        pe[:, :, 1::2] = sin(position_y * div_term)
-
-        pe = pe.unsqueeze(0)
-
-        self.register_buffer('pe', pe)
-
-
-def forward(self, x):
-    x = x + self.pe[:, :x.size(1)].requires_grad_(False)
-
-    return x
+    def configure_optimizers(self):
+        return Adam(self.parameters(), lr=1e-4)

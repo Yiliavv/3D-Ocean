@@ -1,6 +1,6 @@
 # 画海表温度图的函数
 
-from numpy import arange, meshgrid, linspace, nanmin, nanmax, floor, ceil
+from numpy import arange, meshgrid, linspace, nanmin, nanmax, floor, ceil, arange
 from cmocean import cm
 
 from matplotlib import pyplot as plt
@@ -26,10 +26,10 @@ def set_ticker(ax, lon, lat):
     :param ax: 子图对象
     :param lon: 经度范围 [起始经度, 结束经度]
     :param lat: 纬度范围 [起始纬度, 结束纬度]
-    """    
+    """
     # 计算合适的经纬度刻度
-    lon_ticks = linspace(lon[0], lon[1], 10)
-    lat_ticks = linspace(lat[0], lat[1], 9)
+    lon_ticks = arange(lon[0], lon[1], 5)
+    lat_ticks = arange(lat[0], lat[1], 5)
     
     ax.set_xticks(lon_ticks)
     ax.set_yticks(lat_ticks)
@@ -114,29 +114,45 @@ def plot_sst_comparison(sst1, sst2, lon, lat):
     :param lat: 纬度范围 [起始纬度, 结束纬度]
     :return: 返回包含两个子图的列表
     """
-    axes = create_shared_axes(1, 2)
     
-    # 设置两个子图的刻度
-    for ax in axes:
-        set_ticker(ax, lon, lat)
+    ax.figure.set_size_inches(10, 10)
+    
+    axes = create_shared_axes(1, 2, 'all')
     
     # 生成网格点
-    lon_grid, lat_grid = meshgrid(_range(lat), _range(lon))
+    lon_grid, lat_grid = meshgrid(_range(lon), _range(lat))
     
     # 计算共同的色标范围
     vmin = min(nanmin(sst1), nanmin(sst2))
     vmax = max(nanmax(sst1), nanmax(sst2))
     
+    levels = arange(floor(vmin), ceil(vmax), 0.5)
+    
     # 绘制第一个海表温度分布图
     _ = axes[0].contourf(lon_grid, lat_grid, sst1, 
                                cmap=COLOR_MAP,
-                               vmin=vmin, vmax=vmax)
+                               levels=levels)
     
+    # 绘制第一个海表温度分布图的等高线
+    axes[0].contour(lon_grid, lat_grid, sst1, 
+                               colors='black', alpha=0.9, linewidths=0.4,
+                               levels=arange(vmin, vmax, 1))
+    
+
     # 绘制第二个海表温度分布图
     _ = axes[1].contourf(lon_grid, lat_grid, sst2,
                                cmap=COLOR_MAP, 
-                               vmin=vmin, vmax=vmax)
+                               levels=levels)
     
+    # 绘制第二个海表温度分布图的等高线
+    axes[1].contour(lon_grid, lat_grid, sst2, 
+                               colors='black', alpha=0.9, linewidths=0.4,
+                               levels=arange(vmin, vmax, 1))
+
+    # 设置两个子图的刻度
+    for ax in axes:
+        set_ticker(ax, lon, lat)
+
     # 添加共享色标
     plt.colorbar(_,
                 ax=axes,

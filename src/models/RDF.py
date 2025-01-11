@@ -7,7 +7,7 @@ class RDFNetwork(nn.Module):
         super(RDFNetwork, self).__init__()
         self.model = RandomForestRegressor(
             n_estimators=500, random_state=42, max_features=5, 
-            criterion='friedman_mse', verbose=True
+            criterion='friedman_mse'
             )
 
     def get_config(self):

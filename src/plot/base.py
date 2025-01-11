@@ -1,5 +1,6 @@
 # 基础画图模块和工具
 
+import numpy as np
 from matplotlib import pyplot as plt
 from cartopy import crs as ccrs
 from cartopy import feature as cfeat
@@ -49,13 +50,14 @@ def create_shared_axes(row=1, col=1, shared='all'):
     
     match shared:
         case 'all':
-            sharex = sharey = True
+            sharex = "all"
+            sharey = "all"
         case 'x':
-            sharex = True
+            sharex = "all"
             sharey = False  
         case 'y':
             sharex = False
-            sharey = True
+            sharey = "all"
         case _:
             sharex = sharey = False
             
@@ -122,7 +124,7 @@ def create_shared_3d_axes(row=1, col=1, shared='all'):
     
     :param row: 子图的行数
     :param col: 子图的列数
-    :param shared: 共享的坐标轴,'all'表示共享所有轴,'x'表示共享x轴,'y'表示共享y轴,'z'表示共享z轴
+    :param shared: 共享的坐标轴,'all'表示共享所有轴,'x'表示共享x轴,'y'表示共享y轴
     :return: 返回一个包含所有3D子图的列表
     """
     figure = create_base_figure()
@@ -131,19 +133,18 @@ def create_shared_3d_axes(row=1, col=1, shared='all'):
     # 根据shared参数设置共享轴
     match shared:
         case 'all':
-            sharex = sharey = sharez = True
+            sharex = sharey = True
         case 'x':
             sharex = True
-            sharey = sharez = False
+            sharey = False
         case 'y':
             sharey = True
-            sharex = sharez = False
-        case 'z':
-            sharez = True
-            sharex = sharey = False
+            sharex = False
         case _:
-            sharex = sharey = sharez = False
+            sharex = sharey = False
             
-    _, axes = plt.subplots(row, col, dpi = 1200, sharex=sharex, sharey=sharey, sharez=sharez, projection='3d')
+    for i in range(row):
+        for j in range(col):
+            axes.append(figure.add_subplot(row, col, i * col + j + 1, projection='3d'))
     
     return axes

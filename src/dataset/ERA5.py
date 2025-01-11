@@ -103,8 +103,14 @@ class ERA5SSTDataset(Dataset):
 
         start = self.offset + index
         end = start + self.width
-
-        sst = tensor(self.data[start:end, self.lon[0]:self.lon[1]:self.precision, self.lat[0]:self.lat[1]:self.precision] - 273.15, requires_grad=True)
+        
+        # 纬度在前，经度在后
+        sst = self.data[start:end, self.lat[0]:self.lat[1]:self.precision, self.lon[0]:self.lon[1]:self.precision] - 273.15
+        sst = np.array(sst)
+        sst = np.flip(sst, axis=1)
+        sst[sst > 99] = np.nan
+        sst = sst.copy()
+        sst = tensor(sst, requires_grad=True)
 
         fore_ = sst[:self.width - 1, ...]
         last_ = sst[-1, ...]

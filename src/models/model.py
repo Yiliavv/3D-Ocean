@@ -166,7 +166,7 @@ class SSIM(torch.nn.Module):
             self.window = window
             self.channel = channel
 
-        return _ssim(img1, img2, window, self.window_size, channel, self.size_average)
+        return 1 - _ssim(img1, img2, window, self.window_size, channel, self.size_average)
 
 
 def ssim(img1, img2, window_size=11, size_average=True):
