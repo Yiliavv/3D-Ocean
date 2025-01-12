@@ -3,3 +3,4 @@
 *.onnx
 __pycache__
 output/
+lightning_logs/

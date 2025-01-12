@@ -1,3 +1,4 @@
+import datetime
 import os
 import numpy as np
 import netCDF4 as nc
@@ -133,6 +134,12 @@ class ERA5SSTDataset(Dataset):
     def get(self, index):
         return self.__getitem__(index)
 
-    def __del__(self):
-        # 生命周期结束关闭文件
-        self.temp_file.close()
+    def get_item_at(self, time: datetime.datetime):
+        base_time = datetime.datetime(1940, 1, 1)
+        
+        index = (time - base_time).days
+        
+        print(index)
+
+        # 获取数据集中的数据
+        return self.data[index - 1]

@@ -1,8 +1,6 @@
-from torch import manual_seed, nn
+from torch import manual_seed, nn, optim
 from torch.nn import Transformer, Linear
-from torch.optim import Adam
 from lightning import LightningModule
-from src.models.model import SSIM
 
 class SSTTransformer(LightningModule):
     def __init__(self):
@@ -13,11 +11,10 @@ class SSTTransformer(LightningModule):
         self.d_model = 512  # 增加模型维度以处理复杂的空间信息
         self.transformer = Transformer(
             d_model=self.d_model, 
-            nhead=16, 
-            num_encoder_layers=3,
-            num_decoder_layers=3,
-            dim_feedforward=1024,
-            activation='gelu',
+            nhead=8, 
+            num_encoder_layers=2,
+            num_decoder_layers=2,
+            dim_feedforward=256,
             dropout=0.1
         )
         
@@ -72,4 +69,4 @@ class SSTTransformer(LightningModule):
         return val_loss
 
     def configure_optimizers(self):
-        return Adam(self.parameters(), lr=1e-4)
+        return optim.Adam(self.parameters(), lr=1e-4)

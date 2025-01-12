@@ -8,7 +8,6 @@ from memory_profiler import profile
 
 from src.utils.log import Log
 from src.config.params import BASE_CDAC_DATA_PATH
-from src.models.model import calculate_seawater_density, linear_fit, calculate_angle_tan
 
 
 # 数据列表
@@ -303,80 +302,6 @@ def resource_monthly_data(month_data_dir):
         Log.i("one_day shape: ", len(daily[i]))
         Log.i("one_day shape after range: ", len(daily[i]))
     return daily
-
-
-def max_angle_compute_mld(float_data):
-    """
-    最大角度法计算混合层深度
-    """
-    data = float_data['data']
-    pressures = data['pres']  # 1dbar = 1m, 压力即深度
-    temperatures = data['temp']
-    salinity = data['psal']
-
-    # 计算密度
-    densities = []
-    for i in range(len(pressures)):
-        density = calculate_seawater_density(temperatures[i], salinity[i], pressures[i])
-        densities.append(density)
-
-    # 过滤掉 NaN 值
-    densities = np.array(densities)
-    pressures = np.array(pressures)
-    valid_indices = ~np.isnan(densities)
-    densities = densities[valid_indices]
-    pressures = pressures[valid_indices]
-
-    if len(densities) == 0:
-        Log.e("所有密度值均为 NaN，无法计算混合层深度")
-        return 9999
-
-    max_tan_h = 0
-    mixed_layer_depth = None
-
-    # 密度最大值和最小值
-    q_min_index = np.argmin(densities)
-    q_max_index = np.argmax(densities)
-    z_min = pressures[q_min_index]
-    z_max = pressures[q_max_index]
-
-    # 密度差
-    delta_d = densities[q_max_index] - densities[q_min_index]
-
-    # 密度变化范围
-    q_01 = 0.1 * delta_d + densities[q_min_index]
-    q_02 = 0.7 * delta_d + densities[q_min_index]
-
-    # 计算在密度变化范围内的点个数
-    n = int(np.sum([1 for q in densities if q_01 <= q <= q_02]))
-    m = int(min(20, n))
-
-    # 对每个点
-    for i, pressure in enumerate(pressures):
-        # 确定上方的点
-        j = max(i - 1, 0)
-        if i < m:
-            j = i - 1
-        elif i > m:
-            j = m
-
-        if i >= len(pressures) - 2: break
-
-        # 线性拟合上方的点
-        m1, c1 = linear_fit([pressures[j], pressures[i + 2]], [densities[j], densities[i + 2]])
-
-        # 拟合下方的点
-        m2, c2 = linear_fit([pressures[i + 1], pressures[i + 2]], [densities[i + 1], densities[i + 2]])
-
-        # 计算正切
-        tan_h = calculate_angle_tan(m1, m2)
-
-        # 记录最大值
-        if tan_h > max_tan_h:
-            max_tan_h = tan_h
-            mixed_layer_depth = pressure
-
-    return mixed_layer_depth
 
 
 # ---------------------------- BOA Argo 数据处理 ----------------------------

@@ -1,3 +1,4 @@
+import datetime
 from enum import Enum
 
 import numpy as np
@@ -81,6 +82,18 @@ class Argo3DTemperatureDataset(Dataset):
     def current_month(self):
         return self.data[self.current]
     
+    def get_item_at(self, time: datetime.datetime):
+        print(time)
+        
+        # 计算月份差作为索引
+        base_time = datetime.datetime(2004, 1, 1)
+        index = (time.year - base_time.year) * 12 + (time.month - base_time.month)
+        
+        print(index)
+        
+        # 获取数据集中的数据
+        return self.data[index - 1]
+
 depthMap = np.array([
     0, 5, 10, 20, 30, 40, 50, 60, 70, 80, 90, 100,
     110, 120, 130, 140, 150, 160, 170, 180, 200,

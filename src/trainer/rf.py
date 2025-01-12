@@ -113,7 +113,7 @@ def train_rf_model():
     network = RDFNetwork()
 
     list = []
-
+    test_ = []
 
     for area in Areas:
         train_loader, val_loader, test_loader = split_dataset(area)
@@ -135,5 +135,7 @@ def train_rf_model():
                 origin: max = {np.nanmax(test_output)}, min = {np.nanmin(test_output)} \n\
                 predict: max = {np.nanmax(result)}, min = {np.nanmin(result)}")
         
-        return model
+        test_.append(test_loader)
+
+    return model, test_ 
 

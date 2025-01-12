@@ -115,8 +115,6 @@ def plot_sst_comparison(sst1, sst2, lon, lat):
     :return: 返回包含两个子图的列表
     """
     
-    ax.figure.set_size_inches(10, 10)
-    
     axes = create_shared_axes(1, 2, 'all')
     
     # 生成网格点
@@ -152,6 +150,7 @@ def plot_sst_comparison(sst1, sst2, lon, lat):
     # 设置两个子图的刻度
     for ax in axes:
         set_ticker(ax, lon, lat)
+        ax.figure.set_size_inches(10, 5)
 
     # 添加共享色标
     plt.colorbar(_,

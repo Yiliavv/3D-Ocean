@@ -98,7 +98,7 @@ def train_transformer_model():
     for area in Areas:
         train_dataloader, val_dataloader, test_dataloader = split_data(area)
 
-        trainer = Trainer(max_epochs=100, limit_train_batches=5, enable_checkpointing=False)
+        trainer = Trainer(max_epochs=200, limit_train_batches=10, enable_checkpointing=False)
 
         trainer.fit(model, train_dataloaders=train_dataloader)
 
