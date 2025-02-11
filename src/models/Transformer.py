@@ -15,7 +15,7 @@ class SSTTransformer(LightningModule):
             num_encoder_layers=2,
             num_decoder_layers=2,
             dim_feedforward=256,
-            dropout=0.1
+            dropout=0.2
         )
         
         # 输入投影层：将(20,20)的空间特征映射到d_model维度

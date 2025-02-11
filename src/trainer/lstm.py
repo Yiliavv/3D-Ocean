@@ -8,16 +8,15 @@ sys.path.append('B://workspace/tensorflow/')
 from torch.utils.data import DataLoader
 
 # 定义参数
-OFFSET = 29200
-WIDTH = 15
-STEP = 1
+OFFSET = 23376 # 2004-01-01
+WIDTH = 15 # 15 天为一个窗口，获取前 14 天的数据，预测第 15 天的数据
+STEP = 1 # 1 天为一个步长
 
 # %% 工具函数
 from numpy import array
 from torch.utils.data import random_split
 
 from src.dataset.ERA5 import ERA5SSTDataset
-from src.plot.sst import plot_sst_l, plot_sst_comparison
 
 def get_lon(lon):
     lon_s = 360 + lon[0] if lon[0] <= 0 else lon[0]

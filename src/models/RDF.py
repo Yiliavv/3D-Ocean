@@ -7,15 +7,11 @@ class RDFNetwork(nn.Module):
         super(RDFNetwork, self).__init__()
         self.model = RandomForestRegressor(
             n_estimators=500, random_state=42, max_features=5, 
-            criterion='friedman_mse'
+            criterion='friedman_mse', verbose=1
             )
-
-    def get_config(self):
-        return {"shape": self.model}
-
-    @classmethod
-    def from_config(cls, config, custom_objects=None):
-        return cls(**config)
+        
+    def get_model(self):
+        return self.model
 
     def forward(self, input, output):
         return self.model.fit(input, output)

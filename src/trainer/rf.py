@@ -23,7 +23,7 @@ def get_lon(lon):
     
     print(lon_s, lon_e)
     
-    return [lon_s, lon_e]
+    return np.array([lon_s, lon_e])
 
 def get_lat(lat):
     return lat + 80
@@ -74,9 +74,12 @@ def reshape(data):
     return data.reshape(20, 20, 58)
 
 def profile_u(data):
-    return np.transpose(data[0, :, :35], (1, 0))
+    return np.transpose(data[:, 0, :35], (1, 0))
 
-def plot_sst_station(profile, ax, levels, label):
+def profile_d(data):
+    return np.transpose(data[0, :, :35])
+
+def plot_sst_station(profile, ax, levels, label, x_labels = None):
     
     # 将 depth 设置为 Y 轴刻度
     ax.set_yticks(np.arange(0, len(depthMap[:35]), 10))
@@ -88,7 +91,9 @@ def plot_sst_station(profile, ax, levels, label):
     ax.set_xticks(np.arange(0, 20, 4))
     # 设置小刻度
     ax.set_xticks(np.arange(0, 20, 1), minor=True)
-    ax.set_xticklabels(np.arange(0, 20, 4))
+    
+    x_labels = x_labels if x_labels is not None else np.arange(0, 20, 4)
+    ax.set_xticklabels(x_labels)
     
     # 修改文本位置到左上角，使用相对坐标
     ax.text(0.02, 0.12, label, 

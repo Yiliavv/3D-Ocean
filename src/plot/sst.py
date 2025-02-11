@@ -10,7 +10,8 @@ from cartopy import crs as ccrs
 from src.utils.log import Log
 from src.plot.base import create_ax, create_shared_axes, create_carto_ax
 
-COLOR_MAP = cm.thermal
+COLOR_MAP_PROFILE = cm.thermal
+COLOR_MAP_SST = cm.haline
 
 def _range(range, step=1):
     """
@@ -49,13 +50,15 @@ def plot_sst(sst, lon, lat):
     
     set_ticker(ax, lon, lat)
     
+    levels = arange(floor(nanmin(sst)), ceil(nanmax(sst)), 0.5)
+    
     # 生成网格点
     lon_grid, lat_grid = meshgrid(_range(lat), _range(lon))
-    contour = ax.contourf(lon_grid, lat_grid, sst, cmap=COLOR_MAP)
+    contour = ax.contourf(lon_grid, lat_grid, sst, cmap=COLOR_MAP_PROFILE, levels=levels)
     
     plt.colorbar(contour, ax=ax,
                 orientation='horizontal',
-                pad=0.05,
+                pad=0.1,
                 fraction=0.05,
                 label='temperature (°C)')
     
@@ -77,7 +80,7 @@ def plot_sst_l(sst, lon, lat):
     
     # 生成网格点
     lon_grid, lat_grid = meshgrid( _range(lon), _range(lat))
-    contour = ax.contourf(lon_grid, lat_grid, sst, cmap=COLOR_MAP, transform=projection, levels=30)
+    contour = ax.contourf(lon_grid, lat_grid, sst, cmap=COLOR_MAP_PROFILE, transform=projection, levels=30)
     
     # 添加等高线, 每 1 度一个浅色等高线，每 5 度一个深色等高线
     # 绘制等高线
@@ -128,7 +131,7 @@ def plot_sst_comparison(sst1, sst2, lon, lat):
     
     # 绘制第一个海表温度分布图
     _ = axes[0].contourf(lon_grid, lat_grid, sst1, 
-                               cmap=COLOR_MAP,
+                               cmap=COLOR_MAP_PROFILE,
                                levels=levels)
     
     # 绘制第一个海表温度分布图的等高线
@@ -139,7 +142,7 @@ def plot_sst_comparison(sst1, sst2, lon, lat):
 
     # 绘制第二个海表温度分布图
     _ = axes[1].contourf(lon_grid, lat_grid, sst2,
-                               cmap=COLOR_MAP, 
+                               cmap=COLOR_MAP_PROFILE, 
                                levels=levels)
     
     # 绘制第二个海表温度分布图的等高线

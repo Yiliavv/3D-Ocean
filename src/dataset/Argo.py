@@ -56,8 +56,6 @@ class Argo3DTemperatureDataset(Dataset):
 
     def construct(self, one_month):
         temp = one_month['temp']
-        lon = one_month['lon']
-        lat = one_month['lat']
         
         lon_start = self.lon[0]
         lon_end = self.lon[1]
@@ -72,7 +70,7 @@ class Argo3DTemperatureDataset(Dataset):
                 .reshape(width * height, -1)
                 .reshape(-1))
         _station = np.array(
-            [(lon[i], lat[j]) for i in range(lon_start, lon_end) for j in range(lat_start, lat_end)]
+            [(i, j) for i in range(lon_start, lon_end) for j in range(lat_start, lat_end)]
         )
         # 输出
         _profile = temp[lon_start:lon_end, lat_start:lat_end, :].reshape(width * height, -1).copy()
@@ -83,7 +81,6 @@ class Argo3DTemperatureDataset(Dataset):
         return self.data[self.current]
     
     def get_item_at(self, time: datetime.datetime):
-        print(time)
         
         # 计算月份差作为索引
         base_time = datetime.datetime(2004, 1, 1)

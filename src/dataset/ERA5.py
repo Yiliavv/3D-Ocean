@@ -81,7 +81,6 @@ class ERA5SSTDataset(Dataset):
                 for i in range(num_chunks):
                     start = i * chunk_size
                     end = start + chunk_size
-                    print(start, end)
                     chunk_sst[start:end, :, :] = sst[start:end, :, :]
 
                 if sst.shape[0] % chunk_size != 0:
