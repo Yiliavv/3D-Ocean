@@ -1,9 +1,7 @@
 # %% 导入库
 import sys
-from loguru import logger
-from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 
-from plot.sst import  COLOR_MAP_SST, _range
+from src.plot.sst import  COLOR_MAP_SST, _range
 
 sys.path.append('B://workspace/tensorflow/')
 
@@ -15,7 +13,7 @@ from matplotlib import pyplot as plt
 from torch.utils.data import DataLoader
 
 # 定义参数
-OFFSET = 29220 # 2020-01-01 
+OFFSET = 0 # 2004-01-01 
 WIDTH = 15 # 15 天为一个窗口，获取前 14 天的数据，预测第 15 天的数据
 STEP = 1 # 1 天为一个步长
 
@@ -41,7 +39,7 @@ def split_data(area):
 
     train_dataloader = DataLoader(train_data_set, batch_size=15, shuffle=False)
     val_dataloader = DataLoader(val_data_set, batch_size=15, shuffle=False)
-    test_dataloader = DataLoader(test_data_set, batch_size=15, shuffle=True)
+    test_dataloader = DataLoader(test_data_set, batch_size=15, shuffle=False)
 
     return train_dataloader, val_dataloader, test_dataloader
 
@@ -94,7 +92,6 @@ def plot_sst_month(sst, ax, levels, label, area):
 
 # 每个区域独立模型
 def train_transformer_models():
-    from torch import compile
     from lightning import Trainer # type: ignore
     from lightning.pytorch.callbacks.early_stopping import EarlyStopping # type: ignore
 
@@ -108,10 +105,8 @@ def train_transformer_models():
     for area in Areas:
         model = SSTTransformer()
         train_dataloader, val_dataloader, test_dataloader = split_data(area)
-        
-        all_data_len = len(train_dataloader.dataset)
 
-        trainer = Trainer(max_epochs=300, limit_train_batches=all_data_len, enable_checkpointing=False, callbacks=[el_stop])
+        trainer = Trainer(max_epochs=25, enable_checkpointing=False)
 
         trainer.fit(model, train_dataloaders=train_dataloader)
 
@@ -122,7 +117,6 @@ def train_transformer_models():
 
 # 所有区域共享模型
 def train_transformer_model():
-    from torch import compile
     from lightning import Trainer # type: ignore
     from lightning.pytorch.callbacks.early_stopping import EarlyStopping # type: ignore
 
@@ -135,8 +129,6 @@ def train_transformer_model():
 
     for area, i in zip(Areas, range(len(Areas))):
         train_dataloader, val_dataloader, test_dataloader = split_data(area)
-        
-        batches = 90
         
         # epoch 逐渐减少
         epoch = 25 - i * 5 if i < 3 else 10

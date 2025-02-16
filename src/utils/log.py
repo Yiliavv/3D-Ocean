@@ -44,24 +44,24 @@ class Log:
     @staticmethod
     def d(*msg):
         if LOG_LEVEL <= Level["DEBUG"]:
-            print(*msg)
+            print(f"\033[90mDEBUG: \033[0m    ", *msg)
 
     @staticmethod
     def i(*msg):
         if LOG_LEVEL <= Level["INFO"]:
-            print(*msg)
+            print(f"\033[92mINFO: \033[0m    ", *msg)
 
     @staticmethod
     def w(*msg):
         if LOG_LEVEL <= Level["WARNING"]:
-            print(*msg)
+            print(f"\033[93mWARNING: \033[0m    ", *msg)
 
     @staticmethod
     def e(*msg):
         if LOG_LEVEL <= Level["ERROR"]:
-            print(*msg)
+            print(f"\033[91mERROR: \033[0m    ", *msg)
 
     @staticmethod
     def c(*msg):
         if LOG_LEVEL <= Level["CRITICAL"]:
-            print(*msg)
+            print(f"\033[95mCRITICAL: \033[0m    ", *msg)

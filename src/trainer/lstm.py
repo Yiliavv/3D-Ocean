@@ -47,7 +47,7 @@ def get_sst():
     dataset = ERA5SSTDataset(WIDTH, STEP, OFFSET, lon, lat)
     loader = DataLoader(dataset, batch_size=1, shuffle=False)
     
-    print(dataset.getTime(dataset.current))
+    print(dataset.getTime(dataset.cur))
 
     fore_, last_ = next(iter(loader))
     print(fore_.shape)

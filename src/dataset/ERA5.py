@@ -1,15 +1,15 @@
-import datetime
-import os
+import sys
+import arrow
 import numpy as np
 import netCDF4 as nc
 
 from torch import tensor, unsqueeze
 from torch.utils.data import Dataset
 
-from pandas import to_datetime
+from src.config.params import BASE_ERA5_DAILY_DATA_PATH
+from src.utils.log import Log
 
-from src.config.params import BASE_ERA5_DATA_PATH, TEMP_FILE
-
+cache = {}
 
 # ERA5 海表数据集
 class ERA5SSTDataset(Dataset):
@@ -25,95 +25,120 @@ class ERA5SSTDataset(Dataset):
 
     def __init__(self, width=10, step=10, offset=0, lon=None, lat=None, *args):
         super().__init__(*args)
+                    
         if lat is None:
             lat = np.array([0, 0])
         if lon is None:
             lon = np.array([0, 0])
 
-        # 初始化属性
-        self.precision = 4
-
-        self.width = width
         self.step = step
+        self.width = width
         self.offset = offset
-        self.lon = np.array(lon) * self.precision
-        self.lat = np.array(lat) * self.precision
+        self.lon = np.array(lon)
+        self.lat = np.array(lat)
+        
+        self.cur = 0
+        self.precision = 4
+        # 数据集中包含的时间范围
+        self.s_time = arrow.get('2004-01-01')
+        self.e_time = arrow.get('2024-12-31')
+    
+    """
+    检查缓存是否有对应时间的数据
+    """
+    def __hit__(self, year: int):
+        
+        if year in cache:
+            return cache[year]
+        
+        return None
+    
+    """
+    刷新缓存, 缓存只存储最近两年的数据
+    """
+    def __refresh__(self, year: int, sst: np.ndarray):
+        cache[year] = sst
+        Log.d(f"已缓存: {cache.keys()}")
+    
+    """
+    读取单个时间点的数据，用于从数据文件中读取数据
+    能够跨文件处理
+    """
+    def __read_item__(self, time: arrow.Arrow):
+        year = time.year
+        
+        # 计算文件内偏移
+        s_time = arrow.get(year, 1, 1)
+        offset = (time - s_time).days
+        
+        sst = self.__hit__(year)
+        
+        if sst is None:            
+            # 读文件
+            sst, time = self.__read_sst__(year)
+            
+            # 刷新缓存
+            self.__refresh__(year, sst)
+        
+        # 获取纬度范围
+        lat_start = int(self.lat[0] * self.precision)
+        lat_end = int(self.lat[1] * self.precision)
+        
+        # 获取经度范围
+        lon_start = int(self.lon[0] * self.precision)
+        lon_end = int(self.lon[1] * self.precision)
+            
+        return sst[offset, lat_start:lat_end:self.precision, lon_start:lon_end:self.precision]
+    
+    """
+    读取文件中的温度和时间数据
+    """
+    def __read_sst__(self, year: int):
+        file_path = f"{BASE_ERA5_DAILY_DATA_PATH}/{year}-dailymean.nc"
+        
+        nc_file = nc.Dataset(file_path, 'r', format='NETCDF4')
+        variables = nc_file.variables
 
-        self.current = 0
+        sst = variables['sst'][:]
+        time = variables['valid_time'][:]
 
-        # 导入 netcdf 数据， 创建临时文件进行重新分块
-        first_file = None
-
-        with os.scandir(BASE_ERA5_DATA_PATH) as files:
-            for entry in files:
-                if entry.is_file() and entry.name.endswith('.nc'):
-                    first_file = entry.path
-                    break
-
-        if first_file is not None:
-            # 读取变量
-            nc_file = nc.Dataset(first_file, 'r', format='NETCDF4')
-            variables = nc_file.variables
-
-            sst = variables['sst']
-            time = variables['valid_time']
-            lon = variables['longitude']
-            lat = variables['latitude']
-
-            if os.path.exists(TEMP_FILE + "/sst.nc"):
-                self.temp_file = nc.Dataset(TEMP_FILE + "/sst.nc", 'r', format='NETCDF4')
-            else:
-                open(TEMP_FILE + "/sst.nc", 'w').close()
-                # 创建临时文件
-                self.temp_file = nc.Dataset(TEMP_FILE + "/sst.nc", 'w', format='NETCDF4')
-                # 创建变量
-                self.temp_file.createDimension('valid_time', time.shape[0])
-                self.temp_file.createDimension('longitude', lon.shape[0])
-                self.temp_file.createDimension('latitude', lat.shape[0])
-
-                chunk_sst = self.temp_file.createVariable('sst', 'float32',
-                                                          dimensions=sst.dimensions,
-                                                          chunksizes=(1, sst.shape[1], sst.shape[2]))
-                # 写入数据
-                chunk_size = 1000  # Adjust this value based on your memory capacity
-                num_chunks = sst.shape[0] // chunk_size
-
-                for i in range(num_chunks):
-                    start = i * chunk_size
-                    end = start + chunk_size
-                    chunk_sst[start:end, :, :] = sst[start:end, :, :]
-
-                if sst.shape[0] % chunk_size != 0:
-                    start = num_chunks * chunk_size
-                    chunk_sst[start::self, :, :] = sst[start:, :, :]
-        else:
-            raise FileNotFoundError("No NetCDF file found in the directory")
-
-        sst = self.temp_file.variables['sst']
-
-        # 初始化属性
-        self.data = sst
-        self.times = time[:]
+        return sst, time
 
     def __len__(self):
-        return int((self.data.shape[0] - self.width) / self.step) - self.offset
+        day_len = (self.e_time - self.s_time).days
+        length = (day_len - self.width) / self.step
+        
+        return int(length) - self.offset
 
     def __getitem__(self, index):
-        self.current = index
-
-        start = self.offset + index
-        end = start + self.width
+        self.cur = index
         
-        # 纬度在前，经度在后
-        sst = self.data[start:end, self.lat[0]:self.lat[1]:self.precision, self.lon[0]:self.lon[1]:self.precision] - 273.15
-        sst = np.array(sst)
-        sst = np.flip(sst, axis=1)
-        sst[sst > 99] = np.nan
-        sst = sst.copy()
-        sst = tensor(sst, requires_grad=True)
+        offset = self.offset + self.cur
+        start_index = offset * self.step
+        end_index = start_index + self.width
+        
+        # 计算时间范围
+        s_time = self.s_time.shift(days=start_index)
+        e_time = self.s_time.shift(days=end_index)
+        
+        time_range = arrow.Arrow.span_range('day', s_time, e_time)
+        
+        sst_time_series = []
+        
+        for time, _ in time_range:
+            sst = self.__read_item__(time)
+            sst_time_series.append(sst)
+        
+        sst_time_series = np.array(sst_time_series)
+        
+        # 数据预处理
+        sst_time_series = sst_time_series - 273.15
+        sst_time_series = np.flip(sst_time_series, axis=1)
+        sst_time_series[sst_time_series > 99] = np.nan
+        sst_time_series = tensor(sst_time_series.copy(), requires_grad=True)
 
-        fore_ = sst[:self.width - 1, ...]
-        last_ = sst[-1, ...]
+        fore_ = sst_time_series[:self.width - 1, ...]
+        last_ = sst_time_series[-1, ...]
 
         # 增加一个通道维度, 通道数为 1, 即 (seq_len, width, height) -> (seq_len, 1,  width, height)
         fore_ = unsqueeze(fore_, dim=1)
@@ -121,24 +146,28 @@ class ERA5SSTDataset(Dataset):
 
         return fore_, last_
 
-    def getTime(self, index):
-        start = (index + self.offset) * self.step
-        end = start + self.width
 
-        start_time = str(to_datetime(self.times[start], unit='s'))[:-9]
-        end_time = str(to_datetime(self.times[end], unit='s'))[:-9]
-
-        return start_time, end_time
-
-    def get(self, index):
-        return self.__getitem__(index)
-
-    def get_item_at(self, time: datetime.datetime):
-        base_time = datetime.datetime(1940, 1, 1)
+# ERA5 海表月平均数据
+class ERA5SSTMonthlyDataset(Dataset):
+    """
+    ERA5 SST 月平均数据集
+    
+    :arg  width: 序列长度宽度
+    :arg  step: 时间平移步长
+    :arg  offset: 时间偏移 (该偏移值是数据批次的偏移，即已经除以了时间步长的值)
+    :arg  lon: 经度范围
+    :arg  lat: 纬度范围
+    """
+    
+    def __init__(self, width=10, step=10, offset=0, lon=None, lat=None, *args):
+        super().__init__(*args)
         
-        index = (time - base_time).days
-        
-        print(index)
+        if lat is None:
+            lat = np.array([0, 0])
+        if lon is None:
+            lon = np.array([0, 0])
+            
+        self.data = ERA5SSTDataset(width=width, step=step, offset=offset, lon=lon, lat=lat)
+    
+    
 
-        # 获取数据集中的数据
-        return self.data[index - 1]

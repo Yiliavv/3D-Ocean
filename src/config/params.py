@@ -4,6 +4,7 @@
 BASE_CDAC_DATA_PATH = "B:/workspace/Argo_data/Argo_v3_core"
 BASE_BOA_ARGO_DATA_PATH = "B:/ArgoDataset"
 BASE_ERA5_DATA_PATH = "B:/era5"
+BASE_ERA5_DAILY_DATA_PATH = "B:/era5/daily_mean"
 
 # 临时文件夹
 TEMP_FILE = "B:/era5/temp"
