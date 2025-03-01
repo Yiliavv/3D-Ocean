@@ -1,6 +1,7 @@
 from torch import manual_seed, nn, optim
 from torch.nn import Transformer, Linear
 from lightning import LightningModule
+from lightning.pytorch.callbacks import LearningRateFinder
 
 class SSTTransformer(LightningModule):
     def __init__(self):
@@ -8,12 +9,13 @@ class SSTTransformer(LightningModule):
         super().__init__()
         
         # 修改模型参数
-        self.d_model = 512  # 增加模型维度以处理复杂的空间信息
+        self.learning_rate = 1e-4
+        self.d_model = 1024  # 增加模型维度以处理复杂的空间信息
         self.transformer = Transformer(
             d_model=self.d_model, 
             nhead=8, 
-            num_encoder_layers=2,
-            num_decoder_layers=2,
+            num_encoder_layers=1,
+            num_decoder_layers=1,
             dim_feedforward=256,
             dropout=0.2
         )
@@ -69,4 +71,6 @@ class SSTTransformer(LightningModule):
         return val_loss
 
     def configure_optimizers(self):
-        return optim.Adam(self.parameters(), lr=1e-4)
+        return optim.Adam(self.parameters(), lr=self.learning_rate)
+    
+    

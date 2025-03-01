@@ -11,6 +11,19 @@ from src.utils.log import Log
 
 cache = {}
 
+months = np.array([31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
+months_leap = np.array([31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
+
+def hit(year: int):
+    if year in cache:
+        return cache[year]
+    
+    return None
+
+def refresh(year: int, sst: np.ndarray):
+    cache[year] = sst
+    # Log.d(f"已缓存: {cache.keys()}")
+
 # ERA5 海表数据集
 class ERA5SSTDataset(Dataset):
     """
@@ -44,41 +57,26 @@ class ERA5SSTDataset(Dataset):
         self.e_time = arrow.get('2024-12-31')
     
     """
-    检查缓存是否有对应时间的数据
-    """
-    def __hit__(self, year: int):
-        
-        if year in cache:
-            return cache[year]
-        
-        return None
-    
-    """
-    刷新缓存, 缓存只存储最近两年的数据
-    """
-    def __refresh__(self, year: int, sst: np.ndarray):
-        cache[year] = sst
-        Log.d(f"已缓存: {cache.keys()}")
-    
-    """
     读取单个时间点的数据，用于从数据文件中读取数据
     能够跨文件处理
     """
     def __read_item__(self, time: arrow.Arrow):
+        Log.d(f"读取时间: {time.format('YYYY-MM-DD')}")
+        
         year = time.year
         
         # 计算文件内偏移
         s_time = arrow.get(year, 1, 1)
         offset = (time - s_time).days
         
-        sst = self.__hit__(year)
+        sst = hit(year)
         
         if sst is None:            
             # 读文件
             sst, time = self.__read_sst__(year)
             
             # 刷新缓存
-            self.__refresh__(year, sst)
+            refresh(year, sst)
         
         # 获取纬度范围
         lat_start = int(self.lat[0] * self.precision)
@@ -152,14 +150,11 @@ class ERA5SSTMonthlyDataset(Dataset):
     """
     ERA5 SST 月平均数据集
     
-    :arg  width: 序列长度宽度
-    :arg  step: 时间平移步长
-    :arg  offset: 时间偏移 (该偏移值是数据批次的偏移，即已经除以了时间步长的值)
     :arg  lon: 经度范围
     :arg  lat: 纬度范围
     """
     
-    def __init__(self, width=10, step=10, offset=0, lon=None, lat=None, *args):
+    def __init__(self, lon=None, lat=None, *args):
         super().__init__(*args)
         
         if lat is None:
@@ -167,7 +162,93 @@ class ERA5SSTMonthlyDataset(Dataset):
         if lon is None:
             lon = np.array([0, 0])
             
-        self.data = ERA5SSTDataset(width=width, step=step, offset=offset, lon=lon, lat=lat)
+        self.lon = np.array(lon)
+        self.lat = 90 - np.array(lat)
+        self.precision = 4
+        
+        # 数据集中包含的时间范围
+        self.s_time = arrow.get('2004-01-01')
+        self.e_time = arrow.get('2024-12-31')
     
+    def __len__(self):
+        years = self.e_time.year - self.s_time.year
+        months = self.e_time.month - self.s_time.month
+        
+        month_len = years * 12 + months
+
+        return month_len
+
+    """
+    读取文件中的温度和时间数据
+    """
+    def __read_sst__(self, year: int):
+        file_path = f"{BASE_ERA5_DAILY_DATA_PATH}/{year}-dailymean.nc"
+        
+        nc_file = nc.Dataset(file_path, 'r', format='NETCDF4')
+        variables = nc_file.variables
+
+        sst = variables['sst'][:]
+        time = variables['valid_time'][:]
+
+        return sst, time
     
+    """
+    读取单个时间点的数据，用于从数据文件中读取数据
+    能够跨文件处理
+    """
+    def __read_item__(self, time: arrow.Arrow):
+        year = time.year
+        
+        # 计算文件内偏移
+        s_time = arrow.get(year, 1, 1)
+        month_offset = time.month - s_time.month
+        
+        # 是否是闰年
+        is_leap = year % 4 == 0 and year % 100 != 0 or year % 400 == 0
+        
+        local_months = months
+        
+        if is_leap:
+            local_months = months_leap
+        
+        sst = hit(year)
+        
+        if sst is None:            
+            # 读文件
+            sst, time = self.__read_sst__(year)
+            
+            # 刷新缓存
+            refresh(year, sst)
+        
+        # 经纬度坐标系转换到索引坐标系
+        lon_index_start = (180 + self.lon[0]) * self.precision
+        lon_index_end = (180 + self.lon[1]) * self.precision
+        
+        lat_index_start = (90 + self.lat[0]) * self.precision
+        lat_index_end = (90 + self.lat[1]) * self.precision
+    
+        
+        e_ = np.sum(local_months[:month_offset])
+        
+        if month_offset == 0:
+            s_ = 0
+        else:
+            s_ = np.sum(local_months[:month_offset - 1])
+        
+        month_sst = sst[s_:e_,
+                        lat_index_start:lat_index_end:self.precision,
+                        lon_index_start:lon_index_end:self.precision]
+        
+        # 计算月平均
+        month_sst = np.nanmean(month_sst, axis=0)
+        
+        return month_sst
+    
+    def __getitem__(self, index):
+        month = self.s_time.shift(months=index)
+        
+        sst = self.__read_item__(month)
+        
+        return sst     
+
 

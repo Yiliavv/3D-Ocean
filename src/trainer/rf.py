@@ -5,21 +5,19 @@ sys.path.append('B://workspace/tensorflow')
 
 import numpy as np
 
-from torch.utils.data import DataLoader, random_split
+from torch.utils.data import DataLoader, Subset
 
 from src.models.RDF import RDFNetwork
 from src.dataset.Argo import Argo3DTemperatureDataset
 from src.config.params import Areas
-from src.utils.log import Log
 
 from src.dataset.Argo import depthMap
-from src.config.constants import Alphabet
 
 # %% 工具函数
 
 def get_lon(lon):
-    lon_s = 360 + lon[0] if lon[0] < 0 else lon[0]
-    lon_e = 360 + lon[1] if lon[1] < 0 else lon[1]
+    lon_s = 360 + lon[0] if lon[0] <= 0 else lon[0]
+    lon_e = 360 + lon[1] if lon[1] <= 0 else lon[1]
     
     print(lon_s, lon_e)
     
@@ -29,9 +27,18 @@ def get_lat(lat):
     return lat + 80
 
 def split_dataset(area):
+    
     dataset = Argo3DTemperatureDataset(lon=get_lon(np.array(area['lon'])), lat=get_lat(np.array(area['lat'])), depth=[0, 58])
 
-    train_dataset, val_dataset, test_dataset = random_split(dataset, [0.8, 0.1, 0.1])
+    # 计算数据集大小和划分点
+    total_size = len(dataset)
+    train_size = int(0.8 * total_size)
+    val_size = int(0.1 * total_size)
+    
+    # 顺序划分数据集
+    train_dataset = Subset(dataset, range(0, train_size))
+    val_dataset = Subset(dataset, range(train_size, train_size + val_size))
+    test_dataset = Subset(dataset, range(train_size + val_size, total_size))
     
     train_loader = DataLoader(train_dataset, batch_size=len(train_dataset), shuffle=False)
     val_loader = DataLoader(val_dataset, batch_size=len(val_dataset), shuffle=False)
@@ -45,10 +52,40 @@ def get_input(loader):
     output = output.reshape(-1, output.shape[-1])
     return input, output
 
-def train_and_evaluate(input, output, test_input, test_output, network):
-    model = network(input, output)
-    score = model.score(test_input, test_output)
-    score = np.around(score, 3)
+def train_and_evaluate(model):
+    score = 0;
+    
+    # 把全球数据分成16个小部分
+    train_parts = np.array([
+        [20, 360, 50, 120],
+    ])
+    
+    for part in train_parts:
+        lon = part[:2]
+        lat = part[2:]
+        
+        print(lon, lat)
+        
+        dataset = Argo3DTemperatureDataset(lon=lon, lat=lat, depth=[0, 58])   
+        
+        total_size = len(dataset)
+        train_size = int(0.8 * total_size)
+        test_size = int(0.2 * total_size)
+        
+        train_dataset = Subset(dataset, range(0, train_size))
+        test_dataset = Subset(dataset, range(train_size, train_size + test_size))
+        
+        train_loader = DataLoader(train_dataset, batch_size=len(train_dataset), shuffle=False)
+        test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
+        
+        input, output = get_input(train_loader)
+        test_input, test_output = get_input(test_loader)
+    
+        model = model.fit(input, output)
+        score = model.score(test_input, test_output)
+        
+        del train_loader, test_loader, train_dataset, test_dataset
+    
     return model, score
 
 def rmse(pred, true):
@@ -110,37 +147,36 @@ def plot_sst_station(profile, ax, levels, label, x_labels = None):
     ax.clabel(contour_lines, inline=True, colors='black', fontsize=5, fmt='%d', manual=False)
         
     ax.invert_yaxis()
-    
 
-# %% 主函数
+# %% 单模型
 
 def train_rf_model():
     network = RDFNetwork()
-
-    list = []
-    test_ = []
+    model = network.get_model()
+    
+    epochs = 1
+    
+    for epoch in range(epochs):
+        print(f"Epoch {epoch} start: ")
+        _, score = train_and_evaluate(model)
+        print(f"score: {score}")
 
     for area in Areas:
-        train_loader, val_loader, test_loader = split_dataset(area)
-
-        input, output = get_input(train_loader)
-        val_input, val_output = get_input(val_loader)
-        model, score = train_and_evaluate(input, output, val_input, val_output, network)
+        dataset = Argo3DTemperatureDataset(lon=get_lon(np.array(area['lon'])), lat=get_lat(np.array(area['lat'])), depth=[0, 58])
         
-        test_input, test_output = get_input(test_loader)
-        print(test_input.shape, test_output.shape)
+        val_loader = DataLoader(dataset, batch_size=1, shuffle=False)
         
-        result = model.predict(test_input)
+        input, output = get_input(val_loader)
         
-        mse_1000u, mse_1000d = rmse(result, test_output);
-
-        list.append([reshape(result), reshape(test_output)])
+        print("input: ", input.shape, "output: ", output.shape)
+    
+        result = model.predict(input)
         
-        print(f"Area: {area['title']}, Score: {score}, RMSE: {mse_1000u}, {mse_1000d} \n\
-                origin: max = {np.nanmax(test_output)}, min = {np.nanmin(test_output)} \n\
-                predict: max = {np.nanmax(result)}, min = {np.nanmin(result)}")
+        print("result: ", result.shape)
+    
+        mse_1000u, mse_1000d = rmse(result, output);
+    
+        print(f"area: {area['title']}, rmse: {mse_1000u}, {mse_1000d}")
         
-        test_.append(test_loader)
-
-    return model, test_ 
+    return model
 

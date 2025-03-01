@@ -14,7 +14,7 @@ from torch.utils.data import DataLoader
 
 # 定义参数
 OFFSET = 0 # 2004-01-01 
-WIDTH = 15 # 15 天为一个窗口，获取前 14 天的数据，预测第 15 天的数据
+WIDTH = 15 # 2 天为一个窗口，获取前 7 天的数据，预测第 8 天的数据
 STEP = 1 # 1 天为一个步长
 
 # %% 工具函数
@@ -92,6 +92,7 @@ def plot_sst_month(sst, ax, levels, label, area):
 
 # 每个区域独立模型
 def train_transformer_models():
+    import torch
     from lightning import Trainer # type: ignore
     from lightning.pytorch.callbacks.early_stopping import EarlyStopping # type: ignore
 
@@ -104,6 +105,7 @@ def train_transformer_models():
 
     for area in Areas:
         model = SSTTransformer()
+        
         train_dataloader, val_dataloader, test_dataloader = split_data(area)
 
         trainer = Trainer(max_epochs=25, enable_checkpointing=False)
@@ -131,9 +133,9 @@ def train_transformer_model():
         train_dataloader, val_dataloader, test_dataloader = split_data(area)
         
         # epoch 逐渐减少
-        epoch = 25 - i * 5 if i < 3 else 10
+        epoch = 20 - i * 5 if i < 3 else 20
 
-        trainer = Trainer(max_epochs=epoch, enable_checkpointing=False, callbacks=[el_stop])
+        trainer = Trainer(max_epochs=epoch, auto_lr_find=True, enable_checkpointing=False)
 
         trainer.fit(model, train_dataloaders=train_dataloader)
 

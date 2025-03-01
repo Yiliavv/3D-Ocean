@@ -1,4 +1,4 @@
-import datetime
+import arrow
 from enum import Enum
 
 import numpy as np
@@ -31,11 +31,14 @@ class Argo3DTemperatureDataset(Dataset):
             depth = np.array([0, 0])
 
         self.current = 0
-        self.lon = lon
-        self.lat = lat
+        self.lon = np.array(lon)
+        # ERA5 数据的北纬和南纬是相反的
+        self.lat = np.array(lat)
         self.depth = depth
         self.dtype = dtype
         self.data = resource_argo_monthly_data(BASE_BOA_ARGO_DATA_PATH)
+        self.s_time = arrow.get('2004-01-01')
+        self.e_time = arrow.get('2024-12-31')
 
     def __len__(self):
         return len(self.data)
@@ -47,46 +50,54 @@ class Argo3DTemperatureDataset(Dataset):
 
         match self.dtype:
             case FrameType.surface:
-                (sst, station), profile = self.construct(self.data[index])
+                (sst, station), profile = self.construct(index)
                 temp_3d = np.column_stack([sst, station])
             case FrameType.mld:
                 temp_3d = np.array(self.data[index]['mld'])
 
         return temp_3d, profile
 
-    def construct(self, one_month):
+    def construct(self, index):   
+        one_month = self.data[index]
         temp = one_month['temp']
         
-        lon_start = self.lon[0]
-        lon_end = self.lon[1]
-        lat_start = self.lat[0]
-        lat_end = self.lat[1]
+        # 经纬度坐标系换算到索引坐标系
+        lon_index_start = 180 + self.lon[0]
+        lon_index_end = 180 + self.lon[1]
         
-        width = lon_end - lon_start
-        height = lat_end - lat_start
+        lat_index_start = 90 + self.lat[0]
+        lat_index_end = 90 + self.lat[1]
+        
+        width = lon_index_end - lon_index_start
+        height = lat_index_end - lat_index_start
 
         # 输入
-        _sst = (temp[lon_start:lon_end, lat_start:lat_end, 0]
+        _sst = (temp[
+                lon_index_start:lon_index_end,
+                lat_index_start:lat_index_end, 0]
                 .reshape(width * height, -1)
                 .reshape(-1))
         _station = np.array(
-            [(i, j) for i in range(lon_start, lon_end) for j in range(lat_start, lat_end)]
+            [(i, j) for i in range(lon_index_start, lon_index_end) 
+                    for j in range(lat_index_start, lat_index_end)]
         )
+        
         # 输出
-        _profile = temp[lon_start:lon_end, lat_start:lat_end, :].reshape(width * height, -1).copy()
+        _profile = temp[
+            lon_index_start:lon_index_end,
+            lat_index_start:lat_index_end, :
+        ].reshape(width * height, -1).copy()
     
         return [_sst, _station], _profile
 
     def current_month(self):
         return self.data[self.current]
     
-    def get_item_at(self, time: datetime.datetime):
+    def get_item_at(self, time: arrow.Arrow):
         
         # 计算月份差作为索引
-        base_time = datetime.datetime(2004, 1, 1)
+        base_time = arrow.get('2004-01-01')
         index = (time.year - base_time.year) * 12 + (time.month - base_time.month)
-        
-        print(index)
         
         # 获取数据集中的数据
         return self.data[index - 1]
