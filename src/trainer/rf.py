@@ -49,9 +49,11 @@ def set_parts(loader):
 def train_and_evaluate(model):
     score = 0;
     
+    epochs = 5
+    
     # 把全球数据分成16个小部分
     train_parts = np.array([
-        [-160, 100, -55, 50],
+        [-160, 100, -55, 60],
     ])
     
     for part in train_parts:
@@ -64,8 +66,11 @@ def train_and_evaluate(model):
         
         input, output = set_parts(train_loader)
         test_input, test_output = set_parts(test_loader)
-    
-        model = model.fit(input, output)
+        
+        for epoch in range(epochs):
+            print(f"Epoch {epoch} start: ")
+            model = model.fit(input, output)
+        
         score = model.score(test_input, test_output)
         
         del train_loader, test_loader, dataset
@@ -137,12 +142,9 @@ def train_rf_model():
     network = RDFNetwork()
     model = network.get_model()
     
-    epochs = 1
-    
-    for epoch in range(epochs):
-        print(f"Epoch {epoch} start: ")
-        _, score = train_and_evaluate(model)
-        print(f"score: {score}")
+    _, score = train_and_evaluate(model)
+        
+    print(f"score: {score}")
 
     for area in Areas:
         dataset = Argo3DTemperatureDataset(lon=area['lon'], lat=area['lat'], depth=[0, 58])

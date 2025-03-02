@@ -13,7 +13,7 @@ MODEL_SAVE_PATH = "B:/workspace/tensorflow/output/models"
 Areas = [
     {
         'title': 'a',
-        'lon': [-160, -140],
+        'lon': [-150, -130],
         'lat': [25, 45],
         'description': '北太平洋东部海域，西经160-140，北纬20-40'
     },
@@ -32,7 +32,7 @@ Areas = [
     {
         'title': 'd',
         'lon': [-40, -20],
-        'lat': [20, 40],
-        'description': '北大西洋东部海域，西经40-20，北纬20-40'
+        'lat': [30, 50],
+        'description': '北大西洋东部海域，西经40-20，北纬30-50'
     },
 ]

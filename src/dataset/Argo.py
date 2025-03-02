@@ -44,6 +44,8 @@ class Argo3DTemperatureDataset(Dataset):
 
     def __getitem__(self, index):
         self.current = index
+        
+        s_time = self.s_time.shift(months=index)
 
         temp_3d = None
 
@@ -56,9 +58,12 @@ class Argo3DTemperatureDataset(Dataset):
 
         return temp_3d, profile
 
-    def construct(self, index):   
+    def construct(self, index):
+        print(f"total: {len(self.data)}")
         one_month = self.data[index]
         temp = one_month['temp']
+        
+        # print(f"读取月份: {one_month['year']}-{one_month['month']}")
         
         # 经纬度坐标系换算到索引坐标系
         lon_indices = np.arange(self.lon[0], self.lon[1]) % 360

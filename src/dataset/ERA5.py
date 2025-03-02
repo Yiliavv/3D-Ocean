@@ -118,6 +118,8 @@ class ERA5SSTDataset(Dataset):
         s_time = self.s_time.shift(days=start_index)
         e_time = self.s_time.shift(days=end_index)
         
+        # print(f"读取时间范围: {s_time.format('YYYY-MM-DD')} - {e_time.format('YYYY-MM-DD')}")
+        
         time_range = arrow.Arrow.span_range('day', s_time, e_time)
         
         sst_time_series = []
