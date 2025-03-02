@@ -32,7 +32,6 @@ class Argo3DTemperatureDataset(Dataset):
 
         self.current = 0
         self.lon = np.array(lon)
-        # ERA5 数据的北纬和南纬是相反的
         self.lat = np.array(lat)
         self.depth = depth
         self.dtype = dtype
@@ -62,31 +61,30 @@ class Argo3DTemperatureDataset(Dataset):
         temp = one_month['temp']
         
         # 经纬度坐标系换算到索引坐标系
-        lon_index_start = 180 + self.lon[0]
-        lon_index_end = 180 + self.lon[1]
+        lon_indices = np.arange(self.lon[0], self.lon[1]) % 360
         
-        lat_index_start = 90 + self.lat[0]
-        lat_index_end = 90 + self.lat[1]
+        lat_indices = np.arange(self.lat[0], self.lat[1]) + 80
         
-        width = lon_index_end - lon_index_start
-        height = lat_index_end - lat_index_start
+        # print("Argo: ", lat_indices)
+        
+        lon_grid, lat_grid = np.meshgrid(lon_indices, lat_indices)
+        
+        width = lat_indices.shape[0]
+        height = lon_indices.shape[0]
+        
+        temp = np.transpose(temp, (1, 0, 2))
+        temp = temp[lat_grid, lon_grid, :]
 
         # 输入
-        _sst = (temp[
-                lon_index_start:lon_index_end,
-                lat_index_start:lat_index_end, 0]
-                .reshape(width * height, -1)
-                .reshape(-1))
+        _sst = temp[:, :, 0].reshape(width * height, -1)
+        _sst[_sst > 99] = np.ma.masked
+        
         _station = np.array(
-            [(i, j) for i in range(lon_index_start, lon_index_end) 
-                    for j in range(lat_index_start, lat_index_end)]
+            [(i, j) for i in lat_indices for j in lon_indices]
         )
         
         # 输出
-        _profile = temp[
-            lon_index_start:lon_index_end,
-            lat_index_start:lat_index_end, :
-        ].reshape(width * height, -1).copy()
+        _profile = temp.reshape(width * height, -1).copy()
     
         return [_sst, _station], _profile
 

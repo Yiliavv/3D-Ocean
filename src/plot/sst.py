@@ -1,6 +1,6 @@
 # 画海表温度图的函数
 
-from numpy import arange, meshgrid, linspace, nanmin, nanmax, floor, ceil, arange
+from numpy import meshgrid, nanmin, nanmax, floor, ceil, arange, array
 from cmocean import cm
 
 from matplotlib import pyplot as plt
@@ -48,12 +48,12 @@ def plot_sst(sst, lon, lat):
     """
     ax = create_ax()
     
-    set_ticker(ax, lon, lat)
+    set_ticker(ax, lat, lon)
     
     levels = arange(floor(nanmin(sst)), ceil(nanmax(sst)), 0.5)
     
     # 生成网格点
-    lon_grid, lat_grid = meshgrid(_range(lat), _range(lon))
+    lon_grid, lat_grid = meshgrid(_range(lon), _range(lat))
     contour = ax.contourf(lon_grid, lat_grid, sst, cmap=COLOR_MAP_PROFILE, levels=levels)
     
     plt.colorbar(contour, ax=ax,
@@ -120,8 +120,11 @@ def plot_sst_comparison(sst1, sst2, lon, lat):
     
     axes = create_shared_axes(1, 2, 'all')
     
+    lat = array(lat) + 90
+    lon = array(lon) + 180
+    
     # 生成网格点
-    lon_grid, lat_grid = meshgrid(_range(lon), _range(lat))
+    lon_grid, lat_grid = meshgrid(_range(lat), _range(lon))
     
     # 计算共同的色标范围
     vmin = min(nanmin(sst1), nanmin(sst2))

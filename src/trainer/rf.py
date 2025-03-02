@@ -15,30 +15,18 @@ from src.dataset.Argo import depthMap
 
 # %% 工具函数
 
-def get_lon(lon):
-    lon_s = 360 + lon[0] if lon[0] <= 0 else lon[0]
-    lon_e = 360 + lon[1] if lon[1] <= 0 else lon[1]
-    
-    print(lon_s, lon_e)
-    
-    return np.array([lon_s, lon_e])
-
-def get_lat(lat):
-    return lat + 80
-
-def split_dataset(area):
-    
-    dataset = Argo3DTemperatureDataset(lon=get_lon(np.array(area['lon'])), lat=get_lat(np.array(area['lat'])), depth=[0, 58])
+def split_dataset(dataset):
 
     # 计算数据集大小和划分点
     total_size = len(dataset)
-    train_size = int(0.8 * total_size)
-    val_size = int(0.1 * total_size)
+    offset = int(0.5 * total_size)
+    train_size = int(0.2 * total_size)
+    val_size = int(0.05 * total_size)
     
     # 顺序划分数据集
     train_dataset = Subset(dataset, range(0, train_size))
-    val_dataset = Subset(dataset, range(train_size, train_size + val_size))
-    test_dataset = Subset(dataset, range(train_size + val_size, total_size))
+    val_dataset = Subset(dataset, range(train_size + offset, train_size + offset + val_size))
+    test_dataset = Subset(dataset, range(train_size + offset + val_size, total_size))
     
     train_loader = DataLoader(train_dataset, batch_size=len(train_dataset), shuffle=False)
     val_loader = DataLoader(val_dataset, batch_size=len(val_dataset), shuffle=False)
@@ -46,10 +34,16 @@ def split_dataset(area):
     
     return train_loader, val_loader, test_loader
 
-def get_input(loader):
+def set_parts(loader):
     input, output = next(iter(loader))
+    
+    print("input before: ", input.shape, "output before: ", output.shape)
+    
     input = input.reshape(-1, input.shape[-1])
     output = output.reshape(-1, output.shape[-1])
+    
+    print("input: ", input.shape, "output: ", output.shape)
+    
     return input, output
 
 def train_and_evaluate(model):
@@ -57,39 +51,28 @@ def train_and_evaluate(model):
     
     # 把全球数据分成16个小部分
     train_parts = np.array([
-        [20, 360, 50, 120],
+        [-160, 100, -55, 50],
     ])
     
     for part in train_parts:
         lon = part[:2]
         lat = part[2:]
         
-        print(lon, lat)
-        
         dataset = Argo3DTemperatureDataset(lon=lon, lat=lat, depth=[0, 58])   
         
-        total_size = len(dataset)
-        train_size = int(0.8 * total_size)
-        test_size = int(0.2 * total_size)
+        train_loader, val_loader, test_loader = split_dataset(dataset)
         
-        train_dataset = Subset(dataset, range(0, train_size))
-        test_dataset = Subset(dataset, range(train_size, train_size + test_size))
-        
-        train_loader = DataLoader(train_dataset, batch_size=len(train_dataset), shuffle=False)
-        test_loader = DataLoader(test_dataset, batch_size=1, shuffle=False)
-        
-        input, output = get_input(train_loader)
-        test_input, test_output = get_input(test_loader)
+        input, output = set_parts(train_loader)
+        test_input, test_output = set_parts(test_loader)
     
         model = model.fit(input, output)
         score = model.score(test_input, test_output)
         
-        del train_loader, test_loader, train_dataset, test_dataset
+        del train_loader, test_loader, dataset
     
     return model, score
 
 def rmse(pred, true):
-    true = true.numpy()
     rmses = []
     
     for i in range(58):
@@ -162,17 +145,10 @@ def train_rf_model():
         print(f"score: {score}")
 
     for area in Areas:
-        dataset = Argo3DTemperatureDataset(lon=get_lon(np.array(area['lon'])), lat=get_lat(np.array(area['lat'])), depth=[0, 58])
+        dataset = Argo3DTemperatureDataset(lon=area['lon'], lat=area['lat'], depth=[0, 58])
         
-        val_loader = DataLoader(dataset, batch_size=1, shuffle=False)
-        
-        input, output = get_input(val_loader)
-        
-        print("input: ", input.shape, "output: ", output.shape)
-    
+        input, output = set_parts(dataset)
         result = model.predict(input)
-        
-        print("result: ", result.shape)
     
         mse_1000u, mse_1000d = rmse(result, output);
     

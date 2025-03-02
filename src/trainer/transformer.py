@@ -23,15 +23,9 @@ from torch.utils.data import random_split
 
 from src.dataset.ERA5 import ERA5SSTDataset
 
-def get_lon(lon):
-    lon_s = 360 + lon[0] if lon[0] <= 0 else lon[0]
-    lon_e = 360 + lon[1] if lon[1] <= 0 else lon[1]
-    
-    return array([lon_s, lon_e])
-
 def split_data(area):
-    lon = array(get_lon(area['lon']))
-    lat = array(area['lat']) + 90
+    lon = area['lon']
+    lat = area['lat']
 
     dataset = ERA5SSTDataset(WIDTH, STEP, OFFSET, lon, lat)
     
@@ -44,8 +38,8 @@ def split_data(area):
     return train_dataloader, val_dataloader, test_dataloader
 
 def get_sst(): 
-    lon = array([-180, 180]) + 180
-    lat = array([-90, 90]) + 90
+    lon = [-180, 180]
+    lat = [-90, 90]
 
     dataset = ERA5SSTDataset(WIDTH, STEP, OFFSET, lon, lat)
     loader = DataLoader(dataset, batch_size=1, shuffle=False)
@@ -55,8 +49,8 @@ def get_sst():
     return last_[0, :, :]
 
 def plot_sst_month(sst, ax, levels, label, area):
-    lon = array(area['lon'])
-    lat = array(area['lat'])
+    lon = area['lon']
+    lat = area['lat']
         
     ax.set_xticks(_range([0, lon[1] - lon[0]], 5))
     ax.set_yticks(_range([0, lat[1] - lat[0]], 5))
@@ -108,7 +102,7 @@ def train_transformer_models():
         
         train_dataloader, val_dataloader, test_dataloader = split_data(area)
 
-        trainer = Trainer(max_epochs=25, enable_checkpointing=False)
+        trainer = Trainer(max_epochs=150, enable_checkpointing=False)
 
         trainer.fit(model, train_dataloaders=train_dataloader)
 
