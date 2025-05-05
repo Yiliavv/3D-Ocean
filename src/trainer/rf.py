@@ -20,7 +20,7 @@ def split_dataset(dataset):
     # 计算数据集大小和划分点
     total_size = len(dataset)
     offset = int(0.5 * total_size)
-    train_size = int(0.2 * total_size)
+    train_size = int(0.15 * total_size)
     val_size = int(0.05 * total_size)
     
     # 顺序划分数据集
@@ -37,7 +37,7 @@ def split_dataset(dataset):
 def set_parts(loader):
     input, output = next(iter(loader))
     
-    print("input before: ", input.shape, "output before: ", output.shape)
+    # print("input before: ", input.shape, "output before: ", output.shape)
     
     input = input.reshape(-1, input.shape[-1])
     output = output.reshape(-1, output.shape[-1])
@@ -49,11 +49,10 @@ def set_parts(loader):
 def train_and_evaluate(model):
     score = 0;
     
-    epochs = 5
+    epochs = 1
     
-    # 把全球数据分成16个小部分
     train_parts = np.array([
-        [-160, 100, -55, 60],
+        [-180, 180, -80, 80],
     ])
     
     for part in train_parts:
@@ -145,16 +144,16 @@ def train_rf_model():
     _, score = train_and_evaluate(model)
         
     print(f"score: {score}")
-
+    
     for area in Areas:
-        dataset = Argo3DTemperatureDataset(lon=area['lon'], lat=area['lat'], depth=[0, 58])
+        dataset = Argo3DTemperatureDataset(lon=area.lon, lat=area.lat, depth=[0, 58])
         
         input, output = set_parts(dataset)
         result = model.predict(input)
     
         mse_1000u, mse_1000d = rmse(result, output);
     
-        print(f"area: {area['title']}, rmse: {mse_1000u}, {mse_1000d}")
+        print(f"area: {area.title}, rmse: {mse_1000u}, {mse_1000d}")
         
     return model
 

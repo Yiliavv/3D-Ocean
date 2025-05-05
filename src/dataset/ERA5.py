@@ -1,3 +1,4 @@
+import os
 import sys
 import arrow
 import numpy as np
@@ -6,8 +7,8 @@ import netCDF4 as nc
 from torch import tensor, unsqueeze
 from torch.utils.data import Dataset
 
-from src.config.params import BASE_ERA5_DAILY_DATA_PATH
-from src.utils.log import Log
+from src.config.params import BASE_ERA5_DAILY_DATA_PATH, BASE_ERA5_MONTHLY_DATA_PATH
+from src.utils.util import resource_era5_monthly_sst_data
 
 cache = {}
 
@@ -51,7 +52,7 @@ class ERA5SSTDataset(Dataset):
         self.lat = np.array(lat)
         
         self.cur = 0
-        self.precision = 4
+        self.precision =  1
         # 数据集中包含的时间范围
         self.s_time = arrow.get('2004-01-01')
         self.e_time = arrow.get('2024-12-31')
@@ -80,10 +81,15 @@ class ERA5SSTDataset(Dataset):
         sst = np.flip(sst, axis=1)
         
         # 经纬度坐标系转换到索引坐标系
-        lon_indices = np.arange(self.lon[0], self.lon[1]) % 360
-        lat_indices = np.arange(self.lat[0], self.lat[1]) + 90
+        space = 1 / self.precision
         
-        lon_grid, lat_grid = np.meshgrid(lon_indices * self.precision, lat_indices * self.precision)
+        lon_indices = (np.arange(self.lon[0], self.lon[1], space) % 360) * 4
+        lat_indices = (np.arange(self.lat[0], self.lat[1], space) + 90) * 4
+        
+        lon_indices = lon_indices.astype(np.int32)
+        lat_indices = lat_indices.astype(np.int32)
+        
+        lon_grid, lat_grid = np.meshgrid(lon_indices, lat_indices)
             
         return sst[offset, lat_grid, lon_grid]
     
@@ -118,7 +124,7 @@ class ERA5SSTDataset(Dataset):
         s_time = self.s_time.shift(days=start_index)
         e_time = self.s_time.shift(days=end_index)
         
-        # print(f"读取时间范围: {s_time.format('YYYY-MM-DD')} - {e_time.format('YYYY-MM-DD')}")
+        print(f"读取时间范围: {s_time.format('YYYY-MM-DD')} - {e_time.format('YYYY-MM-DD')}")
         
         time_range = arrow.Arrow.span_range('day', s_time, e_time)
         
@@ -143,3 +149,83 @@ class ERA5SSTDataset(Dataset):
         last_ = unsqueeze(last_, dim=0)
 
         return fore_, last_ 
+    
+# ERA5 海表月平均温度数据集
+class ERA5SSTMonthlyDataset(Dataset):
+    """
+    ERA5 SST 月平均温度数据集
+    """
+    
+    def __init__(self, width=2, offset=0, lon=None, lat=None, resolution=1, *args):
+        super().__init__(*args)
+        
+        if lat is None:
+            lat = np.array([0, 0])
+        if lon is None:
+            lon = np.array([0, 0])
+        
+        self.lon = np.array(lon)
+        self.lat = np.array(lat)
+        self.start_time = arrow.get('2004-01-01')
+        self.end_time = arrow.get('2024-12-01')
+
+        self.offset = offset
+        self.width = width
+        self.resolution = resolution
+        
+        self.sst_data = resource_era5_monthly_sst_data(BASE_ERA5_MONTHLY_DATA_PATH)
+    
+    def __len__(self):
+        month_len = len(self.sst_data)
+        length = month_len - self.width
+        
+        return length - self.offset
+    
+    def __getitem__(self, index):
+        
+        start_index = index + self.offset
+        end_index = start_index + self.width
+        
+        # print(f"读取月份: {self.start_time.shift(months=start_index).format('YYYY-MM-DD')} - {self.start_time.shift(months=end_index).format('YYYY-MM-DD')}")
+        
+        sst_time_series = []
+        
+        for i in range(start_index, end_index):
+            sst = self.__read_sst__(i)
+            sst_time_series.append(sst)
+        
+        sst_time_series = tensor(sst_time_series, requires_grad=True)
+        
+        fore_ = sst_time_series[:self.width - 1, ...]
+        last_ = sst_time_series[-1, ...]
+        
+        # 增加一个通道维度, 通道数为 1, 即 (seq_len, width, height) -> (seq_len, 1,  width, height)
+        fore_ = unsqueeze(fore_, dim=1)
+        last_ = unsqueeze(last_, dim=0)
+
+        return fore_, last_
+        
+    def __read_files__(self):
+        for file in os.listdir(BASE_ERA5_MONTHLY_DATA_PATH):
+            if file.endswith('.nc'):
+                self.files.append(f"{BASE_ERA5_MONTHLY_DATA_PATH}/{file}")
+                
+    def __read_sst__(self, index: int):
+        sst = self.sst_data[index, :, :]
+        
+        sst = np.flip(sst, axis=0)
+        
+        sst = sst - 273.15
+        
+        space = self.resolution
+        
+        lon_indices = (np.arange(self.lon[0], self.lon[1], space) % 360) * 4
+        lat_indices = (np.arange(self.lat[0], self.lat[1], space) + 90) * 4
+        
+        lon_indices = lon_indices.astype(np.int32)
+        lat_indices = lat_indices.astype(np.int32)
+        
+        lon_grid, lat_grid = np.meshgrid(lon_indices, lat_indices)
+        
+        return sst[lat_grid, lon_grid]
+                

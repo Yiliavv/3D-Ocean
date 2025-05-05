@@ -7,10 +7,10 @@ from cartopy import feature as cfeat
 
 def create_base_figure():
     """
-    创建固定 dpi 为 600 的高分辨率画布
+    创建固定 dpi 为 1200 的高分辨率画布
     """
 
-    dpi = 600
+    dpi = 1200
     
     figure = plt.figure(dpi=dpi)
     

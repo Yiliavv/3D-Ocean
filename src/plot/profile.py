@@ -1,10 +1,10 @@
 # 绘制三维海洋图
-from numpy import linspace, meshgrid, transpose, nanmin, nanmax 
+from numpy import linspace, meshgrid, transpose, nanmin, nanmax, arange
 
 from matplotlib import pyplot as plt
 
 from src.utils.log import Log
-from src.plot.base import create_3d_ax, create_shared_3d_axes
+from src.plot.base import create_3d_ax, create_shared_3d_axes, create_ax
 from src.plot.sst import _range
 
 def plot_3d_temperature(temp, lon, lat, depth):
@@ -100,3 +100,22 @@ def plot_3d_temperature_comparison(temp1, temp2, lon, lat, depth):
                 label='temperature [°C]')
 
     return axes
+
+def plot_profile_rmses(rmses_profile, dates):
+    """
+    绘制剖面分布图的均方根误差
+    
+    :param rmses_profile: 三维海温分布图的均方根误差
+    """
+    for area, rmses in rmses_profile.items():
+        ax = create_ax()
+        print(f"{area}: {rmses}")
+        
+        for date, rmse in zip(dates, rmses):
+            ax.plot(rmse, label=date)
+        
+        ax.legend()
+        ax.set_xlabel('depth (F)')
+        ax.set_ylabel('rmse (°C)')
+        
+        plt.title(area)

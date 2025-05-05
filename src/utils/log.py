@@ -1,6 +1,6 @@
 # log class for logging
 from enum import Enum, auto
-
+import csv
 
 class Level(Enum):
     DEBUG = auto()
@@ -65,3 +65,14 @@ class Log:
     def c(*msg):
         if LOG_LEVEL <= Level["CRITICAL"]:
             print(f"\033[95mCRITICAL: \033[0m    ", *msg)
+
+
+class CSVLogger:
+    def __init__(self, filename):
+        self.filename = filename
+        self.writer = csv.writer(open(filename, 'w'))
+
+    def log(self, tensor):
+       for row in tensor:
+           self.writer.writerow(row.tolist())
+

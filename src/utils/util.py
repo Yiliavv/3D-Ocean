@@ -349,6 +349,28 @@ def resource_argo_monthly_data(argo_data_dir):
     return argo_data
 
 
+def resource_era5_monthly_sst_data(era5_data_dir):
+    """
+    读取ERA5月平均数据
+    :param era5_data_dir: ERA5数据目录
+    :return:
+    """
+    
+    ear5_data = np.array([])
+    
+    with os.scandir(era5_data_dir) as it:
+        for entry in it:
+            if entry.is_file() and entry.name.endswith('.nc'):
+                nc_file = nc.Dataset(entry.path, 'r')
+                variables = nc_file.variables
+                temperature = variables['sst'][:]
+                if ear5_data.size == 0:
+                    ear5_data = temperature
+                else:
+                    ear5_data = np.concatenate((ear5_data, temperature))
+                
+    return ear5_data
+
 def construct_argo_training_set(all_months):
     """构建Argo训练集
     """

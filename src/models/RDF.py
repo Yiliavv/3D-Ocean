@@ -5,7 +5,8 @@ class RDFNetwork():
     def __init__(self):
         super(RDFNetwork).__init__()
         self.model = RandomForestRegressor(
-            n_estimators=128, random_state=16, n_jobs=8, verbose=True
+            n_estimators=16, random_state=42,
+            n_jobs=8, verbose=True
         )
         
     def get_model(self):

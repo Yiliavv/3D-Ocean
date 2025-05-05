@@ -1,5 +1,9 @@
 {
     "terminal.integrated.env.windows": {
         "PYTHONPATH": "B:\\workspace\\tensorflow"
-    }
+    },
+    "cSpell.words": [
+        "gridlines",
+        "mantine"
+    ]
 }
