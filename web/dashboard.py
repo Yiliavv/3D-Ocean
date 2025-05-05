@@ -63,6 +63,7 @@ def DatasetPanel():
             dmc.Divider(variant="solid"),
             SeqLenInput(),
             OffsetInput(),
+            AreaSelect(),
             LongitudeInput(),
             LatitudeInput(),
             ResolutionInput(),
@@ -80,7 +81,7 @@ def ModelPanel():
             NumDecoderLayersInput(),
             LearningRateInput(),
             DropoutInput(),
-            OptimizerInput(),
+            OptimizerSelect(),
             dmc.Space(h=16),
         ]
     )

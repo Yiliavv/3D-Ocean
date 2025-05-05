@@ -1,6 +1,7 @@
 from arrow import Arrow
 from dash import Input, Output, State, callback
 
+from src.config.params import Areas
 from src.config.area import Area
 from tasks.TrainerTask import TrainerTask
 
@@ -13,7 +14,20 @@ sst_trainer_task = None
 def update_dataset_start_time(offset):
     return f"数据集开始时间: {Arrow(2004, 1, 1).shift(months=offset).format('YYYY-MM-DD')}"
 
+# 更新区域
+@callback(
+    Output("longitude-input", "value"),
+    Output("latitude-input", "value"),
+    Input("area-select", "value"),
+)
+def update_area_select(value):
+    if value is None:
+        return [-180, 180], [-90, 90]
+    index = int(value)
+    area = Areas[index]
+    return area.lon, area.lat
 
+# 启动训练任务
 @callback(
     Input("start-training-button", "n_clicks"),
     # 数据集参数
@@ -28,7 +42,7 @@ def update_dataset_start_time(offset):
     State("num-decoder-layers-input", "value"),
     State("learning-rate-input", "value"),
     State("dropout-input", "value"),
-    State("optimizer-input", "value"),
+    State("optimizer-select", "value"),
     # 训练参数
     State("batch-size-input", "value"),
     State("epochs-input", "value"),
@@ -54,7 +68,9 @@ def start_training(
     
     # 启动任务
     sst_trainer_task.start()
-    
+
+
+# 停止训练任务
 @callback(
     Input("stop-training-button", "n_clicks"),
 )
@@ -62,5 +78,7 @@ def stop_training():
     if sst_trainer_task is not None:
         sst_trainer_task._stop()
         sst_trainer_task = None
+
+    return;
     
 

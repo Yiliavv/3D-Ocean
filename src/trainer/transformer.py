@@ -53,6 +53,7 @@ class TransformerTrainer:
         self.model_path = model_path
         self.model = pre_model or \
             SSTTransformer(area.width, area.height, seq_len, **kwargs)
+        self.model_params = kwargs
         
         # 训练结束后的数据
         self.val_loader = None
@@ -75,7 +76,7 @@ class TransformerTrainer:
             model='SSTTransformer',
             m_type='Transformer',
             model_path=self.model_path,
-            params=self.model.get_params(),
+            params=self.model_params,
         )
         
         dataset_params = DatasetParams(
@@ -94,6 +95,8 @@ class TransformerTrainer:
             m_params=model_params,
             d_params=dataset_params,
         )
+        
+        print(train_output)
         
         write_m(train_output, self.title)
         

@@ -2,6 +2,7 @@ from dash import Dash, html, dcc
 import dash_mantine_components as dmc
 from dash_iconify import DashIconify
 
+from src.config.params import Areas
 
 def InputFactory(label, tooltip, type, **kwargs):
     uni_width = 240
@@ -85,6 +86,24 @@ def OffsetInput():
         id="offset-input",
         min=0,
         value=0,
+    )
+    
+def AreaSelect():
+    
+    area_data = [
+        {
+            "value": str(i),
+            "label": area.description,
+        }
+        for i, area in enumerate(Areas)
+    ]
+    
+    return InputFactory(
+        "Area",
+        "快速选择区域",
+        "select",
+        id="area-select",
+        data=area_data,
     )
     
 def LongitudeInput():
@@ -205,12 +224,12 @@ def DropoutInput():
         value=0.,
     )
     
-def OptimizerInput():
+def OptimizerSelect():
     return InputFactory(
         "Optimizer",
         "选择优化器",
         "select",
-        id="optimizer-input",
+        id="optimizer-select",
         data=["Adam", "SGD"],
         value="Adam",
     )
