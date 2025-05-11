@@ -6,6 +6,7 @@ from components.Inputs import *
 from components.ModelInspector import ModelInspector
 from components.ParamsInspector import ParamsInspector
 from components.Actions import Actions
+from components.TaskMonitor import TaskMonitor
 
 def MainLayout():
     return dmc.MantineProvider(
@@ -19,6 +20,8 @@ def MainLayout():
                         ],
                         gap="md",
                     ),
+                    dmc.Space(h=24),
+                    TaskMonitor(),
                     dmc.Space(h=24),
                     ActionsPanel(),
                 ]),

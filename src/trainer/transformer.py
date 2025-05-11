@@ -31,12 +31,21 @@ class TransformerTrainer:
         model_path: str = None, 模型保存路径, 如果为 None, 则不保存模型
         pre_model: SSTTransformer = None, 预训练模型
         **kwargs: Transformer 模型参数
+        
+    主要的模型参数:
+        nhead: 多头注意力机制的head数
+        num_encoder_layers: 编码器层数
+        num_decoder_layers: 解码器层数
+        dim_feedforward: 前馈神经网络的维度
+        dropout: 丢弃率
+        activation: 激活函数
     """
     def __init__(self,
                  title: str,
                  area: Area,
                  seq_len: int = 2,
                  offset: int = 0,
+                 resolution: float = 1,
                  epochs: int = 300,
                  batch_size: int = 20,
                  model_path: str = None,
@@ -48,20 +57,21 @@ class TransformerTrainer:
         self.area = area
         self.seq_len = seq_len
         self.offset = offset
+        self.resolution = resolution
         self.epochs = epochs
         self.batch_size = batch_size
         self.model_path = model_path
-        self.model = pre_model or \
-            SSTTransformer(area.width, area.height, seq_len, **kwargs)
         self.model_params = kwargs
+        
+        width = int(area.width / resolution)
+        height = int(area.height / resolution)
+        
+        self.model = pre_model or \
+            SSTTransformer(width, height, seq_len, **kwargs)
         
         # 训练结束后的数据
         self.val_loader = None
         self.train_loader = None
-        
-        # 结果
-        self.val_loss = []
-        self.train_loss = []
         
     def split(self, dataset):
         train_set, val_set = random_split(dataset, [0.8, 0.2])
@@ -71,7 +81,7 @@ class TransformerTrainer:
         
         return train_loader, val_loader
     
-    def output(self, resolution):
+    def output(self):
         model_params = ModelParams(
             model='SSTTransformer',
             m_type='Transformer',
@@ -82,21 +92,21 @@ class TransformerTrainer:
         dataset_params = DatasetParams(
             dataset='ERA5-Monthly-SST',
             range=[self.area.lon, self.area.lat],
-            resolution=resolution,
+            resolution=self.resolution,
             start_time=arrow.get(2004, 1, 1).format('YYYY-MM-DD'),
             end_time=arrow.get(2024, 12, 31).format('YYYY-MM-DD'),
         )
         
         train_output = TrainOutput(
             epoch=self.epochs,
-            val_loss=self.val_loss,
+            val_loss=self.model.val_loss,
             batch_size=self.batch_size,
-            train_loss=self.train_loss,
+            train_loss=self.model.train_loss,
             m_params=model_params,
             d_params=dataset_params,
         )
         
-        print(train_output)
+        print(f"train_output: {train_output}")
         
         write_m(train_output, self.title)
         
@@ -107,7 +117,7 @@ class TransformerTrainer:
         torch.save(self.model, model_path)
         
         
-    def train(self, resolution = 1):
+    def train(self):
         lon = self.area.lon
         lat = self.area.lat
         
@@ -116,7 +126,7 @@ class TransformerTrainer:
             offset=self.offset,
             lon=lon,
             lat=lat,
-            resolution=resolution
+            resolution=self.resolution
         )
 
         self.train_loader, self.val_loader = self.split(dataset)
@@ -134,7 +144,9 @@ class TransformerTrainer:
             
             return self.model
 
-        self.output(resolution)
+        self.output()
+        
+        return self.model
         
 def train_transformer(area, seq_len, offset, epochs, batch_size, **kwargs):
     trainer = TransformerTrainer(

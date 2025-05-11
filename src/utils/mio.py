@@ -53,8 +53,12 @@ def write_m(train_output: TrainOutput, model_name: str):
     model_dir = os.path.join(BASE_DIR, model_name)
     os.makedirs(model_dir, exist_ok=True)
     
-    filename = arrow.now().format("YYYY-MM-DD-HH:MM")
+    filename = arrow.now().format("YYYY-MM-DD-HH-mm")
+    
+    print(f"file_name: {filename}")
+    
+    data = json.dumps(asdict(train_output), indent=4)
     
     # 保存模型参数
     with open(os.path.join(model_dir, f"{filename}.json"), "w") as f:
-        json.dump(asdict(train_output), f)
+        f.write(data)
