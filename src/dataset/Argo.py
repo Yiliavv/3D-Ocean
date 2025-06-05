@@ -20,7 +20,7 @@ class Argo3DTemperatureDataset(Dataset):
     Argo 三维温度数据集
     """
 
-    def __init__(self, lon=None, lat=None, depth=None, dtype=FrameType.surface, *args):
+    def __init__(self, lon=None, lat=None, depth=None, dtype=FrameType.surface, resolution=1, *args):
         super().__init__(*args)
 
         if lon is None:
@@ -38,6 +38,7 @@ class Argo3DTemperatureDataset(Dataset):
         self.data = resource_argo_monthly_data(BASE_BOA_ARGO_DATA_PATH)
         self.s_time = arrow.get('2004-01-01')
         self.e_time = arrow.get('2024-12-31')
+        self.resolution = resolution
 
     def __len__(self):
         return len(self.data)
@@ -64,9 +65,9 @@ class Argo3DTemperatureDataset(Dataset):
         print(f"读取月份: {one_month['year']}-{one_month['month']}")
         
         # 经纬度坐标系换算到索引坐标系
-        lon_indices = np.arange(self.lon[0], self.lon[1]) % 360
+        lon_indices = np.arange(self.lon[0], self.lon[1], self.resolution) % 360
         
-        lat_indices = np.arange(self.lat[0], self.lat[1]) + 80
+        lat_indices = np.arange(self.lat[0], self.lat[1], self.resolution) + 80
         
         # print("Argo: ", lat_indices)
         

@@ -124,8 +124,6 @@ class ERA5SSTDataset(Dataset):
         s_time = self.s_time.shift(days=start_index)
         e_time = self.s_time.shift(days=end_index)
         
-        print(f"读取时间范围: {s_time.format('YYYY-MM-DD')} - {e_time.format('YYYY-MM-DD')}")
-        
         time_range = arrow.Arrow.span_range('day', s_time, e_time)
         
         sst_time_series = []
@@ -168,6 +166,8 @@ class ERA5SSTMonthlyDataset(Dataset):
         self.lat = np.array(lat)
         self.start_time = arrow.get('2004-01-01')
         self.end_time = arrow.get('2024-12-01')
+        
+        print(f'起始时间：{self.start_time.shift(months=offset).format("YYYY-MM-DD")}')
 
         self.offset = offset
         self.width = width
@@ -185,6 +185,10 @@ class ERA5SSTMonthlyDataset(Dataset):
         
         start_index = index + self.offset
         end_index = start_index + self.width
+        
+        # 支持读取单个月份数据
+        if  (self.width is 1):
+            return self.__read_sst__(start_index)
         
         # print(f"读取月份: {self.start_time.shift(months=start_index).format('YYYY-MM-DD')} - {self.start_time.shift(months=end_index).format('YYYY-MM-DD')}")
         

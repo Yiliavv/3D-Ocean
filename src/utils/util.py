@@ -6,6 +6,7 @@ from datetime import datetime
 
 from memory_profiler import profile
 
+from config.area import Area
 from src.utils.log import Log
 from src.config.params import BASE_CDAC_DATA_PATH
 
@@ -410,3 +411,23 @@ def construct_argo_training_set(all_months):
             _all_profiles = np.concatenate((_all_profiles, _profile))
 
     return [_all_sst, _all_stations], _all_profiles
+
+def scope(block_size = 20):
+    from src.config.area import Area
+    
+    blocks = []
+    lon_range = range(-180, 181, block_size)
+    lat_range = range(-80, 81, block_size)
+    for (l, li) in zip(lon_range, range(len(lon_range))):
+        if li+1 >= len(lon_range):
+            continue
+        lon_block = [l, lon_range[li+1]]
+        for (k, ki) in zip(lat_range, range(len(lat_range))):
+            if ki+1 >= len(lat_range):
+                continue
+            lat_block = [k, lat_range[ki+1]]
+            block = {"lon":lon_block,"lat":lat_block}
+            area = Area(title=f"Area_{lon_block[0]}_{lon_block[1]}_{lat_block[0]}_{lat_block[1]}.png", lon=lon_block, lat=lat_block, description=f"Area {len(blocks)+1}")
+            blocks.append(area)
+
+    return blocks

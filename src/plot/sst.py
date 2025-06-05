@@ -36,29 +36,29 @@ def set_ticker(ax, lon, lat):
     height = lat[1] - lat[0]
     
     if ( width < 20):    
-        lon_ticks = arange(lon[0], lon[1], 5)
+        lon_ticks = arange(lon[0], lon[1] + 1, 5)
     elif ( width < 100):
-        lon_ticks = arange(lon[0], lon[1], 15)
+        lon_ticks = arange(lon[0], lon[1] + 1, 10)
     elif ( width < 200):
-        lon_ticks = arange(lon[0], lon[1], 25)
+        lon_ticks = arange(lon[0], lon[1] + 1, 20)
     else:
-        lon_ticks = arange(lon[0], lon[1], 40)
+        lon_ticks = arange(lon[0], lon[1] + 1, 40)
     
     if (height < 20):
-        lat_ticks = arange(lat[0], lat[1], 5)
+        lat_ticks = arange(lat[0], lat[1] + 1, 5)
     elif ( height < 100):
-        lat_ticks = arange(lat[0], lat[1], 15)
+        lat_ticks = arange(lat[0], lat[1] + 1, 10)
     elif ( height < 200):
-        lat_ticks = arange(lat[0], lat[1], 25)
+        lat_ticks = arange(lat[0], lat[1] + 1, 20)
     else:
-        lat_ticks = arange(lat[0], lat[1], 40)
+        lat_ticks = arange(lat[0], lat[1] + 1, 40)
     
     ax.set_xticks(lon_ticks)
     ax.set_yticks(lat_ticks)
     ax.xaxis.set_major_formatter(tk.LongitudeFormatter())
     ax.yaxis.set_major_formatter(tk.LatitudeFormatter())
 
-def plot_sst(sst, lon, lat, step=1):
+def plot_sst(sst, lon, lat, step=1, filename='sst.png', title=''):
     """
     绘制海表温度分布图
     
@@ -67,6 +67,8 @@ def plot_sst(sst, lon, lat, step=1):
     :param lat: 纬度范围 [起始纬度, 结束纬度]
     :return: 返回图像对象和子图对象
     """
+    from src.config.params import PREDICT_SAVE_PATH
+    
     ax = create_ax()
     
     ax.figure.set_size_inches(10, 6)
@@ -76,10 +78,10 @@ def plot_sst(sst, lon, lat, step=1):
     # 生成网格点
     lon_grid, lat_grid = meshgrid(_range(lon, step), _range(lat, step))
     
-    vmin = max(floor(nanmin(sst)), 0)
-    vmax = min(ceil(nanmax(sst)), 30)
+    # vmin = max(floor(nanmin(sst)), 0)
+    # vmax = min(ceil(nanmax(sst)), 30)
     
-    levels = arange(vmin, vmax, 1)
+    levels = arange(0, 30, 1)
     
     im = ax.contourf(
         lon_grid, lat_grid, sst, 
@@ -93,9 +95,13 @@ def plot_sst(sst, lon, lat, step=1):
                 pad=0.1,
                 label='temperature (°C)')
     
+    plt.title(title)
+    
+    plt.savefig(f'{PREDICT_SAVE_PATH}/{filename}')
+    
     return ax
 
-def plot_sst_diff(sst_diff, lon, lat, step=1):
+def plot_sst_diff(sst_diff, lon, lat, step=1, filename='sst_diff.png', title=''):
     """
     绘制海表温度分布图
     
@@ -104,6 +110,8 @@ def plot_sst_diff(sst_diff, lon, lat, step=1):
     :param lat: 纬度范围 [起始纬度, 结束纬度]
     :return: 返回图像对象和子图对象
     """
+    from src.config.params import ERROR_SAVE_PATH
+    
     ax = create_ax()
     
     ax.figure.set_size_inches(10, 6)
@@ -113,10 +121,10 @@ def plot_sst_diff(sst_diff, lon, lat, step=1):
     # 生成网格点
     lon_grid, lat_grid = meshgrid(_range(lon, step), _range(lat, step))
     
-    vmin = max(floor(nanmin(sst_diff)), -3)
-    vmax = min(ceil(nanmax(sst_diff)), 3)
+    # vmin = max(floor(nanmin(sst_diff)), -3)
+    # vmax = min(ceil(nanmax(sst_diff)), )
     
-    levels = arange(vmin, vmax, 0.1)
+    levels = arange(-1.5, 1.5, 0.1)
     
     im = ax.contourf(
         lon_grid, lat_grid, sst_diff, 
@@ -129,6 +137,9 @@ def plot_sst_diff(sst_diff, lon, lat, step=1):
                 orientation='horizontal',
                 pad=0.1,
                 label='temperature (°C)')
+    
+    plt.title(title)
+    plt.savefig(f'{ERROR_SAVE_PATH}/{filename}')
     
     return ax
 

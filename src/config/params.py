@@ -15,6 +15,12 @@ BASE_PROFILE_PATH = "B:/workspace/tensorflow/output/profile"
 # 模型保存路径
 MODEL_SAVE_PATH = "B:/workspace/tensorflow/output/models"
 
+# 误差保存路径
+ERROR_SAVE_PATH = "B:/workspace/tensorflow/output/error"
+
+# 预测保存路径
+PREDICT_SAVE_PATH = "B:/workspace/tensorflow/output/sst"
+
 # 研究区域
 Areas = [
     Area(title="Area a", lon=[-150, -130], lat=[25, 45], description="北太平洋东部海域，西经150-130，北纬25-45"),
