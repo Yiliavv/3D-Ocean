@@ -7,7 +7,7 @@ from src.utils.log import Log
 from src.plot.base import create_3d_ax, create_shared_3d_axes, create_ax
 from src.plot.sst import _range
 
-def plot_3d_temperature(temp, lon, lat, depth):
+def plot_3d_temperature(temp, lon, lat, depth, step=1):
     """
     绘制三维海温分布图
     
@@ -20,7 +20,7 @@ def plot_3d_temperature(temp, lon, lat, depth):
     ax = create_3d_ax()
     
     # 生成网格点
-    lon_grid, lat_grid = meshgrid(_range(lat), _range(lon))
+    lon_grid, lat_grid = meshgrid(_range(lat, step), _range(lon, step))
     
     # 计算色标范围
     vmin = nanmin(temp)
@@ -28,6 +28,8 @@ def plot_3d_temperature(temp, lon, lat, depth):
     
     # 绘制每一层的等温面
     for i, d in enumerate(depth):
+        print(f"deep d: {d}")
+        
         temp_layer = transpose(temp[:, :, i], (1, 0))
         
         _ = ax.contourf(lon_grid, lat_grid, temp_layer,
@@ -35,9 +37,9 @@ def plot_3d_temperature(temp, lon, lat, depth):
                        vmin=vmin, vmax=vmax)
     
     # 设置坐标轴范围
-    ax.set_xlim(lon)
-    ax.set_ylim(lat) 
-    ax.set_zlim(-max(depth), 0)
+    # ax.set_xlim(lon)
+    # ax.set_ylim(lat)
+    ax.set_zlim(-max(depth), -min(depth))
     
     # 添加色标
     plt.colorbar(_, ax=ax,
@@ -48,7 +50,7 @@ def plot_3d_temperature(temp, lon, lat, depth):
     
     return ax
 
-def plot_3d_temperature_comparison(temp1, temp2, lon, lat, depth):
+def plot_3d_temperature_comparison(temp1, temp2, lon, lat, depth, step=1):
     """
     绘制两个三维海温分布图的对比图
 
@@ -63,7 +65,7 @@ def plot_3d_temperature_comparison(temp1, temp2, lon, lat, depth):
     axes = create_shared_3d_axes(1, 2, shared='all')
 
     # 生成网格点
-    x_grid, y_grid, z_grid = meshgrid(_range(lat), _range(lon), -depth)
+    x_grid, y_grid, z_grid = meshgrid(_range(lat, step), _range(lon, step), -depth)
 
     # 计算两个数据集的共同色标范围
     vmin = min(nanmin(temp1), nanmin(temp2))

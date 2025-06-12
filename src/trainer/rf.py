@@ -46,7 +46,7 @@ def set_parts(loader):
     
     return input, output
 
-def train_and_evaluate(model):
+def train_and_evaluate(model, resolution=1):
     score = 0;
     
     epochs = 1
@@ -59,7 +59,7 @@ def train_and_evaluate(model):
         lon = part[:2]
         lat = part[2:]
         
-        dataset = Argo3DTemperatureDataset(lon=lon, lat=lat, depth=[0, 58])   
+        dataset = Argo3DTemperatureDataset(lon=lon, lat=lat, depth=[0, 58], resolution=resolution)   
         
         train_loader, val_loader, test_loader = split_dataset(dataset)
         
@@ -80,8 +80,8 @@ def rmse(pred, true):
     rmses = []
     
     for i in range(58):
-        pred_temp = pred[:, i].reshape(20, 20)
-        true_temp = true[:, i].reshape(20, 20)
+        pred_temp = pred[:, i].reshape(10, 10)
+        true_temp = true[:, i].reshape(10, 10)
         mse = np.nanmean((pred_temp - true_temp) ** 2)
         rmse = np.sqrt(mse)
         rmses.append(rmse)
@@ -137,16 +137,16 @@ def plot_sst_station(profile, ax, levels, label, x_labels = None):
 
 # %% 单模型
 
-def train_rf_model():
+def train_rf_model(resolution=1):
     network = RDFNetwork()
     model = network.get_model()
     
-    _, score = train_and_evaluate(model)
+    _, score = train_and_evaluate(model, resolution)
         
     print(f"score: {score}")
     
     for area in Areas:
-        dataset = Argo3DTemperatureDataset(lon=area.lon, lat=area.lat, depth=[0, 58])
+        dataset = Argo3DTemperatureDataset(lon=area.lon, lat=area.lat, depth=[0, 58], resolution=resolution)
         
         input, output = set_parts(dataset)
         result = model.predict(input)

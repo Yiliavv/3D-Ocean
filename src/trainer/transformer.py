@@ -147,18 +147,3 @@ class TransformerTrainer:
         self.output()
         
         return self.model
-        
-def train_transformer(area, seq_len, offset, epochs, batch_size, **kwargs):
-    trainer = TransformerTrainer(
-        title='Transformer',
-        area=area,
-        seq_len=seq_len,
-        offset=offset,
-        epochs=epochs,
-        batch_size=batch_size,
-        **kwargs
-    )
-    
-    model = trainer.train()
-    
-    return model

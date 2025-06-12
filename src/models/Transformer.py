@@ -75,10 +75,10 @@ class SSTTransformer(LightningModule):
         
         x_processed = self.__normalize__(x)
 
-        # 重塑输入: [batch, 14, 20, 20] -> [batch, 14, 400]
+        # 重塑输入
         x_processed = x_processed.view(batch_size, self.seq_len - 1, -1)
         
-        # 投影到transformer维度: [batch, 14, 400] -> [batch, 14, d_model]
+        # 投影到transformer维度
         x_viewed = self.input_projection(x_processed)
 
         # 创建一个目标序列（用最后一个时间步作为初始目标）
