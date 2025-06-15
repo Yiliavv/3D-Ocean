@@ -37,8 +37,7 @@ class SST3DUNet(LightningModule):
         
         # 3D解码器：重建3D温度场
         self.decoder_3d = nn.Sequential(
-            nn.Conv3d(16, 1024, 3, padding=1),
-            nn.Conv3d(1024, 512, 3, padding=1),
+            nn.Conv3d(16, 512, 3, padding=1),
             nn.Conv3d(512, 16, 3, padding=1),
             nn.ReLU(),
             nn.Conv3d(16, 1, 3, padding=1),

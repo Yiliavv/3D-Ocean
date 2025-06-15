@@ -38,8 +38,8 @@ class DatasetParams:
 @dataclass
 class TrainOutput:
     epoch: int
-    val_loss: list[float]
     batch_size: int
+    val_loss: list[float]
     train_loss: list[float]
     m_params: ModelParams
     d_params: DatasetParams

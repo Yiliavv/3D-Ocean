@@ -64,7 +64,12 @@ def train_and_evaluate(model, resolution=1):
         train_loader, val_loader, test_loader = split_dataset(dataset)
         
         input, output = set_parts(train_loader)
+        input = __normalize__(input)
+        output = __normalize__(output)
+        
         test_input, test_output = set_parts(test_loader)
+        test_input = __normalize__(test_input)
+        test_output = __normalize__(test_output)
         
         for epoch in range(epochs):
             print(f"Epoch {epoch} start: ")
@@ -134,6 +139,15 @@ def plot_sst_station(profile, ax, levels, label, x_labels = None):
     ax.clabel(contour_lines, inline=True, colors='black', fontsize=5, fmt='%d', manual=False)
         
     ax.invert_yaxis()
+
+def __normalize__(x):
+        # 保存原始nan掩码
+        x_mask = np.isnan(x)
+        # 将nan值替换为0，以便模型处理
+        x_processed = np.copy(x)
+        x_processed[x_mask] = 0.0
+        
+        return x_processed
 
 # %% 单模型
 

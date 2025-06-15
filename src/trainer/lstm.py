@@ -15,7 +15,7 @@ from src.config.area import Area
 from torch.utils.data import DataLoader
 from torch.utils.data import random_split
 from src.dataset.ERA5 import ERA5SSTMonthlyDataset
-from src.models.LSTM import ConvLSTM
+from models.ConvLSTM import ConvLSTM
 from src.utils.mio import ModelParams, DatasetParams, TrainOutput, write_m
 
 class LSTMTrainer:
