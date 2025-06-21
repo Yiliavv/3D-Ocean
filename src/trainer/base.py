@@ -1,5 +1,6 @@
-
-from torch import save
+import arrow
+import uuid
+from torch import save, load
 from lightning import LightningModule, Trainer
 from torch.utils.data import DataLoader
 from torch.utils.data import random_split
@@ -22,6 +23,7 @@ class BaseTrainer:
         model_params: dict, 模型参数
         
     dataset_params:
+        seq_len: int, 序列长度
         offset: int, 偏移量
         resolution: float, 分辨率
         
@@ -42,6 +44,8 @@ class BaseTrainer:
                  dataset_params: dict = {},
                  trainer_params: dict = {},
                  model_params: dict = {}):
+        
+        self.trainer_uid = str(uuid.uuid4())
 
         self.title = title
         self.area = area
@@ -61,6 +65,7 @@ class BaseTrainer:
         
         # 模型
         self.model = None
+        self.trained = False
     
     def split(self, dataset):
         split_ratio = self.trainer_params.get('split_ratio', [0.8, 0.2])
@@ -100,10 +105,52 @@ class BaseTrainer:
 
         trainer.fit(self.model, train_loader, val_loader)
 
+        self.trained = True
+        self.output()
+
         if self.save_path:
             self.save()
 
         return self.model
+
+    def predict(self, offset: int) -> tuple:
+        
+        """
+        预测
+        
+        :param offset: 数据偏移量
+        :return: 输入和预测输出
+        """
+
+        if not self.trained:
+            self.model = load(self.save_path)
+            self.trained = True
+            
+        if not self.model:
+            raise ValueError('无已训练模型')
+        
+        dataset_params = {
+            **self.dataset_params,
+            'offset': offset,
+        }
+        
+        pred_dataset = self.dataset_class(
+            lon=self.area.lon,
+            lat=self.area.lat,
+            **dataset_params
+        )
+        
+        pred_loader = DataLoader(pred_dataset, batch_size=1, shuffle=False)
+        
+        input, output = next(iter(pred_loader))
+        
+        pred_output = self.model(input)
+        
+        input = input.detach().numpy()
+        output = output.detach().numpy()
+        pred_output = pred_output.detach().numpy()
+        
+        return (input, output, pred_output)
 
     def save(self):
         save(self.model, self.save_path)
@@ -117,10 +164,14 @@ class BaseTrainer:
             params=self.model_params,
         )
         
+        offset = self.dataset_params.get('offset', 0)
+        
         dataset_params = DatasetParams(
             dataset=self.dataset_class.__name__,
             range=[self.area.lon, self.area.lat],
             resolution=self.dataset_params.get('resolution', 1),
+            start_time=arrow.get(2004, 1, 1).shift(months=offset).format('YYYY-MM-DD'),
+            end_time=arrow.get(2024, 12, 31).format('YYYY-MM-DD'),
         )
         
         train_output = TrainOutput(
@@ -132,4 +183,4 @@ class BaseTrainer:
             d_params=dataset_params,
         )
         
-        write_m(train_output, self.title)
+        write_m(train_output, self.title, self.trainer_uid)

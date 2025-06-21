@@ -154,8 +154,8 @@ class ERA5SSTMonthlyDataset(Dataset):
     ERA5 SST 月平均温度数据集
     """
     
-    def __init__(self, width=2, offset=0, lon=None, lat=None, resolution=1, *args):
-        super().__init__(*args)
+    def __init__(self, seq_len=2, offset=0, lon=None, lat=None, resolution=1):
+        super().__init__()
         
         if lat is None:
             lat = np.array([0, 0])
@@ -170,24 +170,24 @@ class ERA5SSTMonthlyDataset(Dataset):
         print(f'起始时间：{self.start_time.shift(months=offset).format("YYYY-MM-DD")}')
 
         self.offset = offset
-        self.width = width
+        self.seq_len = seq_len
         self.resolution = resolution
         
         self.sst_data = resource_era5_monthly_sst_data(BASE_ERA5_MONTHLY_DATA_PATH)
     
     def __len__(self):
         month_len = len(self.sst_data)
-        length = month_len - self.width
+        length = month_len - self.seq_len
         
         return length - self.offset
     
     def __getitem__(self, index):
         
         start_index = index + self.offset
-        end_index = start_index + self.width
+        end_index = start_index + self.seq_len
         
         # 支持读取单个月份数据
-        if  (self.width is 1):
+        if  (self.seq_len == 1):
             return self.__read_sst__(start_index)
         
         # print(f"读取月份: {self.start_time.shift(months=start_index).format('YYYY-MM-DD')} - {self.start_time.shift(months=end_index).format('YYYY-MM-DD')}")
@@ -198,9 +198,9 @@ class ERA5SSTMonthlyDataset(Dataset):
             sst = self.__read_sst__(i)
             sst_time_series.append(sst)
         
-        sst_time_series = tensor(sst_time_series, requires_grad=True)
+        sst_time_series = tensor(np.array(sst_time_series), requires_grad=True)
         
-        fore_ = sst_time_series[:self.width - 1, ...]
+        fore_ = sst_time_series[:self.seq_len - 1, ...]
         last_ = sst_time_series[-1, ...]
         
         # 增加一个通道维度, 通道数为 1, 即 (seq_len, width, height) -> (seq_len, 1,  width, height)

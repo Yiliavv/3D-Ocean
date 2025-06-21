@@ -26,7 +26,7 @@ class SeasonalityAnalysis:
             all_months.append(mean_sst)
         
         # Create a time-series DataFrame
-        dates = pd.date_range(start='2004-01-01', periods=240, freq='M')
+        dates = pd.date_range(start='2004-01-01', periods=240, freq='ME')
         self.df = pd.DataFrame({
             'sst': all_months,
             'month': dates.month,
@@ -83,7 +83,7 @@ class SeasonalityAnalysis:
         axes[0,0].set_ylabel('Temperature (°C)')
         
         # 2. Monthly boxplot
-        sns.boxplot(data=self.df, x='month', y='sst', ax=axes[0,1], palette="coolwarm")
+        sns.boxplot(data=self.df, x='month', y='sst', hue='month', ax=axes[0,1], palette="coolwarm", legend=False)
         axes[0,1].set_title('Monthly Temperature Distribution')
         axes[0,1].set_xlabel('Month')
         axes[0,1].set_ylabel('Temperature (°C)')

@@ -48,17 +48,15 @@ class TrainOutput:
 BASE_DIR = "B:/workspace/tensorflow/train_output"
 
 # 写入训练结果
-def write_m(train_output: TrainOutput, model_name: str):
+def write_m(train_output: TrainOutput, model_name: str, uid: str):
     # 创建模型目录
     model_dir = os.path.join(BASE_DIR, model_name)
     os.makedirs(model_dir, exist_ok=True)
     
-    filename = arrow.now().format("YYYY-MM-DD-HH-mm")
-    
-    print(f"file_name: {filename}")
+    print(f"file_name: {uid}")
     
     data = json.dumps(asdict(train_output), indent=4)
     
     # 保存模型参数
-    with open(os.path.join(model_dir, f"{filename}.json"), "w") as f:
+    with open(os.path.join(model_dir, f"{uid}.json"), "w") as f:
         f.write(data)

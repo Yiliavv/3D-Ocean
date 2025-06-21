@@ -5,9 +5,6 @@ from torch import manual_seed, optim, nn
 from torch.nn import Transformer, Linear
 from lightning import LightningModule
 
-from src.utils.log import CSVLogger
-from src.config.params import BASE_CSV_PATH
-
 class SSTTransformer(LightningModule):
     """ 
     SSTTransformer 模型
@@ -45,9 +42,6 @@ class SSTTransformer(LightningModule):
         self.learning_rate = learning_rate
         self.d_model = d_model  # 增加模型维度以处理复杂的空间信息
         self.optimizer = optimizer
-        
-        print(f"d_model: {self.d_model}")
-        print(f"kwargs: {kwargs}")
 
         self.transformer = Transformer(
             d_model=self.d_model,
