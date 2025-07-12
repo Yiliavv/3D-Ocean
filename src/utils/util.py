@@ -3,6 +3,8 @@ import re
 import numpy as np
 import netCDF4 as nc
 from datetime import datetime
+import torch
+import random
 
 from memory_profiler import profile
 
@@ -431,3 +433,18 @@ def scope(block_size = 20):
             blocks.append(area)
 
     return blocks
+
+def set_seed(seed):
+    """设置随机种子以确保实验的可重现性
+    
+    Args:
+        seed (int): 随机种子值
+    """
+    random.seed(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    # 确保cuDNN的确定性行为
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False

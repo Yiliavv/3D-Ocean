@@ -1,6 +1,7 @@
 import numpy as np
 import pandas as pd
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
 from scipy import stats
 from scipy.signal import periodogram
 from statsmodels.tsa.seasonal import seasonal_decompose
@@ -67,73 +68,40 @@ class SeasonalityAnalysis:
         """Plot visualizations of seasonal patterns"""
         # Apply a professional-looking style
         sns.set_style("whitegrid")
-        fig, axes = plt.subplots(2, 2, figsize=(18, 14), dpi=1200)
+        fig, axes = plt.subplots(2, 1, figsize=(8, 10), dpi=1200)
         fig.suptitle("Seasonality Analysis of SST (2004–2023)", fontsize=16, fontweight="bold", y=0.98)
         
         # 1. Time-series plot
-        axes[0,0].plot(self.df.index, self.df['sst'], label="Mean SST", color="#1f77b4", linewidth=1)
+        axes[0].plot(self.df.index, self.df['sst'], label="Mean SST", color="#1f77b4", linewidth=1)
         # 12-month rolling mean for smoother trend view
         rolling_mean = self.df['sst'].rolling(window=12, center=True).mean()
-        axes[0,0].plot(self.df.index, rolling_mean, label="12-month Rolling Mean", color="#d62728", linewidth=2)
-        axes[0,0].legend()
-        # Improve x-axis date formatting
-        axes[0,0].xaxis.set_major_locator(plt.MaxNLocator(integer=True, nbins=10))
-        axes[0,0].set_title('SST Time Series')
-        axes[0,0].set_xlabel('Time')
-        axes[0,0].set_ylabel('Temperature (°C)')
+        axes[0].plot(self.df.index, rolling_mean, label="12-month Rolling Mean", color="#d62728", linewidth=2)
+        axes[0].legend()
+        # Improve x-axis date formatting - 只显示年月，不显示日
+        axes[0].xaxis.set_major_locator(mdates.YearLocator(base=2))  # 每2年一个主要刻度
+        axes[0].xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))  # 格式：年-月
+        axes[0].xaxis.set_minor_locator(mdates.YearLocator())  # 每年一个次要刻度
+        # 旋转x轴标签以避免重叠
+        plt.setp(axes[0].xaxis.get_majorticklabels(), rotation=45, ha='right')
+        axes[0].set_title('SST Time Series')
+        axes[0].set_xlabel('Time')
+        axes[0].set_ylabel('Temperature (°C)')
         
-        # 2. Monthly boxplot
-        sns.boxplot(data=self.df, x='month', y='sst', hue='month', ax=axes[0,1], palette="coolwarm", legend=False)
-        axes[0,1].set_title('Monthly Temperature Distribution')
-        axes[0,1].set_xlabel('Month')
-        axes[0,1].set_ylabel('Temperature (°C)')
-        
-        # 3. Seasonal decomposition
+        # 2. Seasonal decomposition
         decomposition = seasonal_decompose(self.df['sst'], period=12)
-        # 手动绘制趋势和季节成分，避免 DecomposeResult.plot 不支持 axes 参数
-        axes[1, 0].plot(decomposition.trend, color="#2ca02c")
-        axes[1, 0].set_title('SST Trend')
-        axes[1, 0].set_xlabel('Time')
-        axes[1, 0].set_ylabel('Temperature (°C)')
-
-        axes[1, 1].plot(decomposition.seasonal, color="#ff7f0e")
-        axes[1, 1].set_title('SST Seasonal Component')
-        axes[1, 1].set_xlabel('Time')
-        axes[1, 1].set_ylabel('Temperature (°C)')
+        axes[1].plot(decomposition.seasonal, color="#ff7f0e")
+        axes[1].set_title('SST Seasonal Component')
+        axes[1].set_xlabel('Time')
+        axes[1].set_ylabel('Temperature (°C)')
+        # 优化第二个图的横坐标显示 - 只显示年月，不显示日
+        axes[1].xaxis.set_major_locator(mdates.YearLocator(base=2))  # 每2年一个主要刻度
+        axes[1].xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))  # 格式：年-月
+        axes[1].xaxis.set_minor_locator(mdates.YearLocator())  # 每年一个次要刻度
+        plt.setp(axes[1].xaxis.get_majorticklabels(), rotation=45, ha='right')
         
         # Turn on grid for all subplots and tighten layout
-        for ax_row in axes:
-            for ax in ax_row:
-                ax.grid(True, linestyle="--", alpha=0.5)
+        for ax in axes:
+            ax.grid(True, linestyle="--", alpha=0.5)
 
         plt.tight_layout(rect=[0, 0, 1, 0.96])
         return fig
-
-def main():
-    """Main function to run the seasonality analysis"""
-    # Initialize dataset
-    dataset = ERA5SSTMonthlyDataset(
-        width=1,
-        offset=0,
-        lon=np.array([100, 180]),  # Pacific region
-        lat=np.array([-30, 30])    # Tropical region
-    )
-    
-    # Create analyzer
-    analyzer = SeasonalityAnalysis(dataset)
-    
-    # Perform seasonality test
-    results = analyzer.test_seasonality()
-    
-    print("\nSeasonality analysis results:")
-    print(f"Dominant period: {results['dominant_period']:.2f} months")
-    print(f"Seasonal strength: {results['seasonal_strength']:.2%}")
-    print(f"ANOVA F-statistic: {results['anova_f']:.2f}")
-    print(f"ANOVA p-value: {results['anova_p']:.2e}")
-    
-    # Plot seasonality charts
-    fig = analyzer.plot_seasonal_patterns()
-    plt.show()
-
-if __name__ == "__main__":
-    main() 

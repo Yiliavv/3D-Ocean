@@ -28,7 +28,7 @@ class LSTM(LightningModule):
                  hidden_dim=128,
                  num_layers=2,
                  dropout=0.2,
-                 learning_rate=1e-3,
+                 learning_rate=1e-4,
                  optimizer=optim.Adam):
         
         manual_seed(1)
@@ -44,12 +44,6 @@ class LSTM(LightningModule):
         
         # 输入特征维度 (每个时间步的空间维度)
         self.input_dim = width * height
-        
-        # 添加调试信息
-        print(f"LSTM模型初始化:")
-        print(f"  width: {width}, height: {height}")
-        print(f"  input_dim: {self.input_dim}")
-        print(f"  seq_len: {seq_len}")
         
         # LSTM层
         self.lstm = nn.LSTM(
@@ -71,8 +65,6 @@ class LSTM(LightningModule):
         # 训练和验证损失记录
         self.train_loss = []
         self.val_loss = []
-        
-        Log.i(f"LSTM模型初始化完成: hidden_dim={hidden_dim}, num_layers={num_layers}, dropout={dropout}")
     
     def forward(self, x):
         """
@@ -282,25 +274,5 @@ class LSTM(LightningModule):
         self.eval()
         with torch.no_grad():
             prediction = self(x)
+
         return prediction
-    
-    def get_model_info(self):
-        """
-        获取模型信息
-        
-        返回:
-            info: 模型信息字典
-        """
-        total_params = sum(p.numel() for p in self.parameters())
-        trainable_params = sum(p.numel() for p in self.parameters() if p.requires_grad)
-        
-        return {
-            "model_name": "Pure LSTM for SST Prediction",
-            "input_shape": f"[batch_size, {self.seq_len}, {self.width}, {self.height}]",
-            "output_shape": f"[batch_size, 1, {self.width}, {self.height}]",
-            "hidden_dim": self.hidden_dim,
-            "num_layers": self.num_layers,
-            "total_parameters": total_params,
-            "trainable_parameters": trainable_params,
-            "learning_rate": self.learning_rate
-        }

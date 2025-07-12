@@ -71,7 +71,7 @@ def plot_sst(sst, lon, lat, step=1, filename='sst.png', title=''):
     
     ax = create_ax()
     
-    ax.figure.set_size_inches(10, 6)
+    ax.figure.set_size_inches(10, 4)
     
     set_ticker(ax, lon, lat)
     
@@ -91,8 +91,7 @@ def plot_sst(sst, lon, lat, step=1, filename='sst.png', title=''):
     
     ax.figure.colorbar(im, 
                 ax=ax,
-                orientation='horizontal',
-                pad=0.1,
+                orientation='vertical',
                 label='temperature (°C)')
     
     plt.title(title)
@@ -114,7 +113,7 @@ def plot_sst_diff(sst_diff, lon, lat, step=1, filename='sst_diff.png', title='')
     
     ax = create_ax()
     
-    ax.figure.set_size_inches(10, 6)
+    ax.figure.set_size_inches(10, 4)
     
     set_ticker(ax, lon, lat)
     
@@ -134,8 +133,7 @@ def plot_sst_diff(sst_diff, lon, lat, step=1, filename='sst_diff.png', title='')
     
     ax.figure.colorbar(im, 
                 ax=ax,
-                orientation='horizontal',
-                pad=0.1,
+                orientation='vertical',
                 label='temperature (°C)')
     
     plt.title(title)
@@ -143,22 +141,20 @@ def plot_sst_diff(sst_diff, lon, lat, step=1, filename='sst_diff.png', title='')
     
     return ax
 
-def plot_sst_l(sst, lon, lat):
+def plot_sst_l(sst, lon, lat, step=1):
     """
     使用 cartopy 投影地图绘制海表温度图，标注等高线以及数值
     """
     ax = create_carto_ax()
     
-    projection = ccrs.PlateCarree(central_longitude=-180)
+    projection = ccrs.PlateCarree()
     
     ax.set_extent([*lon, *lat], crs=projection)
     
     set_ticker(ax, lon, lat)
     
-    sst = sst.T # 转置
-    
     # 生成网格点
-    lon_grid, lat_grid = meshgrid( _range(lon), _range(lat))
+    lon_grid, lat_grid = meshgrid( _range(lon, step), _range(lat, step))
     contour = ax.contourf(lon_grid, lat_grid, sst, cmap=COLOR_MAP_PROFILE, transform=projection, levels=30)
     
     # 添加等高线, 每 1 度一个浅色等高线，每 5 度一个深色等高线
@@ -178,8 +174,7 @@ def plot_sst_l(sst, lon, lat):
     ax.clabel(contour_lines_major, inline=True, fontsize=5, fmt='%d')
     
     plt.colorbar(contour, ax=ax,
-                orientation='horizontal',
-                pad=0.1,
+                orientation='vertical',
                 fraction=0.05,
                 label='temperature (°C)')
     

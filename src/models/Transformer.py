@@ -40,7 +40,7 @@ class SSTTransformer(LightningModule):
         
         # 修改模型参数
         self.learning_rate = learning_rate
-        self.d_model = d_model  # 增加模型维度以处理复杂的空间信息
+        self.d_model = d_model
         self.optimizer = optimizer
 
         self.transformer = Transformer(
@@ -146,16 +146,16 @@ class SSTTransformer(LightningModule):
         
         return val_loss
     
-    def optimizer_step(self, *args, **kwargs):
-        super().optimizer_step(*args, **kwargs)
-        self.scheduler.step()
-
     def configure_optimizers(self):
         optimizer = self.optimizer(self.parameters(), lr=self.learning_rate)
         
-        self.scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100)
+        # 余弦退火学习率调度器
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=100)
 
-        return { "optimizer": optimizer }
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": scheduler
+        }
     
     def __normalize__(self, x):
         # 保存原始nan掩码

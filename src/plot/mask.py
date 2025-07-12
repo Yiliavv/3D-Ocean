@@ -165,54 +165,6 @@ def plot_mask_statistics(mask_sst, lon, lat, filename='mask_statistics.png', tit
     valid_ratio = valid_points / total_points * 100
     invalid_ratio = invalid_points / total_points * 100
     
-    # 1. 饼图显示有效/无效数据比例 - 学术化风格
-    labels = ['Valid Data', 'Invalid Data']
-    sizes = [valid_points, invalid_points]
-    colors = ['#4472C4', '#E15759']  # 标准学术配色：蓝色和红色
-    
-    wedges, texts, autotexts = ax1.pie(sizes, labels=labels, colors=colors, 
-                                      autopct='%1.1f%%', startangle=90,
-                                      textprops={'fontsize': 10})
-    
-    # 设置饼图文本颜色为白色以增强对比度
-    for autotext in autotexts:
-        autotext.set_color('white')
-        autotext.set_fontweight('bold')
-    
-    ax1.set_title('Data Validity Distribution', fontsize=12, fontweight='bold', pad=15)
-    
-    # 2. 柱状图显示数量统计 - 简洁风格
-    categories = ['Valid Data', 'Invalid Data']
-    counts = [valid_points, invalid_points]
-    
-    # 设置柱子位置，使分布更均匀
-    x_positions = [0.3, 1.7]  # 调整x轴位置使分布更均匀
-    
-    bars = ax2.bar(x_positions, counts, color=colors, alpha=0.8, 
-                   edgecolor='black', linewidth=0.5, width=0.4)
-    
-    # 设置x轴标签位置
-    ax2.set_xticks(x_positions)
-    ax2.set_xticklabels(categories)
-    
-    ax2.set_ylabel('Number of Points', fontsize=11, fontweight='bold')
-    ax2.set_title('Data Points Count', fontsize=12, fontweight='bold', pad=15)
-    ax2.grid(True, alpha=0.3, axis='y', linestyle='-', linewidth=0.5)
-    
-    # 在柱状图上添加数值标签
-    for bar, count in zip(bars, counts):
-        height = bar.get_height()
-        ax2.text(bar.get_x() + bar.get_width()/2., height + height*0.02,
-                f'{count:,}', ha='center', va='bottom', 
-                fontsize=10, fontweight='bold')
-    
-    # 设置y轴上限，为标签留出空间
-    max_count = max(counts)
-    ax2.set_ylim(0, max_count * 1.15)
-    
-    # 调整x轴范围以适应新的柱子位置
-    ax2.set_xlim(-0.2, 2.2)
-    
     # 3. 按纬度统计有效数据比例
     row_valid_ratio = np.mean(mask_sst, axis=1) * 100
     lat_values = np.linspace(lat[0], lat[1], len(row_valid_ratio))

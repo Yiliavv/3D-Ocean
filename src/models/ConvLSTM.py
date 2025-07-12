@@ -114,7 +114,7 @@ class ConvLSTM(LightningModule):
         # 修改全连接层的输入和输出维度，保持与输入相同的空间维度
         self.fc = nn.Sequential(
             nn.Sigmoid(),
-            nn.Linear(self.hidden_dim[-1] * 80 * 180, 1 * 80 * 180, bias=True)
+            nn.Linear(self.hidden_dim[-1] * 80 * 180, 1 * 80 * 180, bias=False)
         )
         self.nor = nn.BatchNorm2d(self.hidden_dim[-1])
         

@@ -1,9 +1,10 @@
 import arrow
-import uuid
+import numpy as np
 from torch import save, load
-from lightning import LightningModule, Trainer
-from torch.utils.data import DataLoader
-from torch.utils.data import random_split
+from lightning import Trainer
+from torch.utils.data import DataLoader, Subset
+
+from src.plot.sst import plot_sst, plot_sst_l, plot_sst_diff
 
 from src.config.params import Area
 from src.utils.mio import DatasetParams, ModelParams, TrainOutput, write_m
@@ -14,6 +15,7 @@ class BaseTrainer:
     
     参数:
         title: str, 模型名称
+        uid: str, 训练器唯一标识
         area: Area, 区域
         model_class: LightningModule, 模型类
         save_path: str, 保存路径
@@ -36,16 +38,17 @@ class BaseTrainer:
     
     def __init__(self,
                  title: str,
+                 uid: str,
                  area: Area,
                  model_class = None,
                  dataset_class = None,
                  save_path: str = None,
-                 pre_model: LightningModule = None,
+                 pre_model: bool = False,
                  dataset_params: dict = {},
                  trainer_params: dict = {},
                  model_params: dict = {}):
         
-        self.trainer_uid = str(uuid.uuid4())
+        self.trainer_uid = uid
 
         self.title = title
         self.area = area
@@ -64,15 +67,28 @@ class BaseTrainer:
         self.pre_model = pre_model
         
         # 模型
-        self.model = None
+        if pre_model:
+            self.model = load(self.save_path)
+            self.trained = True
+        else:
+            self.model = None
+    
         self.trained = False
     
     def split(self, dataset):
         split_ratio = self.trainer_params.get('split_ratio', [0.8, 0.2])
         batch_size = self.trainer_params.get('batch_size', 20)
         
-        # override
-        train_set, val_set = random_split(dataset, split_ratio)
+        # 计算训练集大小（按时间顺序有序分割）
+        total_size = len(dataset)
+        train_size = int(total_size * split_ratio[0])
+        
+        # 按时间顺序分割：前train_size个样本作为训练集，后val_size个样本作为验证集
+        train_indices = list(range(train_size))
+        val_indices = list(range(train_size, total_size))
+        
+        train_set = Subset(dataset, train_indices)
+        val_set = Subset(dataset, val_indices)
         
         train_loader = DataLoader(train_set, batch_size=batch_size, shuffle=False)
         val_loader = DataLoader(val_set, batch_size=batch_size, shuffle=False)
@@ -91,9 +107,10 @@ class BaseTrainer:
         
         train_loader, val_loader = self.split(dataset)
         
-        self.model = self.model_class(
-            **self.model_params
-        )
+        if not self.pre_model:
+            self.model = self.model_class(
+                **self.model_params
+            )
         
         epochs = self.trainer_params.get('epochs', 100)
 
@@ -102,8 +119,19 @@ class BaseTrainer:
             accelerator="gpu",
             enable_checkpointing=False,
         )
+        
+        start_time = arrow.Arrow.now().format('YYYY-MM-DD HH:mm:ss')
+        print(f"================================================")
+        print(f"Model: {self.model_class.__name__} Training Started at: {start_time}")
 
         trainer.fit(self.model, train_loader, val_loader)
+        
+        end_time = arrow.Arrow.now().format('YYYY-MM-DD HH:mm:ss')
+        print(f"Model: {self.model_class.__name__} Training Ended at: {end_time}")
+        
+        spend_time = arrow.get(end_time) - arrow.get(start_time)
+        print(f"Model: {self.model_class.__name__} Training Duration: {spend_time}")
+        print(f"================================================")
 
         self.trained = True
         self.output()
@@ -113,7 +141,7 @@ class BaseTrainer:
 
         return self.model
 
-    def predict(self, offset: int) -> tuple:
+    def predict(self, offset: int, plot: bool = False) -> tuple:
         
         """
         预测
@@ -150,7 +178,28 @@ class BaseTrainer:
         output = output.detach().numpy()
         pred_output = pred_output.detach().numpy()
         
-        return (input, output, pred_output)
+        input = input[0, 0, 0, :, :]
+        output = output[0, 0, :, :]
+        pred_output = pred_output[0, 0, :, :]
+        
+        masked = np.isnan(output)
+        pred_output[masked] = np.nan
+        
+        pred_diff = pred_output - output
+        
+        rmse = np.sqrt(np.nanmean((pred_diff) ** 2))
+        r2 = 1 - np.nanmean((pred_diff) ** 2) / np.nanmean((output - np.nanmean(output)) ** 2)
+        
+        print(f"--------------------------------")
+        
+        print(f"Model: {self.model_class.__name__} Prediction RMSE: {rmse}")
+        
+        if plot:
+            plot_sst(pred_output, self.area.lon, self.area.lat, step=self.dataset_params.get('resolution', 1))
+            plot_sst_diff(pred_diff, self.area.lon, self.area.lat, step=self.dataset_params.get('resolution', 1), title=self.model_class.__name__)
+        
+        return input, output, pred_output, rmse, r2
+    
 
     def save(self):
         save(self.model, self.save_path)
