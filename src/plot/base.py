@@ -74,7 +74,6 @@ def create_carto_ax():
     figure = create_base_figure()
     ax = figure.add_subplot(111, projection=ccrs.PlateCarree())
     
-    # 添加基础地图特征
     ax.add_feature(cfeat.LAND)
     ax.add_feature(cfeat.COASTLINE, linewidth=0.5)
     

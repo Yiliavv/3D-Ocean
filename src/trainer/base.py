@@ -196,7 +196,7 @@ class BaseTrainer:
         
         if plot:
             plot_sst(pred_output, self.area.lon, self.area.lat, step=self.dataset_params.get('resolution', 1))
-            plot_sst_diff(pred_diff, self.area.lon, self.area.lat, step=self.dataset_params.get('resolution', 1), title=self.model_class.__name__)
+            plot_sst_diff(pred_diff, self.area.lon, self.area.lat, step=self.dataset_params.get('resolution', 1))
         
         return input, output, pred_output, rmse, r2
     

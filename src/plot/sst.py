@@ -69,7 +69,11 @@ def plot_sst(sst, lon, lat, step=1, filename='sst.png', title=''):
     """
     from src.config.params import PREDICT_SAVE_PATH
     
-    ax = create_ax()
+    ax = create_carto_ax()
+    
+    projection = ccrs.PlateCarree()
+    
+    ax.set_extent([*lon, *lat], crs=projection)
     
     ax.figure.set_size_inches(10, 4)
     
@@ -87,12 +91,16 @@ def plot_sst(sst, lon, lat, step=1, filename='sst.png', title=''):
         lon_grid, lat_grid, sst, 
         levels=levels,
         extend='both',
-        cmap=COLOR_MAP_SST)
+        cmap=COLOR_MAP_SST,
+        transform=projection)
     
     ax.figure.colorbar(im, 
                 ax=ax,
                 orientation='vertical',
                 label='temperature (°C)')
+    
+    # 去掉网格
+    ax.grid(False)
     
     plt.title(title)
     
@@ -111,7 +119,11 @@ def plot_sst_diff(sst_diff, lon, lat, step=1, filename='sst_diff.png', title='')
     """
     from src.config.params import ERROR_SAVE_PATH
     
-    ax = create_ax()
+    ax = create_carto_ax()
+    
+    projection = ccrs.PlateCarree()
+    
+    ax.set_extent([*lon, *lat], crs=projection)
     
     ax.figure.set_size_inches(10, 4)
     
@@ -129,12 +141,15 @@ def plot_sst_diff(sst_diff, lon, lat, step=1, filename='sst_diff.png', title='')
         lon_grid, lat_grid, sst_diff, 
         levels=levels,
         cmap=COLOR_MAP_SST,
-        extend='both')
+        extend='both',
+        transform=projection)
     
     ax.figure.colorbar(im, 
                 ax=ax,
                 orientation='vertical',
                 label='temperature (°C)')
+    
+    ax.grid(False)
     
     plt.title(title)
     plt.savefig(f'{ERROR_SAVE_PATH}/{filename}')
@@ -172,6 +187,9 @@ def plot_sst_l(sst, lon, lat, step=1):
     
     # 在深色等高线上标注数值
     ax.clabel(contour_lines_major, inline=True, fontsize=5, fmt='%d')
+    
+    # 去掉网格
+    ax.grid(False)
     
     plt.colorbar(contour, ax=ax,
                 orientation='vertical',

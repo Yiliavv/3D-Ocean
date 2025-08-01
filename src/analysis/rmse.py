@@ -110,19 +110,23 @@ R2 = {
 
 def plot_metrics():
     # Set font for English
-    plt.rcParams['font.sans-serif'] = ['Arial', 'DejaVu Sans']
+    plt.rcParams['font.family'] = 'serif'
+    plt.rcParams['font.serif'] = ['Times New Roman', 'Times', 'DejaVu Serif']
     plt.rcParams['axes.unicode_minus'] = False
     plt.rcParams['font.size'] = 12
-    plt.rcParams['axes.titlesize'] = 14
-    plt.rcParams['axes.labelsize'] = 12
+    plt.rcParams['axes.labelsize'] = 14
     
-    # Create time series
-    start_date = datetime(2024, 10, 1)
-    dates = [start_date + timedelta(days=30*i) for i in range(7)]
+    # Create time series (8 months from 2024-10 to 2025-05)
+    dates = []
+    start_year, start_month = 2024, 10
+    for i in range(8):
+        year = start_year + (start_month + i - 1) // 12
+        month = (start_month + i - 1) % 12 + 1
+        dates.append(datetime(year, month, 1))
     x_ticks = [d.strftime('%Y-%m') for d in dates]
     
     # Create figure and subplots
-    fig, ax1 = plt.subplots(figsize=(14, 8), facecolor='white')
+    fig, ax1 = plt.subplots(figsize=(14, 8), facecolor='white', dpi=1200)
     ax2 = ax1.twinx()
     
     # Set background color
@@ -132,13 +136,13 @@ def plot_metrics():
     width = 0.15
     x = np.arange(len(dates))
     
-    # Color scheme (soft tones similar to reference image)
+    # Color scheme (optimized with prominent RA model)
     colors = [
-        '#6baed6',  # light blue
-        '#74c476',  # light green
-        '#ffd700',  # light yellow
-        '#fd8d3c',  # light orange
-        '#969696'   # light gray
+        '#7E57C2',  # LSTM
+        '#66BB6A',  # ConvLSTM  
+        '#42A5F5',  # UNetLSTM
+        '#EF5350',  # Transformer
+        '#FFA726'   # RATransformer
     ]
     
     # Add grid lines
@@ -148,7 +152,7 @@ def plot_metrics():
     models = ['LSTM', 'ConvLSTM', 'UNetLSTM', 'Transformer', 'RATransformer']
     bars = []
     for i, model in enumerate(models):
-        bar = ax1.bar(x + i*width, RMSE[model][:7], width, 
+        bar = ax1.bar(x + i*width, RMSE[model], width, 
                      label=f'NRMSE-{model}', 
                      color=colors[i], 
                      alpha=1,  # Opaque
@@ -159,7 +163,7 @@ def plot_metrics():
     markers = ['o', 's', '^', 'D', 'v']
     lines = []
     for i, model in enumerate(models):
-        line = ax2.plot(x + width*2, R2[model][:7], 
+        line = ax2.plot(x + width*2, R2[model], 
                        marker=markers[i], 
                        label=f'R²-{model}', 
                        color=colors[i],
@@ -169,14 +173,13 @@ def plot_metrics():
         lines.append(line[0])
     
     # Set title and labels
-    plt.title('Comparison of NRMSE and R² for Different Models at Each Time Point', pad=20, fontsize=16, fontweight='bold')
-    ax1.set_xlabel('Prediction Time', fontsize=12, labelpad=10)
-    ax1.set_ylabel('Normalized Root Mean Square Error (NRMSE)', fontsize=12, labelpad=10)
-    ax2.set_ylabel('Coefficient of Determination (R²)', fontsize=12, labelpad=10)
+    ax1.set_xlabel('Prediction Time (month)', fontsize=16, labelpad=10)
+    ax1.set_ylabel('Normalized Root Mean Square Error (NRMSE, °C)', fontsize=16, labelpad=10)
+    ax2.set_ylabel('Coefficient of Determination (R²)', fontsize=16, labelpad=10)
     
     # Set x-axis ticks
     ax1.set_xticks(x + width*2)
-    ax1.set_xticklabels(x_ticks, rotation=30, ha='right')
+    ax1.set_xticklabels(x_ticks, rotation=30, ha='right', fontsize=13)
     
     # Beautify axes
     ax1.spines['top'].set_visible(False)
@@ -194,19 +197,13 @@ def plot_metrics():
     fig.legend(legend_elements, 
               legend_labels, 
               loc='center', 
-              bbox_to_anchor=(0.5, -0.02),
+              bbox_to_anchor=(0.52, 0),
               ncol=5,
               frameon=False,
-              fontsize=10)
+              fontsize=14)
     
     # Adjust layout
     plt.subplots_adjust(bottom=0.15, right=0.95, left=0.1)
-    
-    # Add watermark
-    fig.text(0.99, 0.01, 'Generated: ' + datetime.now().strftime('%Y-%m-%d'),
-             fontsize=8, color='gray',
-             ha='right', va='bottom',
-             alpha=0.5)
     
     # Show plot
     plt.show()

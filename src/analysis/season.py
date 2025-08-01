@@ -65,43 +65,60 @@ class SeasonalityAnalysis:
         return results
     
     def plot_seasonal_patterns(self):
-        """Plot visualizations of seasonal patterns"""
+        """Plot visualizations of seasonal patterns as two separate figures"""
         # Apply a professional-looking style
         sns.set_style("whitegrid")
-        fig, axes = plt.subplots(2, 1, figsize=(8, 10), dpi=1200)
-        fig.suptitle("Seasonality Analysis of SST (2004–2023)", fontsize=16, fontweight="bold", y=0.98)
+        # Set font to Times New Roman for English text
+        plt.rcParams['font.family'] = 'Times New Roman'
+        plt.rcParams['font.size'] = 10
         
-        # 1. Time-series plot
-        axes[0].plot(self.df.index, self.df['sst'], label="Mean SST", color="#1f77b4", linewidth=1)
+        # Figure 1: Time-series plot
+        fig1, ax1 = plt.subplots(1, 1, figsize=(10, 6), dpi=1200)
+        
+        ax1.plot(self.df.index, self.df['sst'], label="Mean SST", color="#1f77b4", linewidth=1)
         # 12-month rolling mean for smoother trend view
         rolling_mean = self.df['sst'].rolling(window=12, center=True).mean()
-        axes[0].plot(self.df.index, rolling_mean, label="12-month Rolling Mean", color="#d62728", linewidth=2)
-        axes[0].legend()
-        # Improve x-axis date formatting - 只显示年月，不显示日
-        axes[0].xaxis.set_major_locator(mdates.YearLocator(base=2))  # 每2年一个主要刻度
-        axes[0].xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))  # 格式：年-月
-        axes[0].xaxis.set_minor_locator(mdates.YearLocator())  # 每年一个次要刻度
-        # 旋转x轴标签以避免重叠
-        plt.setp(axes[0].xaxis.get_majorticklabels(), rotation=45, ha='right')
-        axes[0].set_title('SST Time Series')
-        axes[0].set_xlabel('Time')
-        axes[0].set_ylabel('Temperature (°C)')
+        ax1.plot(self.df.index, rolling_mean, label="12-month Rolling Mean", color="#d62728", linewidth=2)
+        ax1.legend(fontsize=14)
+        ax1.set_xlabel('Time (month)', fontsize=14)
+        ax1.set_ylabel('Temperature (°C)', fontsize=14)
         
-        # 2. Seasonal decomposition
+        # 优化横坐标显示 - 按月份显示，从2004年1月开始
+        ax1.set_xlim(pd.Timestamp('2004-01-01'), self.df.index[-1])  # 设置x轴范围从2004年1月开始
+        
+        # 创建自定义刻度位置，确保包含最后一个刻度
+        major_ticks = pd.date_range(start='2004-01-01', end=self.df.index[-1], freq='24ME')  # 每24个月
+        if self.df.index[-1] not in major_ticks:
+            major_ticks = major_ticks.union([self.df.index[-1]])  # 添加最后一个时间点
+        
+        ax1.set_xticks(major_ticks)
+        ax1.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))  # 格式：年-月
+        plt.setp(ax1.xaxis.get_majorticklabels(), rotation=45, ha='right')
+        
+        ax1.grid(True, linestyle="--", alpha=0.5)
+        plt.tight_layout()
+        
+        # Figure 2: Seasonal decomposition
+        fig2, ax2 = plt.subplots(1, 1, figsize=(10, 6), dpi=1200)
+        
         decomposition = seasonal_decompose(self.df['sst'], period=12)
-        axes[1].plot(decomposition.seasonal, color="#ff7f0e")
-        axes[1].set_title('SST Seasonal Component')
-        axes[1].set_xlabel('Time')
-        axes[1].set_ylabel('Temperature (°C)')
-        # 优化第二个图的横坐标显示 - 只显示年月，不显示日
-        axes[1].xaxis.set_major_locator(mdates.YearLocator(base=2))  # 每2年一个主要刻度
-        axes[1].xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))  # 格式：年-月
-        axes[1].xaxis.set_minor_locator(mdates.YearLocator())  # 每年一个次要刻度
-        plt.setp(axes[1].xaxis.get_majorticklabels(), rotation=45, ha='right')
+        ax2.plot(decomposition.seasonal, color="#ff7f0e")
+        ax2.set_xlabel('Time (month)', fontsize=14)
+        ax2.set_ylabel('Temperature (°C)', fontsize=14)
         
-        # Turn on grid for all subplots and tighten layout
-        for ax in axes:
-            ax.grid(True, linestyle="--", alpha=0.5)
-
-        plt.tight_layout(rect=[0, 0, 1, 0.96])
-        return fig
+        # 优化横坐标显示 - 按月份显示，从2004年1月开始
+        ax2.set_xlim(pd.Timestamp('2004-01-01'), self.df.index[-1])  # 设置x轴范围从2004年1月开始
+        
+        # 创建自定义刻度位置，确保包含最后一个刻度
+        major_ticks = pd.date_range(start='2004-01-01', end=self.df.index[-1], freq='24ME')  # 每24个月
+        if self.df.index[-1] not in major_ticks:
+            major_ticks = major_ticks.union([self.df.index[-1]])  # 添加最后一个时间点
+        
+        ax2.set_xticks(major_ticks)
+        ax2.xaxis.set_major_formatter(mdates.DateFormatter('%Y-%m'))  # 格式：年-月
+        plt.setp(ax2.xaxis.get_majorticklabels(), rotation=45, ha='right')
+        
+        ax2.grid(True, linestyle="--", alpha=0.5)
+        plt.tight_layout()
+        
+        return fig1, fig2
