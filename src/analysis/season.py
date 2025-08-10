@@ -96,6 +96,11 @@ class SeasonalityAnalysis:
         plt.setp(ax1.xaxis.get_majorticklabels(), rotation=45, ha='right')
         
         ax1.grid(True, linestyle="--", alpha=0.5)
+        
+        # 添加子图标签 (a)
+        ax1.text(0.97, 0.97, '(a)', transform=ax1.transAxes, fontsize=16,
+                ha='right', va='top', bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+        
         plt.tight_layout()
         
         # Figure 2: Seasonal decomposition
@@ -119,6 +124,11 @@ class SeasonalityAnalysis:
         plt.setp(ax2.xaxis.get_majorticklabels(), rotation=45, ha='right')
         
         ax2.grid(True, linestyle="--", alpha=0.5)
+        
+        # 添加子图标签 (b)
+        ax2.text(0.97, 0.97, '(b)', transform=ax2.transAxes, fontsize=16,
+                ha='right', va='top', bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+        
         plt.tight_layout()
         
         return fig1, fig2

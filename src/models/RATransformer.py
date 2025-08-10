@@ -10,89 +10,9 @@ from lightning import LightningModule
 from torch import optim
 import math
 
-class RecursiveAttention(nn.Module):
-    """递归式自注意力模块 - 核心创新"""
-    def __init__(self, d_model, num_heads, recursion_depth=2):
-        super().__init__()
-        self.d_model = d_model
-        self.recursion_depth = recursion_depth
-        
-        # 递归注意力层
-        self.recursive_layers = nn.ModuleList([
-            nn.MultiheadAttention(d_model, num_heads, batch_first=True)
-            for _ in range(recursion_depth)
-        ])
-        
-        # 递归权重 - 使用温度参数控制权重分布
-        self.recursion_weights = nn.Parameter(torch.ones(recursion_depth))
-        self.temperature = nn.Parameter(torch.tensor(1.0))  # 可学习的温度参数
-        
-        # 特征细化器 - 添加Layer Norm提高稳定性
-        self.refiners = nn.ModuleList([
-            nn.Sequential(
-                nn.Linear(d_model, d_model),
-                nn.LayerNorm(d_model),
-                nn.Dropout(0.1)
-            ) for _ in range(recursion_depth)
-        ])
-        
-    def forward(self, x, mask=None):
-        current_output = x
-        recursive_outputs = []
-        
-        # 递归注意力计算
-        for attn_layer, refiner in zip(self.recursive_layers, self.refiners):
-            attn_output, _ = attn_layer(
-                current_output, current_output, current_output,
-                key_padding_mask=mask
-            )
-            
-            refined_output = refiner(attn_output)
-            current_output = refined_output + current_output
-            recursive_outputs.append(current_output)
-        
-        # 权重融合 - 使用温度缩放提高稳定性
-        weights = F.softmax(self.recursion_weights / self.temperature.clamp(min=0.1), dim=0)
-        final_output = sum(w * output for w, output in zip(weights, recursive_outputs))
-        
-        # 添加残差连接提高稳定性
-        final_output = final_output + x
-        
-        return final_output
-
-class RecursiveAttentionLayer(nn.Module):
-    """递归注意力 Transformer 层"""
-    def __init__(self, d_model, num_heads, dim_feedforward=1024, dropout=0.1, recursion_depth=2):
-        super().__init__()
-        
-        # 递归注意力机制
-        self.recursive_attention = RecursiveAttention(d_model, num_heads, recursion_depth)
-        
-        # 标准组件
-        self.norm1 = nn.LayerNorm(d_model)
-        self.norm2 = nn.LayerNorm(d_model)
-        
-        # 前馈网络
-        self.ffn = nn.Sequential(
-            nn.Linear(d_model, dim_feedforward),
-            nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Linear(dim_feedforward, d_model),
-            nn.Dropout(dropout)
-        )
-        
-        self.dropout = nn.Dropout(dropout)
-        
-    def forward(self, x, mask=None):
-        # 递归注意力 + 残差连接
-        attn_output = self.recursive_attention(self.norm1(x), mask)
-        x = x + self.dropout(attn_output)
-        
-        # 前馈网络 + 残差连接
-        ffn_output = self.ffn(self.norm2(x))
-        x = x + ffn_output
-        
-        return x
+# 导入分离的模块
+from src.models.PE.SphericalHarmonicEncoding import SphericalHarmonicEncoding
+from src.models.Attention.RGAttention import RecursiveAttentionLayer
 
 class RecursiveAttentionTransformer(LightningModule):
     """递归注意力 Transformer - 海表温度预测模型"""
@@ -106,12 +26,15 @@ class RecursiveAttentionTransformer(LightningModule):
                  dropout=0.1,
                  recursion_depth=2,
                  learning_rate=1e-4,
-                 spatial_aware=False):
+                 spatial_aware=False,
+                 use_spherical_harmonics=True,
+                 max_harmonic_degree=4):
         super().__init__()
         
         self.d_model = d_model
         self.learning_rate = learning_rate
         self.spatial_aware = spatial_aware
+        self.use_spherical_harmonics = use_spherical_harmonics
         
         # 训练稳定性配置
         self.gradient_clip_val = 1.0
@@ -131,8 +54,13 @@ class RecursiveAttentionTransformer(LightningModule):
                 torch.randn(width * height) * 0.02
             )
             
-        # 位置编码
-        if seq_len:
+        # 球谐波位置编码神经网络
+        if seq_len and use_spherical_harmonics:
+            self.pos_encoding = SphericalHarmonicEncoding(
+                seq_len, d_model, max_harmonic_degree
+            )
+        elif seq_len:
+            # 保留原始位置编码作为备选
             self.pos_encoding = self._create_positional_encoding(seq_len, d_model)
         
         # 递归注意力 Transformer 层
@@ -156,17 +84,15 @@ class RecursiveAttentionTransformer(LightningModule):
         self.train_loss = []
         self.val_loss = []
         
+        # EMA 相关属性初始化
+        self.ema_params = {}
+        self.ema_decay = 0.999
+        
         # 参数初始化
         self._init_parameters()
         
-        # 添加EMA（指数移动平均）提高模型稳定性
-        self.ema_decay = 0.999
-        self.ema_params = {}
-        
-        # 训练监控
-        self.save_hyperparameters()
-        
     def _create_positional_encoding(self, max_len, d_model):
+        """保留原始位置编码作为备选"""
         pe = torch.zeros(max_len, d_model)
         position = torch.arange(0, max_len).unsqueeze(1).float()
         
@@ -179,7 +105,7 @@ class RecursiveAttentionTransformer(LightningModule):
         return nn.Parameter(pe.unsqueeze(0), requires_grad=False)
     
     def _init_parameters(self):
-        """参数初始化 - 针对递归注意力优化"""
+        """参数初始化 - 针对递归注意力和球谐波编码优化"""
         for name, p in self.named_parameters():
             if p.dim() > 1:
                 if 'recursion_weights' in name:
@@ -236,8 +162,14 @@ class RecursiveAttentionTransformer(LightningModule):
         
         # 位置编码
         if hasattr(self, 'pos_encoding'):
-            seq_len = x.shape[1]
-            x = x + self.pos_encoding[:, :seq_len, :]
+            if isinstance(self.pos_encoding, SphericalHarmonicEncoding):
+                # 使用球谐波神经网络编码
+                pos_enc = self.pos_encoding()  # [1, seq_len, d_model]
+                x = x + pos_enc
+            else:
+                # 使用传统位置编码
+                seq_len = x.shape[1]
+                x = x + self.pos_encoding[:, :seq_len, :]
         
         x = self.dropout(x)
         
@@ -258,8 +190,7 @@ class RecursiveAttentionTransformer(LightningModule):
         x_mask = torch.isnan(x)
         x_processed = x.clone()
         x_processed[x_mask] = 0.0
-        return x_processed
-    
+        return x_processed    
     def custom_mse_loss(self, y_pred, y_true):
         """处理NaN值的MSE损失函数"""
         y_mask = torch.isnan(y_true)
@@ -361,37 +292,3 @@ class RecursiveAttentionTransformer(LightningModule):
                 "frequency": 1
             }
         }
-    
-    def create_ensemble_predictions(self, x, num_models=5):
-        """
-        创建集成预测以提高精度
-        
-        Args:
-            x: 输入数据
-            num_models: 集成模型数量
-            
-        Returns:
-            torch.Tensor: 集成预测结果
-        """
-        self.eval()
-        predictions = []
-        
-        with torch.no_grad():
-            for i in range(num_models):
-                # 使用不同的dropout配置
-                self.train()
-                pred = self(x)
-                predictions.append(pred)
-        
-        # 计算集成预测
-        ensemble_pred = torch.stack(predictions)
-        
-        # 使用加权平均，中间的预测给予更高权重
-        weights = torch.softmax(torch.linspace(0.5, 1.0, num_models), dim=0)
-        weighted_pred = (ensemble_pred * weights.view(-1, 1, 1, 1, 1)).sum(dim=0)
-        
-        # 计算预测不确定性
-        uncertainty = torch.std(ensemble_pred, dim=0)
-        
-        self.eval()
-        return weighted_pred, uncertainty

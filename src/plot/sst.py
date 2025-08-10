@@ -99,6 +99,9 @@ def plot_sst(sst, lon, lat, step=1, filename='sst.png', title=''):
                 orientation='vertical',
                 label='temperature (°C)')
     
+    ax.text(0.97, 0.97, '(e)', transform=ax.transAxes, fontsize=16,
+                ha='right', va='top', bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+    
     # 去掉网格
     ax.grid(False)
     
@@ -148,6 +151,9 @@ def plot_sst_diff(sst_diff, lon, lat, step=1, filename='sst_diff.png', title='')
                 ax=ax,
                 orientation='vertical',
                 label='temperature (°C)')
+    
+    ax.text(0.97, 0.97, '(f)', transform=ax.transAxes, fontsize=16,
+                ha='right', va='top', bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
     
     ax.grid(False)
     
