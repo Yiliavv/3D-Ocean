@@ -33,7 +33,7 @@ def ensure_output_dir():
 
 def scan_training_files():
     """Scan training output directories to find all available files"""
-    base_dir = 'B://workspace/tensorflow/train_output'
+    base_dir = 'X:/WorkSpace/tensorflow/train_output'
     models = ['LSTM', 'ConvLSTM', 'Transformer']
     available_files = {}
     
@@ -92,7 +92,7 @@ def load_training_data(uid, available_files=None):
     
     for model in models:
         if uid in available_files.get(model, []):
-            base_dir = 'B://workspace/tensorflow/train_output'
+            base_dir = 'X:/WorkSpace/tensorflow/train_output'
             file_path = os.path.join(base_dir, model, f'{uid}.json')
             
             try:

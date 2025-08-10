@@ -1,4 +1,4 @@
-import os, sys
+import os
 import re
 import numpy as np
 import netCDF4 as nc
@@ -6,11 +6,8 @@ from datetime import datetime
 import torch
 import random
 
-from memory_profiler import profile
-
-from config.area import Area
-from src.utils.log import Log
 from src.config.params import BASE_CDAC_DATA_PATH
+from src.utils.log import Log
 
 
 # 数据列表

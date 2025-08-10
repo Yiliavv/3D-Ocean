@@ -1,6 +1,6 @@
 import matplotlib.pyplot as plt
 import numpy as np
-from datetime import datetime, timedelta
+from datetime import datetime
 
 RMSE = {
     'LSTM': [

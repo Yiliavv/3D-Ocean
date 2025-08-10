@@ -6,6 +6,7 @@ from scipy import stats
 from scipy.signal import periodogram
 from statsmodels.tsa.seasonal import seasonal_decompose
 import seaborn as sns
+
 from src.dataset.ERA5 import ERA5SSTMonthlyDataset
 
 class SeasonalityAnalysis:

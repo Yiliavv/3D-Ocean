@@ -132,7 +132,7 @@ class Global:
     def _load_shapefile(self):
         shp_dict = {}
         
-        files = glob('B://workspace/tensorflow/src/config/ne_10m_bathymetry_all/*.shp')
+        files = glob('X:/WorkSpace/tensorflow/src/config/ne_10m_bathymetry_all/*.shp')
         
         assert len(files) > 0
         files.sort()

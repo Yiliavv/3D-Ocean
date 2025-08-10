@@ -5,7 +5,6 @@
 
 import os
 import json
-import arrow
 
 from dataclasses import dataclass, asdict
 
