@@ -44,7 +44,7 @@ class TrainOutput:
     d_params: DatasetParams
 
 
-BASE_DIR = "B:/workspace/tensorflow/train_output"
+BASE_DIR = "X:/WorkSpace/tensorflow/train_output"
 
 # 写入训练结果
 def write_m(train_output: TrainOutput, model_name: str, uid: str):

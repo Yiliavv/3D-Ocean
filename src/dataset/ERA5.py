@@ -1,9 +1,10 @@
+# -*- coding: utf-8 -*-
 import os
 import arrow
 import numpy as np
 import netCDF4 as nc
 
-from torch import tensor, unsqueeze
+from torch import tensor, unsqueeze, float32
 from torch.utils.data import Dataset
 
 from src.config.params import BASE_ERA5_DAILY_DATA_PATH, BASE_ERA5_MONTHLY_DATA_PATH
@@ -136,7 +137,7 @@ class ERA5SSTDataset(Dataset):
         # 数据预处理
         sst_time_series = sst_time_series - 273.15
         sst_time_series[sst_time_series > 99] = np.nan
-        sst_time_series = tensor(sst_time_series.copy(), requires_grad=True)
+        sst_time_series = tensor(sst_time_series.copy(), dtype=float32, requires_grad=True)
 
         fore_ = sst_time_series[:self.width - 1, ...]
         last_ = sst_time_series[-1, ...]
@@ -197,7 +198,7 @@ class ERA5SSTMonthlyDataset(Dataset):
             sst = self.__read_sst__(i)
             sst_time_series.append(sst)
         
-        sst_time_series = tensor(np.array(sst_time_series), requires_grad=True)
+        sst_time_series = tensor(np.array(sst_time_series), dtype=float32, requires_grad=True)
         
         fore_ = sst_time_series[:self.seq_len - 1, ...]
         last_ = sst_time_series[-1, ...]

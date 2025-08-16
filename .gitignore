@@ -5,3 +5,4 @@ __pycache__
 output/
 lightning_logs/
 train_output/
+doc

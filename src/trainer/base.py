@@ -4,7 +4,7 @@ from torch import save, load
 from lightning import Trainer
 from torch.utils.data import DataLoader, Subset
 
-from src.plot.sst import plot_sst, plot_sst_l, plot_sst_diff
+from src.plot.sst import plot_sst, plot_sst_diff
 
 from src.config.params import Area
 from src.utils.mio import DatasetParams, ModelParams, TrainOutput, write_m
@@ -118,6 +118,7 @@ class BaseTrainer:
             max_epochs=epochs,
             accelerator="gpu",
             enable_checkpointing=False,
+            num_sanity_val_steps=0,
         )
         
         start_time = arrow.Arrow.now().format('YYYY-MM-DD HH:mm:ss')

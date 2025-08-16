@@ -12,7 +12,7 @@ from cartopy import crs as ccrs
 from config import area
 
 from src.utils.log import Log
-from src.plot.base import create_ax, create_shared_axes, create_carto_ax
+from src.plot.base import create_ax, create_axes, create_carto_ax
 
 COLOR_MAP_PROFILE = cm.thermal
 COLOR_MAP_SST = cm_plt.jet
@@ -216,7 +216,7 @@ def plot_sst_comparison(sst1, sst2, lon, lat, title='', step=1):
     :return: 返回包含两个子图的列表
     """
     
-    axes = create_shared_axes(2, 1, 'all')
+    axes = create_axes(2, 1, 'all')
     
     lat = array(lat)
     lon = array(lon)
@@ -308,7 +308,7 @@ def plot_sst_seq(sst_seq, lon, lat):
     cols = 6
     rows = int(ceil(length / cols))
     
-    axs = create_shared_axes(rows, cols, 'all')
+    axs = create_axes(rows, cols, 'all')
 
     levels = linspace(nanmin(sst_seq), nanmax(sst_seq), 15)
 

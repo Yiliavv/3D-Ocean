@@ -7,16 +7,17 @@ BASE_CDAC_DATA_PATH = "B:/workspace/Argo_data/Argo_v3_core"
 BASE_BOA_ARGO_DATA_PATH = "B:/ArgoDataset"
 BASE_ERA5_DAILY_DATA_PATH = "X:/WorkSpace/ERA5/daily_mean"
 BASE_ERA5_MONTHLY_DATA_PATH = "X:/WorkSpace/ERA5/monthly_mean"
+BASE_NINO_DATA_PATH = "X:/WorkSpace/ERA5"
 
-BASE_CSV_PATH = "X:/WorkSpace/tensorflow/output/csv"
-BASE_PROFILE_PATH = "X:/WorkSpace/tensorflow/output/profile"
+BASE_CSV_PATH = "X:/WorkSpace/tensorflow/out/csv"
+BASE_PROFILE_PATH = "X:/WorkSpace/tensorflow/out/profile"
 
 # 模型保存路径
-MODEL_SAVE_PATH = "X:/WorkSpace/tensorflow/output/models"
+MODEL_SAVE_PATH = "X:/WorkSpace/tensorflow/out/models"
 # 误差保存路径
-ERROR_SAVE_PATH = "X:/WorkSpace/tensorflow/output/error"
+ERROR_SAVE_PATH = "X:/WorkSpace/tensorflow/out/error"
 # 预测保存路径
-PREDICT_SAVE_PATH = "X:/WorkSpace/tensorflow/output/sst"
+PREDICT_SAVE_PATH = "X:/WorkSpace/tensorflow/out/sst"
 
 # 研究区域
 Areas = [
