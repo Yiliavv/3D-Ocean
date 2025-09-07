@@ -4,7 +4,7 @@ from torch import save, load
 from lightning import Trainer
 from torch.utils.data import DataLoader, Subset
 
-from src.plot.sst import plot_sst, plot_sst_diff
+from src.plot.sst import plot_sst, plot_sst_diff, plot_2d_kernel_density, plot_nino
 
 from src.config.params import Area
 from src.utils.mio import DatasetParams, ModelParams, TrainOutput, write_m
@@ -68,7 +68,7 @@ class BaseTrainer:
         
         # 模型
         if pre_model:
-            self.model = load(self.save_path)
+            self.model = load(self.save_path, weights_only=False)
             self.trained = True
         else:
             self.model = None
@@ -151,8 +151,10 @@ class BaseTrainer:
         :return: 输入和预测输出
         """
 
+        print(self.save_path)
+
         if not self.trained:
-            self.model = load(self.save_path)
+            self.model = load(self.save_path, weights_only=False)
             self.trained = True
             
         if not self.model:
@@ -172,6 +174,7 @@ class BaseTrainer:
         pred_loader = DataLoader(pred_dataset, batch_size=1, shuffle=False)
         
         input, output = next(iter(pred_loader))
+        ssta = pred_dataset.read_ssta(offset)
         
         pred_output = self.model(input)
         
@@ -196,10 +199,14 @@ class BaseTrainer:
         print(f"Model: {self.model_class.__name__} Prediction RMSE: {rmse}")
         
         if plot:
-            plot_sst(pred_output, self.area.lon, self.area.lat, step=self.dataset_params.get('resolution', 1))
-            plot_sst_diff(pred_diff, self.area.lon, self.area.lat, step=self.dataset_params.get('resolution', 1))
-        
-        return input, output, pred_output, rmse, r2
+            resolution = self.dataset_params.get('resolution', 1)
+            plot_nino(ssta, step=resolution)
+            plot_sst(pred_output, self.area.lon, self.area.lat, step=resolution)
+            plot_sst_diff(pred_diff, self.area.lon, self.area.lat, step=resolution)
+            # 使用增强版海表温度分析，传递二维海表温度数据
+            plot_2d_kernel_density(pred_output, self.area.lon, self.area.lat)
+            
+        return input, output, pred_output, rmse, r2, ssta
     
 
     def save(self):

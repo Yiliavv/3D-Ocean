@@ -7,10 +7,10 @@ from cartopy import feature as cfeat
 
 def create_base_figure():
     """
-    创建固定 dpi 为 1200 的高分辨率画布
+    创建固定 dpi 为 2400 的高分辨率画布
     """
 
-    dpi = 1200
+    dpi = 2400
     
     figure = plt.figure(dpi=dpi)
     
@@ -50,7 +50,7 @@ def create_axes(row=1, col=1, shared='all'):
         case _:
             sharex = sharey = False
             
-    _, axes = plt.subplots(row, col, dpi = 1200, sharex=sharex, sharey=sharey)
+    _, axes = plt.subplots(row, col, dpi = 2400, sharex=sharex, sharey=sharey)
     
     return axes
 
@@ -58,10 +58,13 @@ def create_axes(row=1, col=1, shared='all'):
 
 def create_carto_ax():
     """
-    创建一个基础投影地图，分辩率为 1200
+    创建一个基础投影地图，分辩率为 2400
     """
     figure = create_base_figure()
     ax = figure.add_subplot(111, projection=ccrs.PlateCarree())
+    
+    # 设置字体为 Times New Roman
+    plt.rcParams['font.family'] = 'Times New Roman'
     
     ax.add_feature(cfeat.LAND)
     ax.add_feature(cfeat.COASTLINE, linewidth=0.5)
@@ -70,7 +73,7 @@ def create_carto_ax():
 
 def create_carto_axes(row=1, col=1):
     """
-    创建多个基础投影地图，分辩率为 1200
+    创建多个基础投影地图，分辩率为 2400
     """
     axes = []
     for m in range(row):
@@ -84,7 +87,7 @@ def create_carto_axes(row=1, col=1):
 
 def create_3d_ax():
     """
-    创建一个3D图像画布，分辩率为 1200
+    创建一个3D图像画布，分辩率为 2400
     
     :return: 返回图像对象和3D子图对象
     """
@@ -95,20 +98,20 @@ def create_3d_ax():
 
 def create_3d_axes(row=1, col=1):
     """
-    创建一个包含多个3D子图的画布，分辩率为 1200
+    创建一个包含多个3D子图的画布，分辩率为 2400
     
     :param row: 子图的行数
     :param col: 子图的列数
     :return: 返回一个包含所有3D子图的列表
     """
     
-    _, axes = plt.subplots(row, col, dpi = 1200, projection='3d')
+    _, axes = plt.subplots(row, col, dpi = 2400, projection='3d')
 
     return axes
 
 def create_shared_3d_axes(row=1, col=1, shared='all'):
     """
-    创建一个包含多个共享坐标轴的3D子图的画布，分辩率为 1200
+    创建一个包含多个共享坐标轴的3D子图的画布，分辩率为 2400
     
     :param row: 子图的行数
     :param col: 子图的列数

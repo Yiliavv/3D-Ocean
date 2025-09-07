@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import os
+from this import d
 import arrow
 import numpy as np
 import netCDF4 as nc
@@ -232,4 +233,19 @@ class ERA5SSTMonthlyDataset(Dataset):
         lon_grid, lat_grid = np.meshgrid(lon_indices, lat_indices)
         
         return sst[lat_grid, lon_grid]
+
+    def read_ssta(self, index: int):
+        sst_list = []
+
+        for i in range(index):
+            sst = self.__read_sst__(i)
+            
+            sst_list.append(sst)
+
+        mean_sst = np.nanmean(sst_list)
+        current_sst = sst_list[-1]
+
+        ssta = current_sst - mean_sst
+
+        return ssta
                 

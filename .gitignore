@@ -6,3 +6,4 @@ output/
 lightning_logs/
 train_output/
 doc
+out/

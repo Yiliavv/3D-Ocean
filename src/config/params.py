@@ -4,7 +4,7 @@ from src.config.area import Area
 
 # 数据基础路径
 BASE_CDAC_DATA_PATH = "B:/workspace/Argo_data/Argo_v3_core"
-BASE_BOA_ARGO_DATA_PATH = "B:/ArgoDataset"
+BASE_BOA_ARGO_DATA_PATH = "X:/WorkSpace/ArgoDataset"
 BASE_ERA5_DAILY_DATA_PATH = "X:/WorkSpace/ERA5/daily_mean"
 BASE_ERA5_MONTHLY_DATA_PATH = "X:/WorkSpace/ERA5/monthly_mean"
 BASE_NINO_DATA_PATH = "X:/WorkSpace/ERA5"

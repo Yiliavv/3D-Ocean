@@ -42,6 +42,12 @@ class Global:
         
         self._patch_bathymetry()
         self._set_ticks()
+
+        # nino1+2
+        self.nino12 = [-90, -80, -10, 0]
+        self.nino3 = [-150, -90, -5, 5]
+        self.nino34 = [160, -150, -5, 5]
+        self.nino4 = [-170, -120, -5, 5]
         
     """
     在地图上绘制区域
