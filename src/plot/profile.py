@@ -27,9 +27,7 @@ def plot_3d_temperature(temp, lon, lat, depth, step=1):
     vmax = nanmax(temp)
     
     # 绘制每一层的等温面
-    for i, d in enumerate(depth):
-        print(f"deep d: {d}")
-        
+    for i, d in enumerate(depth):        
         temp_layer = transpose(temp[:, :, i], (1, 0))
         
         _ = ax.contourf(lon_grid, lat_grid, temp_layer,

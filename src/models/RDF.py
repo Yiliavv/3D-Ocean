@@ -3,7 +3,6 @@ import torch
 from torch import optim
 from lightning import LightningModule
 from sklearn.ensemble import RandomForestRegressor
-import numpy as np
 
 class RDFNetwork(LightningModule):
     """
@@ -45,7 +44,7 @@ class RDFNetwork(LightningModule):
         Args:
             x: numpy.ndarray, 输入数组 [batch_size, features]
             y: numpy.ndarray, 目标数组 [batch_size, features, depth]
-        """                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                
+        """                                                                                                       
         # 打印调试信息
         print(f"Forward - Input shape: {x.shape}, Target shape: {y.shape}")
         
@@ -121,6 +120,15 @@ class RDFNetwork(LightningModule):
         """
         # 由于随机森林不需要梯度优化，这里返回一个虚拟优化器
         return optim.Adam([torch.zeros(1, requires_grad=True)], lr=self.learning_rate)
+
+    def predict(self, x):
+        """
+        预测函数
+        """
+        x = x.detach().cpu().numpy()
+        x_reshaped = x.reshape(x.shape[0], -1)
+
+        return self.model.predict(x_reshaped)
     
     def __normalize__(self, x):
         """
