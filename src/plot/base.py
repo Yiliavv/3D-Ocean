@@ -63,8 +63,8 @@ def create_carto_ax():
     figure = create_base_figure()
     ax = figure.add_subplot(111, projection=ccrs.PlateCarree())
     
-    # 设置字体为 Times New Roman
-    plt.rcParams['font.family'] = 'Times New Roman'
+    # 设置字体为 Liberation Serif（Times New Roman 的开源等效字体）
+    plt.rcParams['font.family'] = 'Liberation Serif'
     
     ax.add_feature(cfeat.LAND)
     ax.add_feature(cfeat.COASTLINE, linewidth=0.5)

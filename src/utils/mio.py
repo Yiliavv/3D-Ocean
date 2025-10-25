@@ -8,6 +8,8 @@ import json
 
 from dataclasses import dataclass, asdict
 
+from src.config.params import PROJECT_PATH
+
 @dataclass
 class ModelParams:
     # 模型名称
@@ -44,7 +46,7 @@ class TrainOutput:
     d_params: DatasetParams
 
 
-BASE_DIR = "X:/WorkSpace/tensorflow/train_output"
+BASE_DIR = f"{PROJECT_PATH}/train_output"
 
 # 写入训练结果
 def write_m(train_output: TrainOutput, model_name: str, uid: str):

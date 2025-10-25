@@ -6,21 +6,7 @@ from datetime import datetime
 import torch
 import random
 
-from src.config.params import BASE_CDAC_DATA_PATH
 from src.utils.log import Log
-
-
-# 数据列表
-def list_data_dirs():
-    dirs = []
-
-    with os.scandir(BASE_CDAC_DATA_PATH) as it:
-        for entry in it:
-            if entry.is_dir():
-                dirs.append(entry.name)
-
-    return dirs
-
 
 # ---------------------------- CDAC Argo 数据导入 ----------------------------
 

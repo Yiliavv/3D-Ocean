@@ -199,7 +199,8 @@ class ERA5SSTMonthlyDataset(Dataset):
             sst = self.__read_sst__(i)
             sst_time_series.append(sst)
         
-        sst_time_series = tensor(np.array(sst_time_series), dtype=float32, requires_grad=True)
+        # 数据集不需要梯度追踪，模型会自动处理
+        sst_time_series = tensor(np.array(sst_time_series), dtype=float32)
         
         fore_ = sst_time_series[:self.seq_len - 1, ...]
         last_ = sst_time_series[-1, ...]

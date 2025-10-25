@@ -7,6 +7,7 @@ from cartopy import crs
 from cartopy.io import shapereader
 from cartopy.mpl.ticker import LongitudeFormatter, LatitudeFormatter
 
+from src.config.params import PROJECT_PATH
 from src.plot.base import create_base_figure
 
 class Area:
@@ -138,7 +139,7 @@ class Global:
     def _load_shapefile(self):
         shp_dict = {}
         
-        files = glob('X:/WorkSpace/tensorflow/src/config/ne_10m_bathymetry_all/*.shp')
+        files = glob(f"{PROJECT_PATH}/src/config/ne_10m_bathymetry_all/*.shp")
         
         assert len(files) > 0
         files.sort()

@@ -111,7 +111,7 @@ R2 = {
 def plot_metrics():
     # Set font for English
     plt.rcParams['font.family'] = 'serif'
-    plt.rcParams['font.serif'] = ['Times New Roman', 'Times', 'DejaVu Serif']
+    plt.rcParams['font.serif'] = ['Liberation Serif']
     plt.rcParams['axes.unicode_minus'] = False
     plt.rcParams['font.size'] = 12
     plt.rcParams['axes.labelsize'] = 14

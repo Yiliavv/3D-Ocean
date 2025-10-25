@@ -1,6 +1,219 @@
 ---
-description: 
+description: 全球海洋温度预测项目开发规则
 globs: 
 alwaysApply: true
 ---
-本项目是使用PyTorch作为基础库，Transformer 为基础模型，根据 ERA5 全球海洋表面月平均温度数据研究海洋表面温度演变规律的研究性项目，研究的海表温度区域为全球，南纬80° ~ 北纬80°，西经180° ~ 东经180°，ERA5 数据集精度为0.5°，起始时间为1980年1月，结束时间为2024年12月，数据集中还包括了2025年1月~ 2025年5月的5个月数据可用于验证模型在该项研究的拟合程度。主要研究内容为：1. 基于Transformer模型的改进模型 2. 模型在不同的时间序列长度上预测下一个月海表温度（单步预测）的精度，找出最合适的时间序列长度 3. 模型与现有模型的对比和改进。回答问题和修改代码需要基于本项目的研究内容和模型代码、温度数据，在设计实验和验证时需要提供设计思路和理由。
+
+# 全球海洋温度预测项目 - 开发规则
+
+## 1. 项目目标
+使用深度学习和遥感数据构建高精度的全球海洋温度预测系统，包括：
+- **海表温度时空序列预测**：基于历年数据预测未来海表温度
+- **三维温度场空间重建**：从海表温度重建深层海洋温度分布
+
+## 2. 架构设计原则
+
+### 2.1 模块化设计
+- 所有模型必须继承 `LightningModule` 基类
+- 使用 `BaseTrainer` 统一训练接口，不要为每个模型单独编写训练代码
+- 数据集必须继承 `torch.utils.data.Dataset`
+- 保持各组件解耦，便于独立测试和替换
+
+### 2.2 命名规范
+- **模型类**：使用驼峰命名法，如 `RecursiveAttentionTransformer`
+- **数据集类**：以 `Dataset` 结尾，如 `ERA5SSTMonthlyDataset`
+- **函数和变量**：使用小写下划线，如 `custom_mse_loss`
+- **常量**：使用大写下划线，如 `BASE_ERA5_DATA_PATH`
+
+### 2.3 文件组织
+```
+src/
+  models/        # 只放模型定义
+  dataset/       # 只放数据集类
+  trainer/       # 只放训练器
+  analysis/      # 只放分析工具
+  plot/          # 只放可视化函数
+  config/        # 只放配置和参数
+  utils/         # 只放通用工具函数
+```
+
+## 3. 模型开发规范
+
+### 3.1 必须实现的方法
+每个新模型必须实现：
+- `__init__()`: 初始化参数和网络层
+- `forward()`: 前向传播逻辑
+- `training_step()`: 训练步骤
+- `validation_step()`: 验证步骤（可选但推荐）
+- `configure_optimizers()`: 优化器配置
+- `custom_mse_loss()`: 处理NaN值的损失函数
+
+### 3.2 NaN值处理
+海洋数据中陆地区域为NaN，必须在所有计算中正确处理：
+```python
+def custom_mse_loss(self, y_pred, y):
+    y_mask = torch.isnan(y)
+    valid_mask = ~y_mask
+    if valid_mask.sum() > 0:
+        return F.mse_loss(y_pred[valid_mask], y[valid_mask])
+    return torch.tensor(0.0, requires_grad=True)
+```
+
+### 3.3 输入输出格式
+- **时空序列模型输入**: `[batch, seq_len-1, channels, height, width]`
+- **时空序列模型输出**: `[batch, 1, height, width]`
+- **三维重建模型输入**: `[batch, height, width]` (海表温度)
+- **三维重建模型输出**: `[batch, height, width, depth]` (温度剖面)
+
+### 3.4 模型保存
+- 使用 `torch.save()` 和 `torch.load()` 保存完整模型
+- 保存路径格式: `out/models/模型名.pkl`
+- 训练日志保存到: `train_output/模型名/uid.json`
+
+## 4. 数据集开发规范
+
+### 4.1 数据范围
+- **时间**: 2004-01-01 至 2024-12-31
+- **空间**: 经度 [-180, 180]，纬度 [-80, 80]
+- **分辨率**: 支持 0.25°、0.5°、1°、2° 等
+
+### 4.2 必须支持的参数
+```python
+def __init__(self, lon, lat, offset=0, resolution=1, **kwargs):
+    self.lon = np.array(lon)  # 经度范围
+    self.lat = np.array(lat)  # 纬度范围
+    self.offset = offset      # 时间偏移
+    self.resolution = resolution  # 空间分辨率
+```
+
+### 4.3 数据预处理
+- **温度转换**: NetCDF数据为开尔文，需转为摄氏度 `sst - 273.15`
+- **坐标转换**: 经纬度坐标 → 数组索引 `(lon % 360) * 4`, `(lat + 90) * 4`
+- **数据翻转**: ERA5数据需要 `np.flip(sst, axis=0)` 纬度翻转
+- **无效值**: 温度 > 99°C 视为无效，设为 `np.nan`
+
+## 5. 训练规范
+
+### 5.1 使用BaseTrainer
+不要手动编写训练循环，统一使用 `BaseTrainer`:
+```python
+trainer = BaseTrainer(
+    title='模型名',
+    uid=str(uuid.uuid4()),
+    area=Area(...),
+    model_class=YourModel,
+    dataset_class=YourDataset,
+    save_path='路径',
+    dataset_params={...},
+    trainer_params={'epochs': 500, 'batch_size': 50},
+    model_params={...}
+)
+model = trainer.train()
+```
+
+### 5.2 数据分割
+- 默认按 8:2 分割训练集和验证集
+- 使用**时间顺序分割**，不是随机分割（避免数据泄露）
+- 前80%时间段为训练，后20%为验证
+
+### 5.3 训练参数
+- **学习率**: 1e-3 至 1e-4
+- **Batch size**: 10-50（根据显存调整）
+- **Epochs**: 100-500
+- **优化器**: AdamW（推荐）或 Adam
+- **学习率调度**: CosineAnnealingLR 或 ExponentialLR
+
+## 6. 评估指标
+
+必须计算以下指标：
+- **RMSE** (均方根误差): 主要评估指标
+- **MAE** (平均绝对误差): 辅助指标
+- **R²** (决定系数): 模型拟合度
+- **SSTA** (海表温度异常): 用于NINO指数分析
+
+## 7. 可视化规范
+
+### 7.1 地图投影
+使用 Cartopy 的 PlateCarree 投影：
+```python
+from cartopy import crs as ccrs
+projection = ccrs.PlateCarree()
+ax.set_extent([lon[0], lon[1], lat[0], lat[1]], crs=projection)
+```
+
+### 7.2 色标
+- **海表温度**: `matplotlib.cm.jet`，范围 0-30°C
+- **温度剖面**: `cmocean.cm.thermal`
+- **误差**: `RdBu_r`，范围 -1.5 至 1.5°C
+
+### 7.3 图像质量
+- DPI: 1200 (论文质量)
+- 文字: Times New Roman, 12-16pt
+- 保存格式: PNG
+
+## 8. 代码质量
+
+### 8.1 注释
+- 每个类和函数必须有文档字符串
+- 复杂逻辑必须添加行内注释
+- 使用中文注释（与团队习惯一致）
+
+### 8.2 错误处理
+- 文件读取必须检查文件是否存在
+- 数值计算前检查除零和NaN
+- 使用 try-except 捕获可能的异常
+
+### 8.3 性能
+- 大数据处理使用 NumPy 向量化操作
+- 避免在循环中重复计算
+- 合理使用缓存机制（如ERA5数据集的年度缓存）
+
+### 8.4 说明文档
+
+- 所有的说明文档都放在 src/docs 目录下
+- 除非复杂的设计否则不要创建说明文档
+
+## 9. 实验可重现性
+
+### 9.1 随机种子
+使用 `set_seed()` 固定所有随机数：
+```python
+from src.utils.util import set_seed
+set_seed(42)
+```
+
+### 9.2 版本记录
+在训练输出中记录：
+- 模型架构和参数
+- 数据集配置
+- 训练超参数
+- 最终性能指标
+
+## 10. 禁止事项
+
+❌ 不要在模型代码中硬编码路径
+❌ 不要在 forward() 中进行数据保存或可视化
+❌ 不要使用全局变量传递数据
+❌ 不要忽略 NaN 值（会导致错误的损失计算）
+❌ 不要混合不同来源的数据而不做对齐检查
+❌ 不要随机打乱时间序列数据
+❌ 不要在生产代码中使用 print()（应使用 Log 工具）
+
+## 11. 新功能开发流程
+
+1. **需求分析**: 明确功能目标和使用场景
+2. **接口设计**: 确定输入输出格式，保持与现有代码一致
+3. **编写代码**: 遵循以上所有规范
+4. **单元测试**: 使用小数据集验证功能
+5. **集成测试**: 与 BaseTrainer 集成测试
+6. **性能评估**: 与基线模型对比 RMSE
+7. **文档更新**: 更新 README 和代码注释
+
+## 12. 常用数据路径（参考 src/config/params.py）
+
+- ERA5月平均: `BASE_ERA5_MONTHLY_DATA_PATH`
+- ERA5日平均: `BASE_ERA5_DAILY_DATA_PATH`
+- Argo数据: `BASE_BOA_ARGO_DATA_PATH`
+- 模型保存: `MODEL_SAVE_PATH`
+- 预测结果: `PREDICT_SAVE_PATH`
+- 误差分析: `ERROR_SAVE_PATH`

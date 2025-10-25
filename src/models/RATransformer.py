@@ -26,15 +26,34 @@ class RecursiveAttentionTransformer(LightningModule):
                  dropout=0.1,
                  recursion_depth=2,
                  learning_rate=1e-4,
-                 spatial_aware=False,
                  use_spherical_harmonics=True,
-                 max_harmonic_degree=4):
+                 max_harmonic_degree=4,
+                 attention_mode='hierarchical',
+                 norm_first=True):
+        """
+        Args:
+            width: 海表温度图像宽度
+            height: 海表温度图像高度
+            seq_len: 输入序列长度
+            d_model: 模型维度
+            num_heads: 注意力头数
+            num_layers: Transformer层数
+            dim_feedforward: 前馈网络维度
+            dropout: Dropout比例
+            recursion_depth: 递归/层次深度
+            learning_rate: 学习率
+            use_spherical_harmonics: 是否使用球谐波时序位置编码
+            max_harmonic_degree: 球谐波最大阶数（已弃用）
+            attention_mode: 注意力模式 ('true_recursive' 或 'hierarchical')
+            norm_first: 是否使用Pre-LN归一化（推荐True）
+        """
         super().__init__()
         
         self.d_model = d_model
         self.learning_rate = learning_rate
-        self.spatial_aware = spatial_aware
         self.use_spherical_harmonics = use_spherical_harmonics
+        self.attention_mode = attention_mode
+        self.norm_first = norm_first
         
         # 训练稳定性配置
         self.gradient_clip_val = 1.0
@@ -48,13 +67,7 @@ class RecursiveAttentionTransformer(LightningModule):
         self.height = height
         self.seq_len = seq_len
         
-        # 空间位置编码 - 在投影前应用
-        if spatial_aware:
-            self.spatial_encoding = nn.Parameter(
-                torch.randn(width * height) * 0.02
-            )
-            
-        # 球谐波位置编码神经网络
+        # 时序位置编码（用于Transformer序列维度）
         if seq_len and use_spherical_harmonics:
             self.pos_encoding = SphericalHarmonicEncoding(
                 seq_len, d_model, max_harmonic_degree
@@ -70,7 +83,9 @@ class RecursiveAttentionTransformer(LightningModule):
                 num_heads=num_heads, 
                 dim_feedforward=dim_feedforward,
                 dropout=dropout,
-                recursion_depth=recursion_depth
+                recursion_depth=recursion_depth,
+                attention_mode=attention_mode,
+                norm_first=norm_first
             )
             for _ in range(num_layers)
         ])
@@ -105,15 +120,12 @@ class RecursiveAttentionTransformer(LightningModule):
         return nn.Parameter(pe.unsqueeze(0), requires_grad=False)
     
     def _init_parameters(self):
-        """参数初始化 - 针对递归注意力和球谐波编码优化"""
+        """参数初始化 - 针对递归注意力优化"""
         for name, p in self.named_parameters():
             if p.dim() > 1:
-                if 'recursion_weights' in name:
-                    # 递归权重使用较小的初始化
+                if 'recursion_weights' in name or 'step_weights' in name or 'level_weights' in name:
+                    # 递归/层次权重使用较小的初始化
                     nn.init.constant_(p, 0.5)
-                elif 'spatial_encoding' in name:
-                    # 空间编码使用更小的初始化
-                    nn.init.normal_(p, 0, 0.01)
                 elif 'weight' in name and ('input_projection' in name or 'output_projection' in name):
                     # 投影层使用Xavier初始化但缩放更小
                     nn.init.xavier_uniform_(p, gain=0.5)
@@ -152,12 +164,7 @@ class RecursiveAttentionTransformer(LightningModule):
         else:  # [batch, seq_len-1, width, height]
             x_reshaped = x_processed.view(batch_size, self.seq_len - 1, -1)
         
-        # 在投影前添加空间编码
-        if self.spatial_aware:
-            # spatial_encoding: [width*height] -> [1, 1, width*height]
-            spatial_bias = self.spatial_encoding.unsqueeze(0).unsqueeze(0)  # [1, 1, width*height]
-            x_reshaped = x_reshaped + spatial_bias  # 广播添加空间位置编码
-        
+        # 投影到模型维度
         x = self.input_projection(x_reshaped)
         
         # 位置编码
