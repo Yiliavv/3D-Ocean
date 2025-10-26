@@ -11,8 +11,8 @@ from torch import optim
 import math
 
 # 导入分离的模块
-from src.models.PE.SphericalHarmonicEncoding import SphericalHarmonicEncoding
-from src.models.Attention.RGAttention import RecursiveAttentionLayer
+from src.models.SST.PE.SphericalHarmonicEncoding import SphericalHarmonicEncoding
+from src.models.SST.Attention.RGAttention import RecursiveAttentionLayer
 
 class RecursiveAttentionTransformer(LightningModule):
     """递归注意力 Transformer - 海表温度预测模型"""
@@ -197,36 +197,58 @@ class RecursiveAttentionTransformer(LightningModule):
         x_mask = torch.isnan(x)
         x_processed = x.clone()
         x_processed[x_mask] = 0.0
-        return x_processed    
+        return x_processed
+
     def custom_mse_loss(self, y_pred, y_true):
-        """处理NaN值的MSE损失函数"""
+        """
+        处理NaN值的MSE损失函数
+        
+        海洋数据中陆地区域为NaN，此函数只计算有效海洋区域的损失
+        
+        Args:
+            y_pred: 模型预测值 [batch, channels, height, width]
+            y_true: 真实值 [batch, channels, height, width]
+        
+        Returns:
+            loss: MSE损失值，如果没有有效值则返回0（保持在计算图中）
+        """
+        # 创建有效值掩码（非NaN的位置）
         y_mask = torch.isnan(y_true)
         valid_mask = ~y_mask
         
-        if valid_mask.sum() > 0:
+        # 统计有效值数量
+        num_valid = valid_mask.sum()
+        
+        if num_valid > 0:
+            # 只对有效区域计算损失
             y_pred_valid = y_pred[valid_mask]
             y_true_valid = y_true[valid_mask]
             loss = F.mse_loss(y_pred_valid, y_true_valid, reduction='mean')
             return loss
         else:
-            return torch.tensor(0.0, device=y_pred.device, requires_grad=True)
+            # 没有有效值时返回0，但保持在计算图中
+            # 使用 y_pred.sum() * 0.0 确保梯度流动
+            return y_pred.sum() * 0.0
     
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_pred = self(x)
         
-        # 海表温度特殊处理 - 处理NaN值
-        y_mask = torch.isnan(y)
-        y_pred[y_mask] = float('nan')
-        
-        # 使用简单稳定的损失函数
+        # 使用自定义MSE损失（自动处理NaN值）
         loss = self.custom_mse_loss(y_pred, y)
         
-        # 梯度裁剪
-        if self.trainer is not None:
-            torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=self.gradient_clip_val)
+        # 检查损失有效性
+        if torch.isnan(loss) or torch.isinf(loss):
+            # 如果损失异常，记录警告并返回零损失
+            if batch_idx % 100 == 0:  # 避免日志过多
+                print(f"⚠️  Warning: Invalid loss at batch {batch_idx}")
+            return y_pred.sum() * 0.0
         
-        self.log('train_loss', loss, prog_bar=True)
+        # Lightning 会自动处理梯度裁剪（如果在 Trainer 中配置了）
+        # 但我们也可以在这里显式裁剪
+        # torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=self.gradient_clip_val)
+        
+        self.log('train_loss', loss, prog_bar=True, on_step=True, on_epoch=True)
         self.train_loss.append(loss.item())
         return loss
     
@@ -253,25 +275,7 @@ class RecursiveAttentionTransformer(LightningModule):
         # 使用自定义MSE损失处理NaN值
         val_loss = self.custom_mse_loss(y_pred, y)
         
-        # 添加更多的监控指标
-        with torch.no_grad():
-            y_mask = torch.isnan(y)
-            valid_mask = ~y_mask
-            
-            if valid_mask.sum() > 0:
-                y_pred_valid = y_pred[valid_mask]
-                y_true_valid = y[valid_mask]
-                
-                # 计算MAE
-                mae = F.l1_loss(y_pred_valid, y_true_valid)
-                
-                # 计算RMSE
-                rmse = torch.sqrt(F.mse_loss(y_pred_valid, y_true_valid))
-                
-                self.log('val_mae', mae, prog_bar=True)
-                self.log('val_rmse', rmse, prog_bar=True)
-        
-        self.log('val_loss', val_loss, prog_bar=True)
+        self.log('val_loss', val_loss, prog_bar=True, on_step=False, on_epoch=True)
         self.val_loss.append(val_loss.item())
         return val_loss
     
@@ -285,10 +289,10 @@ class RecursiveAttentionTransformer(LightningModule):
             eps=1e-8
         )
         
-        # 使用简单的指数衰减学习率调度
-        scheduler = optim.lr_scheduler.ExponentialLR(
+        # 使用余弦退火学习率调度器
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(
             optimizer, 
-            gamma=0.99  # 每个epoch学习率衰减1%
+            T_max=100
         )
         
         return {

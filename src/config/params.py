@@ -16,4 +16,7 @@ ERROR_SAVE_PATH = f"{PROJECT_PATH}/out/error"
 # 预测保存路径
 PREDICT_SAVE_PATH = f"{PROJECT_PATH}/out/sst"
 
+# wandb
+WANDB_PROJECT = "3-D Ocean"
+WANDB_ENTITY = "yiliavei-zhejiang-university"
 

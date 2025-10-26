@@ -7,3 +7,4 @@ lightning_logs/
 train_output/
 doc
 out/
+wandb_logs/

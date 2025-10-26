@@ -5,6 +5,7 @@ from cmocean import cm
 
 from matplotlib import cm as cm_plt
 from matplotlib import pyplot as plt
+from matplotlib.colors import LinearSegmentedColormap
 
 from cartopy.mpl import ticker as tk
 from cartopy import crs as ccrs
@@ -16,6 +17,33 @@ from src.plot.base import create_ax, create_axes, create_carto_ax
 
 COLOR_MAP_PROFILE = cm.thermal
 COLOR_MAP_SST = cm_plt.jet
+
+# 创建自定义的误差色标：蓝色（负误差）-> 浅白色（零误差）-> 红色（正误差）
+# 使用柔和的颜色，避免过于鲜艳
+def create_error_colormap():
+    """
+    创建用于误差可视化的自定义色标
+    - 负误差：深蓝 -> 浅蓝
+    - 零误差：浅白色
+    - 正误差：浅红 -> 深红
+    颜色配置和谐，不会过于鲜艳
+    """
+    colors = [
+        '#2166ac',  # 深蓝（大负误差）
+        '#4393c3',  # 中蓝
+        '#92c5de',  # 浅蓝
+        '#d1e5f0',  # 极浅蓝
+        '#f7f7f7',  # 浅白色（零误差）
+        '#fddbc7',  # 极浅红
+        '#f4a582',  # 浅红
+        '#d6604d',  # 中红
+        '#b2182b',  # 深红（大正误差）
+    ]
+    n_bins = 256
+    cmap = LinearSegmentedColormap.from_list('error_cmap', colors, N=n_bins)
+    return cmap
+
+COLOR_MAP_ERROR = create_error_colormap()
 
 def _range(range, step=1):
     """
@@ -129,11 +157,14 @@ def plot_sst(sst, lon, lat, step=1, filename='sst.png', title=''):
 
 def plot_sst_diff(sst_diff, lon, lat, step=1, filename='sst_diff.png', title=''):
     """
-    绘制海表温度分布图
+    绘制海表温度误差分布图
     
-    :param sst: 海表温度数据,二维数组
+    :param sst_diff: 海表温度误差数据,二维数组
     :param lon: 经度范围 [起始经度, 结束经度]
     :param lat: 纬度范围 [起始纬度, 结束纬度]
+    :param step: 网格步长
+    :param filename: 保存文件名
+    :param title: 图表标题
     :return: 返回图像对象和子图对象
     """
     from src.config.params import ERROR_SAVE_PATH
@@ -151,15 +182,16 @@ def plot_sst_diff(sst_diff, lon, lat, step=1, filename='sst_diff.png', title='')
     # 生成网格点
     lon_grid, lat_grid = np.meshgrid(_range(lon, step), _range(lat, step))
     
-    # vmin = max(floor(nanmin(sst_diff)), -3)
-    # vmax = min(ceil(nanmax(sst_diff)), )
+    # 计算误差的范围，确保色标以0为中心
+    abs_max = max(abs(np.nanmin(sst_diff)), abs(np.nanmax(sst_diff)))
+    abs_max = min(abs_max, 1.5)  # 限制最大范围为±1.5°C
     
-    levels = np.arange(-1.5, 1.5, 0.1)
+    levels = np.linspace(-abs_max, abs_max, 30)
     
     im = ax.contourf(
         lon_grid, lat_grid, sst_diff, 
         levels=levels,
-        cmap=COLOR_MAP_SST,
+        cmap=COLOR_MAP_ERROR,
         extend='both',
         transform=projection)
     
@@ -223,87 +255,165 @@ def plot_sst_l(sst, lon, lat, step=1):
 def plot_nino(ssta, step=1):
     '''
     绘制 NINO 指数图
+    
+    NINO3.4 区域: 5°S-5°N, 170°W-120°W
+    NINO3 区域: 5°S-5°N, 150°W-90°W
 
-    :param ssta: 海表温度异常,二维数组, 经纬度范围为 [-180, 180, -80, 80]
+    :param ssta: 海表温度异常,二维数组 [纬度, 经度]
+                 假设经纬度范围为 [-180, 180], [-80, 80]
+                 shape: [160/step, 360/step] 对于1°分辨率
+    :param step: 空间分辨率（度）
     '''
     
-    # 截取 NINO 区域
-    ssta_nino = ssta[30:55, 0:60]
-
-    lon_grid, lat_grid = np.meshgrid(_range([-180, -60], step), _range([-20, 30], step))
-
+    # 计算数据的形状和坐标
+    lat_size, lon_size = ssta.shape
+    
+    # 生成完整的经纬度数组
+    lon_full = np.linspace(-180, 180, lon_size, endpoint=False)
+    lat_full = np.linspace(-80, 80, lat_size)
+    
+    # 定义绘图区域和 NINO 区域
+    plot_lat_range = [-20, 20]
+    plot_lon_range = [-180, -80]
+    
+    # NINO3.4: 5°S-5°N, 170°W-120°W
+    nino34_lon_range = [-170, -120]
+    nino34_lat_range = [-5, 5]
+    
+    # NINO3: 5°S-5°N, 150°W-90°W  
+    nino3_lon_range = [-150, -90]
+    nino3_lat_range = [-5, 5]
+    
+    # 提取绘图区域的数据索引
+    lat_mask = (lat_full >= plot_lat_range[0]) & (lat_full <= plot_lat_range[1])
+    lon_mask = (lon_full >= plot_lon_range[0]) & (lon_full <= plot_lon_range[1])
+    
+    lat_idx = np.where(lat_mask)[0]
+    lon_idx = np.where(lon_mask)[0]
+    
+    # 提取数据
+    ssta_plot = ssta[lat_idx[0]:lat_idx[-1]+1, lon_idx[0]:lon_idx[-1]+1]
+    lon_plot = lon_full[lon_idx]
+    lat_plot = lat_full[lat_idx]
+    
+    # 计算 NINO3.4 指数
+    nino34_lat_mask = (lat_full >= nino34_lat_range[0]) & (lat_full <= nino34_lat_range[1])
+    nino34_lon_mask = (lon_full >= nino34_lon_range[0]) & (lon_full <= nino34_lon_range[1])
+    nino34_lat_idx = np.where(nino34_lat_mask)[0]
+    nino34_lon_idx = np.where(nino34_lon_mask)[0]
+    
+    if len(nino34_lat_idx) > 0 and len(nino34_lon_idx) > 0:
+        nino34_data = ssta[nino34_lat_idx[0]:nino34_lat_idx[-1]+1, 
+                           nino34_lon_idx[0]:nino34_lon_idx[-1]+1]
+        nino34_index = np.nanmean(nino34_data)
+    else:
+        nino34_index = np.nan
+    
+    # 计算 NINO3 指数
+    nino3_lat_mask = (lat_full >= nino3_lat_range[0]) & (lat_full <= nino3_lat_range[1])
+    nino3_lon_mask = (lon_full >= nino3_lon_range[0]) & (lon_full <= nino3_lon_range[1])
+    nino3_lat_idx = np.where(nino3_lat_mask)[0]
+    nino3_lon_idx = np.where(nino3_lon_mask)[0]
+    
+    if len(nino3_lat_idx) > 0 and len(nino3_lon_idx) > 0:
+        nino3_data = ssta[nino3_lat_idx[0]:nino3_lat_idx[-1]+1,
+                         nino3_lon_idx[0]:nino3_lon_idx[-1]+1]
+        nino3_index = np.nanmean(nino3_data)
+    else:
+        nino3_index = np.nan
+    
+    print(f'NINO3.4 指数: {nino34_index:.3f}°C')
+    print(f'NINO3 指数: {nino3_index:.3f}°C')
+    
     # 绘制 NINO 指数图
     ax = create_carto_ax()
-
     projection = ccrs.PlateCarree()
-
-    ax.set_extent([-180, -80, -20, 20], crs=projection)
-
+    
+    ax.set_extent([*plot_lon_range, *plot_lat_range], crs=projection)
     ax.figure.set_size_inches(10, 4)
+    
     # 图像设置黑色边框
     ax.spines['top'].set_color('#444444')
     ax.spines['right'].set_color('#444444')
     ax.spines['bottom'].set_color('#444444')
     ax.spines['left'].set_color('#444444')
     
-    ax.contourf(lon_grid, lat_grid, ssta_nino, cmap=COLOR_MAP_SST, transform=projection, levels=30)
+    # 生成网格用于绘图
+    lon_grid, lat_grid = np.meshgrid(lon_plot, lat_plot)
     
-    # 添加 NINO3.4 区域边界框 (西经150°到90°，南纬5°到北纬5°)
-    nino34_lon = [-170, -120]  # 西经150°到90°
-    nino34_lat = [-5, 5] # 南纬5°到北纬5°
-    nini34 = np.nanmean(ssta_nino[15:20, 5:30])
-
-    nino3_lon = [-150, -90]
-    nino3_lat = [-5, 5]
-
-    nino3 = np.nanmean(ssta_nino[15:20, 30:55])
-
-    print('NINO3.4: ', nini34, 'NINO3: ', nino3)
+    # 使用误差色标绘制 SSTA
+    abs_max = max(abs(np.nanmin(ssta_plot)), abs(np.nanmax(ssta_plot)))
+    levels = np.linspace(-abs_max, abs_max, 30)
+    ax.contourf(lon_grid, lat_grid, ssta_plot, 
+                cmap=COLOR_MAP_ERROR, transform=projection, 
+                levels=levels, extend='both')
     
+    # 添加色标
+    cbar = ax.figure.colorbar(ax.collections[0], ax=ax, 
+                               orientation='horizontal',
+                               pad=0.05, fraction=0.05, shrink=0.8)
+    cbar.set_label('SSTA (°C)', fontsize=12)
     
     # 绘制矩形边界框
     import matplotlib.patches as mpatches
     
-    # 创建矩形边界框
+    # 创建 NINO3.4 边界框
     rect34 = mpatches.Rectangle(
-        (nino34_lon[0], nino34_lat[0]), 
-        nino34_lon[1] - nino34_lon[0], 
-        nino34_lat[1] - nino34_lat[0],
-        linewidth=1,
-        edgecolor='#444444',
+        (nino34_lon_range[0], nino34_lat_range[0]), 
+        nino34_lon_range[1] - nino34_lon_range[0], 
+        nino34_lat_range[1] - nino34_lat_range[0],
+        linewidth=2,
+        edgecolor='red',
         facecolor='none',
-        transform=projection
+        transform=projection,
+        zorder=10
     )
 
+    # 创建 NINO3 边界框
     rect3 = mpatches.Rectangle(
-        (nino3_lon[0], nino3_lat[0]), 
-        nino3_lon[1] - nino3_lon[0], 
-        nino3_lat[1] - nino3_lat[0],
-        linewidth=1,
-        edgecolor='#444444',
+        (nino3_lon_range[0], nino3_lat_range[0]), 
+        nino3_lon_range[1] - nino3_lon_range[0], 
+        nino3_lat_range[1] - nino3_lat_range[0],
+        linewidth=2,
+        edgecolor='blue',
         facecolor='none',
-        transform=projection
+        transform=projection,
+        zorder=10
     )
     
     ax.add_patch(rect34)
     ax.add_patch(rect3)
     
-    # 添加标签
-    ax.text(-160, 0, 'NINO3.4', 
+    # 添加标签和指数值
+    # NINO3.4 标签
+    nino34_center_lon = (nino34_lon_range[0] + nino34_lon_range[1]) / 2
+    nino34_center_lat = (nino34_lat_range[0] + nino34_lat_range[1]) / 2
+    ax.text(nino34_center_lon, nino34_center_lat, 
+            f'NINO3.4\n{nino34_index:.2f}°C', 
             transform=projection, 
-            fontsize=14, 
+            fontsize=12, 
             fontweight='bold',
-            color='black',
+            color='red',
             ha='center',
-            va='center')
+            va='center',
+            bbox=dict(boxstyle='round,pad=0.5', facecolor='white', alpha=0.8, edgecolor='red'))
 
-    ax.text(-100, 0, 'NINO3', 
+    # NINO3 标签
+    nino3_center_lon = (nino3_lon_range[0] + nino3_lon_range[1]) / 2
+    nino3_center_lat = (nino3_lat_range[0] + nino3_lat_range[1]) / 2
+    ax.text(nino3_center_lon, nino3_center_lat, 
+            f'NINO3\n{nino3_index:.2f}°C', 
             transform=projection, 
-            fontsize=14, 
+            fontsize=12, 
             fontweight='bold',
-            color='black',
+            color='blue',
             ha='center',
-            va='center')
+            va='center',
+            bbox=dict(boxstyle='round,pad=0.5', facecolor='white', alpha=0.8, edgecolor='blue'))
+    
+    # 添加标题
+    ax.set_title('NINO Regions and Sea Surface Temperature Anomaly', 
+                 fontsize=14, fontweight='bold', pad=15)
     
     return ax
     
@@ -536,8 +646,13 @@ def plot_prediction_error_analysis(pred_output, true_output, lon, lat, title='Pr
     
     # 左下图：预测误差分布
     ax3 = fig.add_subplot(gs[1, 0])
-    im3 = ax3.contourf(lon_grid, lat_grid, error, levels=20, cmap='RdBu_r', extend='both')
-    ax3.contour(lon_grid, lat_grid, error, colors='black', alpha=0.5, linewidths=0.5, levels=10)
+    
+    # 计算误差的范围，确保色标以0为中心，使用对称的范围
+    abs_max_error = max(abs(np.nanmin(error)), abs(np.nanmax(error)))
+    error_levels = np.linspace(-abs_max_error, abs_max_error, 30)
+    
+    im3 = ax3.contourf(lon_grid, lat_grid, error, levels=error_levels, cmap=COLOR_MAP_ERROR, extend='both')
+    ax3.contour(lon_grid, lat_grid, error, colors='black', alpha=0.3, linewidths=0.5, levels=10)
     ax3.set_xlabel('Longitude (°E)', fontsize=12)
     ax3.set_ylabel('Latitude (°N)', fontsize=12)
     ax3.set_title('Prediction Error', fontsize=13, fontweight='bold')

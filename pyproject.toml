@@ -23,4 +23,5 @@ dependencies = [
     "statsmodels>=0.14.5",
     "torch>=2.9.0",
     "torchvision>=0.24.0",
+    "wandb>=0.22.2",
 ]

@@ -16,8 +16,9 @@ def get_mld(month: int, lon: list, lat: list):
     
     mld = one_month['mld']
     
-    lon_indices = np.arange(lon[0], lon[1]) % 360
-        
+    # 经纬度坐标转换为数组索引
+    # Argo: 1°分辨率，范围 [0, 360] × [-80, 80]
+    lon_indices = np.arange(lon[0], lon[1])
     lat_indices = np.arange(lat[0], lat[1]) + 80
     
     lon_grid, lat_grid = np.meshgrid(lon_indices, lat_indices)

@@ -4,12 +4,14 @@ import numpy as np
 import platform
 from torch import save, load
 from lightning import Trainer
+from lightning.pytorch.loggers import WandbLogger
 from torch.utils.data import DataLoader, Subset
+import wandb
 
 from src.plot.sst import plot_sst, plot_sst_diff, plot_2d_kernel_density, plot_nino
 
 from src.config.area import Area
-from src.utils.mio import DatasetParams, ModelParams, TrainOutput, write_m
+from src.config.params import WANDB_PROJECT, WANDB_ENTITY
 
 class BaseTrainer:
     """
@@ -59,7 +61,8 @@ class BaseTrainer:
                  pre_model: bool = False,
                  dataset_params: dict = {},
                  trainer_params: dict = {},
-                 model_params: dict = {}):
+                 model_params: dict = {},
+                 use_wandb: bool = True):
         
         self.trainer_uid = uid
 
@@ -78,6 +81,10 @@ class BaseTrainer:
         # 保存路径和预训练模型
         self.save_path = save_path
         self.pre_model = pre_model
+        
+        # wandb 配置
+        self.use_wandb = use_wandb
+        self.wandb_logger = None
         
         # 模型
         if pre_model:
@@ -167,6 +174,10 @@ class BaseTrainer:
         
         epochs = self.trainer_params.get('epochs', 100)
         
+        # 初始化 wandb logger
+        if self.use_wandb:
+            self.wandb_logger = self._init_wandb_logger()
+        
         # 优化的Trainer配置
         trainer_config = {
             'max_epochs': epochs,
@@ -175,6 +186,10 @@ class BaseTrainer:
             'num_sanity_val_steps': 0,
             'precision': self.trainer_params.get('precision', '16-mixed'),
         }
+        
+        # 添加 wandb logger
+        if self.wandb_logger:
+            trainer_config['logger'] = self.wandb_logger
         
         # 梯度累积
         accumulate_grad_batches = self.trainer_params.get('accumulate_grad_batches', 1)
@@ -217,13 +232,208 @@ class BaseTrainer:
         print(f"Training Throughput: {throughput:.2f} samples/second")
         print(f"================================================")
 
+        # 记录最终指标到 wandb
+        if self.use_wandb and self.wandb_logger:
+            self._log_final_metrics(train_time, throughput)
+
         self.trained = True
-        self.output()
 
         if self.save_path:
             self.save()
+            
+            # 保存模型到 wandb artifacts
+            if self.use_wandb and self.wandb_logger:
+                self._save_model_artifact()
+
+        # 关闭 wandb run
+        if self.use_wandb:
+            wandb.finish()
 
         return self.model
+    
+    def _init_wandb_logger(self):
+        """初始化 wandb logger"""
+        try:
+            # 构建配置字典
+            config = {
+                'model': self.model_class.__name__,
+                'dataset': self.dataset_class.__name__,
+                'area': {
+                    'lon': self.area.lon.tolist() if hasattr(self.area.lon, 'tolist') else self.area.lon,
+                    'lat': self.area.lat.tolist() if hasattr(self.area.lat, 'tolist') else self.area.lat,
+                    'title': self.area.title,
+                },
+                'model_params': self.model_params,
+                'dataset_params': self.dataset_params,
+                'trainer_params': self.trainer_params,
+            }
+            
+            # 获取模型的损失函数和优化器配置
+            if self.model:
+                optimizer_config = self._get_optimizer_config()
+                if optimizer_config:
+                    config['optimizer'] = optimizer_config
+                
+                loss_function_info = self._get_loss_function_info()
+                if loss_function_info:
+                    config['loss_function'] = loss_function_info
+            
+            # 创建 wandb logger
+            logger = WandbLogger(
+                project=WANDB_PROJECT,
+                entity=WANDB_ENTITY,
+                name=f"{self.title}_{self.model_class.__name__}",
+                id=self.trainer_uid,
+                config=config,
+                save_dir='./out/wandb_logs',
+            )
+            
+            print(f"\n📊 Wandb 已启用")
+            print(f"  • Project: {WANDB_PROJECT}")
+            print(f"  • Run ID: {self.trainer_uid}")
+            print(f"  • Run URL: {logger.experiment.url}\n")
+            
+            return logger
+            
+        except Exception as e:
+            print(f"\n⚠️  Wandb 初始化失败: {str(e)}")
+            print(f"  训练将继续，但不记录到 wandb\n")
+            return None
+    
+    def _get_optimizer_config(self):
+        """获取优化器配置信息"""
+        try:
+            # Lightning 模型通过 configure_optimizers() 返回优化器
+            if hasattr(self.model, 'configure_optimizers'):
+                optimizers_config = self.model.configure_optimizers()
+                
+                # 处理不同的返回格式
+                optimizer = None
+                scheduler = None
+                
+                if isinstance(optimizers_config, tuple):
+                    # 返回 (optimizer, scheduler) 或 ([optimizers], [schedulers])
+                    optimizers, schedulers = optimizers_config
+                    optimizer = optimizers[0] if isinstance(optimizers, list) else optimizers
+                    scheduler = schedulers[0] if isinstance(schedulers, list) and schedulers else None
+                elif isinstance(optimizers_config, list):
+                    # 返回 [optimizer]
+                    optimizer = optimizers_config[0]
+                else:
+                    # 直接返回 optimizer
+                    optimizer = optimizers_config
+                
+                config = {}
+                
+                if optimizer:
+                    # 获取优化器类型和参数
+                    config['type'] = optimizer.__class__.__name__
+                    
+                    # 获取参数组（包含学习率等）
+                    if hasattr(optimizer, 'param_groups') and optimizer.param_groups:
+                        param_group = optimizer.param_groups[0]
+                        config['learning_rate'] = param_group.get('lr', 'N/A')
+                        config['weight_decay'] = param_group.get('weight_decay', 0)
+                        
+                        # 获取其他常见参数
+                        if 'momentum' in param_group:
+                            config['momentum'] = param_group['momentum']
+                        if 'betas' in param_group:
+                            config['betas'] = param_group['betas']
+                        if 'eps' in param_group:
+                            config['eps'] = param_group['eps']
+                
+                # 记录学习率调度器
+                if scheduler:
+                    config['scheduler'] = {
+                        'type': scheduler.__class__.__name__,
+                    }
+                    # 获取调度器参数
+                    if hasattr(scheduler, 'T_max'):
+                        config['scheduler']['T_max'] = scheduler.T_max
+                    if hasattr(scheduler, 'gamma'):
+                        config['scheduler']['gamma'] = scheduler.gamma
+                    if hasattr(scheduler, 'step_size'):
+                        config['scheduler']['step_size'] = scheduler.step_size
+                
+                return config
+                
+        except Exception as e:
+            print(f"⚠️  获取优化器配置失败: {str(e)}")
+            return None
+    
+    def _get_loss_function_info(self):
+        """获取损失函数信息"""
+        try:
+            loss_info = {}
+            
+            # 检查是否有自定义损失函数
+            if hasattr(self.model, 'custom_mse_loss'):
+                loss_info['type'] = 'Custom MSE Loss'
+                loss_info['description'] = 'Custom MSE with NaN handling'
+                loss_info['handles_nan'] = True
+            elif hasattr(self.model, 'loss_fn'):
+                loss_info['type'] = self.model.loss_fn.__class__.__name__
+            else:
+                # 默认 MSE
+                loss_info['type'] = 'MSE'
+            
+            # 检查是否有损失权重或其他配置
+            if hasattr(self.model, 'loss_weight'):
+                loss_info['weight'] = self.model.loss_weight
+            
+            return loss_info
+            
+        except Exception as e:
+            print(f"⚠️  获取损失函数信息失败: {str(e)}")
+            return None
+    
+    def _log_final_metrics(self, train_time, throughput):
+        """记录最终训练指标"""
+        try:
+            final_metrics = {
+                'train_time_seconds': train_time,
+                'throughput_samples_per_second': throughput,
+            }
+            
+            # 记录最终的损失值
+            if hasattr(self.model, 'train_loss') and self.model.train_loss:
+                final_metrics['final_train_loss'] = self.model.train_loss[-1]
+            
+            if hasattr(self.model, 'val_loss') and self.model.val_loss:
+                final_metrics['final_val_loss'] = self.model.val_loss[-1]
+                # 计算最佳验证损失
+                final_metrics['best_val_loss'] = min(self.model.val_loss)
+            
+            wandb.log(final_metrics)
+            
+        except Exception as e:
+            print(f"⚠️  记录最终指标失败: {str(e)}")
+    
+    def _save_model_artifact(self):
+        """保存模型到 wandb artifacts"""
+        try:
+            # 创建 artifact
+            artifact = wandb.Artifact(
+                name=f"{self.title}_model",
+                type='model',
+                description=f"{self.model_class.__name__} trained on {self.area.title}",
+                metadata={
+                    'model_class': self.model_class.__name__,
+                    'dataset_class': self.dataset_class.__name__,
+                    'epochs': self.trainer_params.get('epochs', 100),
+                    'batch_size': self.trainer_params.get('batch_size', 20),
+                }
+            )
+            
+            # 添加模型文件
+            if self.save_path:
+                artifact.add_file(self.save_path)
+                wandb.log_artifact(artifact)
+                print(f"\n✅ 模型已保存到 wandb artifacts: {artifact.name}")
+            
+        except Exception as e:
+            print(f"\n⚠️  保存模型到 wandb 失败: {str(e)}")
     
     def _print_optimization_summary(self, accumulate_grad_batches):
         """打印优化配置摘要"""
@@ -272,6 +482,11 @@ class BaseTrainer:
         if self.trainer_params.get('compile_model', False):
             print(f"\n🔧 模型编译:")
             print(f"  • 已启用: {self.trainer_params.get('compile_mode', 'default')} 模式")
+        
+        # Wandb
+        if self.use_wandb:
+            print(f"\n📊 Wandb 日志:")
+            print(f"  • 已启用: 实时记录训练指标")
         
         print("="*60 + "\n")
 
@@ -344,33 +559,3 @@ class BaseTrainer:
 
     def save(self):
         save(self.model, self.save_path)
-
-    def output(self):
-        
-        model_params = ModelParams(
-            model=self.model_class.__name__,
-            m_type=self.model_class.__name__,
-            model_path=self.save_path,
-            params=self.model_params,
-        )
-        
-        offset = self.dataset_params.get('offset', 0)
-        
-        dataset_params = DatasetParams(
-            dataset=self.dataset_class.__name__,
-            range=[self.area.lon, self.area.lat],
-            resolution=self.dataset_params.get('resolution', 1),
-            start_time=arrow.get(2004, 1, 1).shift(months=offset).format('YYYY-MM-DD'),
-            end_time=arrow.get(2024, 12, 31).format('YYYY-MM-DD'),
-        )
-        
-        train_output = TrainOutput(
-            epoch=self.trainer_params.get('epochs', 100),
-            val_loss=self.model.val_loss if hasattr(self.model, 'val_loss') else [],
-            batch_size=self.trainer_params.get('batch_size', 20),
-            train_loss=self.model.train_loss if hasattr(self.model, 'train_loss') else [],
-            m_params=model_params,
-            d_params=dataset_params,
-        )
-        
-        write_m(train_output, self.title, self.trainer_uid)

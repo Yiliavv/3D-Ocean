@@ -1,6 +1,5 @@
 # -*- coding: utf-8 -*-
 import os
-from this import d
 import arrow
 import numpy as np
 import netCDF4 as nc
@@ -10,21 +9,6 @@ from torch.utils.data import Dataset
 
 from src.config.params import BASE_ERA5_DAILY_DATA_PATH, BASE_ERA5_MONTHLY_DATA_PATH
 from src.utils.util import resource_era5_monthly_sst_data
-
-cache = {}
-
-months = np.array([31, 28, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
-months_leap = np.array([31, 29, 31, 30, 31, 30, 31, 31, 30, 31, 30, 31])
-
-def hit(year: int):
-    if year in cache:
-        return cache[year]
-    
-    return None
-
-def refresh(year: int, sst: np.ndarray):
-    cache[year] = sst
-    # Log.d(f"已缓存: {cache.keys()}")
 
 # ERA5 海表数据集
 class ERA5SSTDataset(Dataset):
@@ -36,9 +20,10 @@ class ERA5SSTDataset(Dataset):
     :arg  offset: 时间偏移 (该偏移值是数据批次的偏移，即已经除以了时间步长的值)
     :arg  lon: 经度范围
     :arg  lat: 纬度范围
+    :arg  resolution: 空间分辨率（度）
     """
 
-    def __init__(self, width=10, step=10, offset=0, lon=None, lat=None, *args):
+    def __init__(self, width=10, step=10, offset=0, lon=None, lat=None, resolution=1, *args):
         super().__init__(*args)
                     
         if lat is None:
@@ -51,41 +36,49 @@ class ERA5SSTDataset(Dataset):
         self.offset = offset
         self.lon = np.array(lon)
         self.lat = np.array(lat)
+        self.resolution = resolution
         
         self.cur = 0
-        self.precision =  1
         # 数据集中包含的时间范围
         self.s_time = arrow.get('2004-01-01')
         self.e_time = arrow.get('2024-12-31')
+        
+        # 实例级缓存
+        self._cache = {}
     
-    """
-    读取单个时间点的数据，用于从数据文件中读取数据
-    能够跨文件处理
-    """
     def __read_item__(self, time: arrow.Arrow):
+        """
+        读取单个时间点的数据，用于从数据文件中读取数据
+        能够跨文件处理
+        """
         year = time.year
         
         # 计算文件内偏移
         s_time = arrow.get(year, 1, 1)
         offset = (time - s_time).days
         
-        sst = hit(year)
-        
-        if sst is None:            
+        # 使用实例缓存
+        if year in self._cache:
+            sst = self._cache[year]
+        else:            
             # 读文件
-            sst, time = self.__read_sst__(year)
+            sst, _ = self.__read_sst__(year)
             
-            # 刷新缓存
-            refresh(year, sst)
+            # 刷新缓存（限制缓存大小为3年，防止内存溢出）
+            if len(self._cache) >= 3:
+                # 删除最早的缓存
+                oldest_year = min(self._cache.keys())
+                del self._cache[oldest_year]
+            
+            self._cache[year] = sst
             
         # 经纬度反向
         sst = np.flip(sst, axis=1)
         
-        # 经纬度坐标系转换到索引坐标系
-        space = 1 / self.precision
-        
-        lon_indices = (np.arange(self.lon[0], self.lon[1], space) % 360) * 4
-        lat_indices = (np.arange(self.lat[0], self.lat[1], space) + 90) * 4
+        # 经纬度坐标转换为数组索引
+        # ERA5: 0.25°分辨率，全球范围 [-180, 180] × [-90, 90]
+        lon_indices = (np.arange(self.lon[0], self.lon[1], self.resolution)) * 4
+        lat_indices = (np.arange(self.lat[0], self.lat[1], self.resolution) + 90) * 4
         
         lon_indices = lon_indices.astype(np.int32)
         lat_indices = lat_indices.astype(np.int32)
@@ -94,19 +87,28 @@ class ERA5SSTDataset(Dataset):
             
         return sst[offset, lat_grid, lon_grid]
     
-    """
-    读取文件中的温度和时间数据
-    """
     def __read_sst__(self, year: int):
+        """
+        读取文件中的温度和时间数据
+        """
         file_path = f"{BASE_ERA5_DAILY_DATA_PATH}/{year}-dailymean.nc"
         
-        nc_file = nc.Dataset(file_path, 'r', format='NETCDF4')
-        variables = nc_file.variables
+        # 检查文件是否存在
+        if not os.path.exists(file_path):
+            raise FileNotFoundError(f"数据文件不存在: {file_path}")
+        
+        try:
+            nc_file = nc.Dataset(file_path, 'r', format='NETCDF4')
+            variables = nc_file.variables
 
-        sst = variables['sst'][:]
-        time = variables['valid_time'][:]
+            sst = variables['sst'][:]
+            time = variables['valid_time'][:]
+            
+            nc_file.close()
 
-        return sst, time
+            return sst, time
+        except Exception as e:
+            raise IOError(f"读取文件 {file_path} 时出错: {str(e)}")
 
     def __len__(self):
         day_len = (self.e_time - self.s_time).days
@@ -138,7 +140,9 @@ class ERA5SSTDataset(Dataset):
         # 数据预处理
         sst_time_series = sst_time_series - 273.15
         sst_time_series[sst_time_series > 99] = np.nan
-        sst_time_series = tensor(sst_time_series.copy(), dtype=float32, requires_grad=True)
+        
+        # 数据集不需要梯度追踪
+        sst_time_series = tensor(sst_time_series.copy(), dtype=float32)
 
         fore_ = sst_time_series[:self.width - 1, ...]
         last_ = sst_time_series[-1, ...]
@@ -223,10 +227,9 @@ class ERA5SSTMonthlyDataset(Dataset):
         
         sst = sst - 273.15
         
-        space = self.resolution
-        
-        lon_indices = (np.arange(self.lon[0], self.lon[1], space) % 360) * 4
-        lat_indices = (np.arange(self.lat[0], self.lat[1], space) + 90) * 4
+        # 经纬度坐标转换为数组索引
+        lon_indices = (np.arange(self.lon[0], self.lon[1], self.resolution)) * 4
+        lat_indices = (np.arange(self.lat[0], self.lat[1], self.resolution) + 90) * 4
         
         lon_indices = lon_indices.astype(np.int32)
         lat_indices = lat_indices.astype(np.int32)
@@ -236,17 +239,33 @@ class ERA5SSTMonthlyDataset(Dataset):
         return sst[lat_grid, lon_grid]
 
     def read_ssta(self, index: int):
+        """
+        计算海表温度异常 (Sea Surface Temperature Anomaly)
+        
+        SSTA = 当前SST - 气候平均态SST
+        气候平均态是指该位置在历史时期的平均温度
+        
+        :param index: 当前时间索引
+        :return: SSTA，与SST相同的形状 [lat, lon]
+        """
         sst_list = []
 
         for i in range(index):
             sst = self.__read_sst__(i)
-            
             sst_list.append(sst)
 
-        mean_sst = np.nanmean(sst_list)
+        # 将列表转换为数组：shape = [时间, 纬度, 经度]
+        sst_array = np.array(sst_list)
+        
+        # 计算气候平均态：在时间维度(axis=0)上取平均
+        # 得到每个网格点的平均SST，shape = [纬度, 经度]
+        climatology_sst = np.nanmean(sst_array, axis=0)
+        
+        # 当前时刻的SST
         current_sst = sst_list[-1]
 
-        ssta = current_sst - mean_sst
+        # 计算异常：当前SST - 气候平均态
+        ssta = current_sst - climatology_sst
 
         return ssta
                 

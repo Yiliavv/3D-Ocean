@@ -11,6 +11,7 @@ from matplotlib import cm
 import torch
 import torch.nn as nn
 from scipy.special import lpmn, factorial
+from src.plot.sst import COLOR_MAP_ERROR
 
 class SphericalHarmonicAnalysis:
     """Sea Surface Temperature Spherical Harmonic Expansion Analysis Class"""
@@ -282,8 +283,12 @@ class SphericalHarmonicAnalysis:
         ax3.add_feature(cfeature.OCEAN, color='lightblue', alpha=0.3)
         ax3.add_feature(cfeature.LAND, color='lightgray', alpha=0.3)
         
+        # 计算误差范围，确保色标以0为中心
+        abs_max_error = max(abs(np.nanmin(error)), abs(np.nanmax(error)))
+        error_levels = np.linspace(-abs_max_error, abs_max_error, 30)
+        
         im3 = ax3.contourf(lon_grid, lat_grid, error, 
-                          levels=20, cmap='RdBu_r', 
+                          levels=error_levels, cmap=COLOR_MAP_ERROR, 
                           transform=ccrs.PlateCarree(), extend='both')
 
         ax3.gridlines(draw_labels=True, alpha=0.5, linestyle='--')
