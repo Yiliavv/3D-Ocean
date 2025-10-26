@@ -2,9 +2,11 @@ import arrow
 import torch
 import numpy as np
 import platform
+import os
 from torch import save, load
 from lightning import Trainer
 from lightning.pytorch.loggers import WandbLogger
+from lightning.pytorch.callbacks import ModelCheckpoint
 from torch.utils.data import DataLoader, Subset
 import wandb
 
@@ -15,7 +17,7 @@ from src.config.params import WANDB_PROJECT, WANDB_ENTITY
 
 class BaseTrainer:
     """
-    训练器基类 - 集成性能优化
+    训练器基类 - 集成性能优化和 Checkpoint 机制
     
     参数:
         title: str, 模型名称
@@ -23,10 +25,12 @@ class BaseTrainer:
         area: Area, 区域
         model_class: LightningModule, 模型类
         save_path: str, 保存路径
-        pre_model: LightningModule, 预训练模型
+        checkpoint_path: str, checkpoint 路径 (用于恢复训练)
         dataset_params: dict, 数据集参数
         trainer_params: dict, 训练参数
         model_params: dict, 模型参数
+        use_checkpoint: bool, 是否使用 checkpoint 机制 (默认: True)
+        use_wandb: bool, 是否使用 wandb 日志 (默认: True)
         
     dataset_params:
         seq_len: int, 序列长度
@@ -38,6 +42,11 @@ class BaseTrainer:
         batch_size: int, 批量大小
         split_ratio: list, 训练集和验证集的分割比例
         
+        # Checkpoint 参数
+        save_top_k: int, 保存最好的 k 个模型 (默认: 3)
+        monitor: str, 监控的指标 (默认: "val_loss")
+        mode: str, 监控模式 (默认: "min")
+        
         # 性能优化参数
         num_workers: int, 数据加载工作进程数 (默认: 8, 推荐CPU核心数/2)
         pin_memory: bool, 是否固定GPU内存 (默认: True)
@@ -48,6 +57,33 @@ class BaseTrainer:
         gradient_clip_val: float, 梯度裁剪值 (默认: None)
         compile_model: bool, 是否编译模型-PyTorch2.0+ (默认: False)
         compile_mode: str, 编译模式 (默认: "default")
+        
+    使用示例:
+        # 第一次训练
+        trainer = BaseTrainer(
+            title='SST_Model',
+            uid='run_001',
+            area=area,
+            model_class=YourModel,
+            dataset_class=YourDataset,
+            save_path='out/models/model.pkl',
+            trainer_params={'epochs': 100},
+            use_checkpoint=True
+        )
+        model = trainer.train()
+        
+        # 从 checkpoint 恢复并继续训练
+        trainer = BaseTrainer(
+            title='SST_Model',
+            uid='run_002',
+            area=area,
+            model_class=YourModel,
+            dataset_class=YourDataset,
+            checkpoint_path='out/checkpoints/SST_Model/last.ckpt',  # 加载 checkpoint
+            trainer_params={'epochs': 150},  # 可以修改超参数
+            use_checkpoint=True
+        )
+        model = trainer.train()
 
     """
     
@@ -58,10 +94,12 @@ class BaseTrainer:
                  model_class = None,
                  dataset_class = None,
                  save_path: str = None,
-                 pre_model: bool = False,
+                 checkpoint_path: str = None,  # 新增：checkpoint 路径
+                 pre_model: bool = False,  # 保留向后兼容
                  dataset_params: dict = {},
                  trainer_params: dict = {},
                  model_params: dict = {},
+                 use_checkpoint: bool = True,  # 新增：是否使用 checkpoint
                  use_wandb: bool = True):
         
         self.trainer_uid = uid
@@ -78,22 +116,27 @@ class BaseTrainer:
         self.trainer_params = trainer_params
         self.model_params = model_params
         
-        # 保存路径和预训练模型
+        # 保存路径和 checkpoint
         self.save_path = save_path
+        self.checkpoint_path = checkpoint_path
+        self.use_checkpoint = use_checkpoint
+        
+        # 向后兼容：支持旧的 pre_model 参数
         self.pre_model = pre_model
+        if pre_model and save_path and not checkpoint_path:
+            print("⚠️  检测到使用旧的 pre_model 参数，建议使用 checkpoint_path 参数")
+            self.model = load(self.save_path, weights_only=False)
+            self.trained = True
+        else:
+            self.model = None
+            self.trained = False
         
         # wandb 配置
         self.use_wandb = use_wandb
         self.wandb_logger = None
         
-        # 模型
-        if pre_model:
-            self.model = load(self.save_path, weights_only=False)
-            self.trained = True
-        else:
-            self.model = None
-    
-        self.trained = False
+        # checkpoint callback
+        self.checkpoint_callback = None
     
     def split(self, dataset):
         split_ratio = self.trainer_params.get('split_ratio', [0.8, 0.2])
@@ -141,6 +184,34 @@ class BaseTrainer:
         
         return train_loader, val_loader
         
+    def _create_checkpoint_callback(self):
+        """创建 checkpoint callback"""
+        if not self.use_checkpoint:
+            return None
+        
+        # checkpoint 保存目录
+        checkpoint_dir = f'out/checkpoints/{self.title}'
+        os.makedirs(checkpoint_dir, exist_ok=True)
+        
+        # 配置 checkpoint callback
+        checkpoint_callback = ModelCheckpoint(
+            dirpath=checkpoint_dir,
+            filename='{epoch}-{val_loss:.4f}',
+            monitor=self.trainer_params.get('monitor', 'val_loss'),
+            mode=self.trainer_params.get('mode', 'min'),
+            save_top_k=self.trainer_params.get('save_top_k', 3),
+            save_last=True,  # 保存最后一个 checkpoint
+            verbose=True,
+        )
+        
+        print(f"\n💾 Checkpoint 配置:")
+        print(f"  • 保存路径: {checkpoint_dir}")
+        print(f"  • 监控指标: {checkpoint_callback.monitor}")
+        print(f"  • 保存最优: Top-{checkpoint_callback.save_top_k}")
+        print(f"  • 保存最新: True\n")
+        
+        return checkpoint_callback
+    
     def train(self):
         lon = self.area.lon
         lat = self.area.lat
@@ -158,7 +229,14 @@ class BaseTrainer:
         
         train_loader, val_loader = self.split(dataset)
         
-        if not self.pre_model:
+        # 判断是否从 checkpoint 恢复
+        resume_from_checkpoint = None
+        if self.checkpoint_path and os.path.exists(self.checkpoint_path):
+            resume_from_checkpoint = self.checkpoint_path
+            print(f"\n🔄 从 checkpoint 恢复训练: {self.checkpoint_path}\n")
+        
+        if not self.pre_model and not resume_from_checkpoint:
+            # 创建新模型
             self.model = self.model_class(
                 **self.model_params
             )
@@ -171,6 +249,17 @@ class BaseTrainer:
                     self.model = torch.compile(self.model, mode=compile_mode)
                 else:
                     print("⚠️  PyTorch版本 < 2.0, 模型编译不可用")
+        elif resume_from_checkpoint:
+            # 从 checkpoint 加载时，先创建模型结构
+            self.model = self.model_class(
+                **self.model_params
+            )
+            
+            # 如果需要修改学习率等超参数，在这里处理
+            # 注意：这些修改会在 checkpoint 加载后生效
+            if 'learning_rate' in self.model_params:
+                print(f"⚙️  设置新的学习率: {self.model_params['learning_rate']}")
+                self.model.learning_rate = self.model_params['learning_rate']
         
         epochs = self.trainer_params.get('epochs', 100)
         
@@ -178,14 +267,24 @@ class BaseTrainer:
         if self.use_wandb:
             self.wandb_logger = self._init_wandb_logger()
         
+        # 创建 checkpoint callback
+        self.checkpoint_callback = self._create_checkpoint_callback()
+        
         # 优化的Trainer配置
         trainer_config = {
             'max_epochs': epochs,
             'accelerator': 'gpu',
-            'enable_checkpointing': False,
+            'enable_checkpointing': self.use_checkpoint,
             'num_sanity_val_steps': 0,
             'precision': self.trainer_params.get('precision', '16-mixed'),
         }
+        
+        # 添加 callbacks
+        callbacks = []
+        if self.checkpoint_callback:
+            callbacks.append(self.checkpoint_callback)
+        if callbacks:
+            trainer_config['callbacks'] = callbacks
         
         # 添加 wandb logger
         if self.wandb_logger:
@@ -216,7 +315,11 @@ class BaseTrainer:
         import time
         train_start = time.time()
         
-        trainer.fit(self.model, train_loader, val_loader)
+        # 从 checkpoint 恢复训练
+        if resume_from_checkpoint:
+            trainer.fit(self.model, train_loader, val_loader, ckpt_path=resume_from_checkpoint)
+        else:
+            trainer.fit(self.model, train_loader, val_loader)
         
         train_time = time.time() - train_start
         
@@ -447,6 +550,17 @@ class BaseTrainer:
         if is_windows:
             print(f"\n💻 系统: Windows (多进程数据加载已禁用)")
         
+        # Checkpoint 信息
+        if self.use_checkpoint:
+            print(f"\n💾 Checkpoint:")
+            print(f"  • 启用: True")
+            if self.checkpoint_path and os.path.exists(self.checkpoint_path):
+                print(f"  • 恢复自: {self.checkpoint_path}")
+            else:
+                print(f"  • 保存路径: out/checkpoints/{self.title}")
+                print(f"  • 监控指标: {self.trainer_params.get('monitor', 'val_loss')}")
+                print(f"  • 保存最优: Top-{self.trainer_params.get('save_top_k', 3)}")
+        
         # 数据加载优化
         print("\n📦 数据加载:")
         num_workers = self.trainer_params.get('num_workers', 0 if is_windows else 8)
@@ -551,8 +665,6 @@ class BaseTrainer:
             plot_nino(ssta, step=resolution)
             plot_sst(pred_output, self.area.lon, self.area.lat, step=resolution)
             plot_sst_diff(pred_diff, self.area.lon, self.area.lat, step=resolution)
-            # 使用增强版海表温度分析，传递二维海表温度数据
-            plot_2d_kernel_density(pred_output, self.area.lon, self.area.lat)
             
         return input, output, pred_output, rmse, r2, ssta
     

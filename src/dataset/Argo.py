@@ -79,8 +79,7 @@ class Argo3DTemperatureDataset(Dataset):
         # 将温度大于99的值替换为nan，在 Argo 数据中，9999 表示无效值
         temp[temp > 99] = np.nan
         
-        temp = self.__normalize__(temp)
-        
+        # 直接使用原始数据（保留 NaN），由模型的 custom_mse_loss 处理
         temp = np.transpose(temp, (1, 0, 2))
         temp = temp[lat_grid, lon_grid, self.depth[0]:self.depth[1]]
         
@@ -111,14 +110,6 @@ class Argo3DTemperatureDataset(Dataset):
         # 获取数据集中的数据
         return self.data[index - 1]
     
-    def __normalize__(self, x):
-        # 保存原始nan掩码
-        x_mask = np.isnan(x)
-        # 将nan值替换为0，以便模型处理
-        x_processed = np.copy(x)
-        x_processed[x_mask] = 0.0
-        
-        return x_processed
 
 
 class ArgoDepthMap():

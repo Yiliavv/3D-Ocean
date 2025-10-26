@@ -3,6 +3,7 @@ U-Net 3D 重建器 - 从海表温度重建三维温度场
 专为海洋温度场重建任务设计
 """
 
+import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
@@ -140,11 +141,15 @@ class UNet3DReconstructor(LightningModule):
         前向传播
         
         Args:
-            x: [batch, 1, height, width] 海表温度
+            x: [batch, 1, height, width] 海表温度（可能包含 NaN）
         
         Returns:
             output: [batch, depth, height, width] 三维温度场
         """
+        # 将 NaN 替换为 0 进行前向传播
+        # NaN mask 会在损失函数中处理
+        x = torch.nan_to_num(x, nan=0.0)
+        
         # 编码器
         x1 = self.inc(x)
         x2 = self.down1(x1)
@@ -274,14 +279,31 @@ class UNet3DReconstructor(LightningModule):
         
         Args:
             x: [batch, height, width] 或 [batch, 1, height, width]
+               输入的 SST，可能包含 NaN（陆地区域）
         
         Returns:
             output: numpy array [batch, height, width, depth]
+                    陆地区域（输入中为 NaN 的位置）在输出中也为 NaN
         """
         self.eval()
         with torch.no_grad():
+            # 保存原始输入以获取 NaN mask
             if not isinstance(x, torch.Tensor):
+                x_input = x
                 x = torch.from_numpy(x).float()
+            else:
+                x_input = x.cpu().numpy()
+            
+            # 获取输入的 NaN mask（陆地区域）
+            # 如果输入是 3D: [batch, height, width]
+            # 如果输入是 4D: [batch, 1, height, width]
+            if len(x_input.shape) == 3:
+                input_nan_mask = np.isnan(x_input)  # [batch, height, width]
+            else:
+                input_nan_mask = np.isnan(x_input[:, 0, :, :])  # [batch, height, width]
+            
+            # 将 NaN 替换为 0 用于模型推理
+            x = torch.nan_to_num(x, nan=0.0)
             
             if len(x.shape) == 3:
                 x = x.unsqueeze(1)
@@ -293,6 +315,13 @@ class UNet3DReconstructor(LightningModule):
             
             # 转换回 [batch, height, width, depth] 格式
             output = output.permute(0, 2, 3, 1)
+            output_np = output.cpu().numpy()
             
-            return output.cpu().numpy()
+            # 将输入中的 NaN mask 应用到输出的所有深度层
+            # output_np: [batch, height, width, depth]
+            # input_nan_mask: [batch, height, width]
+            for d in range(output_np.shape[-1]):
+                output_np[:, :, :, d][input_nan_mask] = np.nan
+            
+            return output_np
 

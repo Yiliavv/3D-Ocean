@@ -29,7 +29,9 @@ class RecursiveAttentionTransformer(LightningModule):
                  use_spherical_harmonics=True,
                  max_harmonic_degree=4,
                  attention_mode='hierarchical',
-                 norm_first=True):
+                 norm_first=True,
+                 use_conv_embedding=True,
+                 warmup_epochs=10):
         """
         Args:
             width: 海表温度图像宽度
@@ -46,6 +48,8 @@ class RecursiveAttentionTransformer(LightningModule):
             max_harmonic_degree: 球谐波最大阶数（已弃用）
             attention_mode: 注意力模式 ('true_recursive' 或 'hierarchical')
             norm_first: 是否使用Pre-LN归一化（推荐True）
+            use_conv_embedding: 是否使用卷积嵌入层（保留空间结构）
+            warmup_epochs: 学习率预热周期数
         """
         super().__init__()
         
@@ -54,6 +58,8 @@ class RecursiveAttentionTransformer(LightningModule):
         self.use_spherical_harmonics = use_spherical_harmonics
         self.attention_mode = attention_mode
         self.norm_first = norm_first
+        self.use_conv_embedding = use_conv_embedding
+        self.warmup_epochs = warmup_epochs
         
         # 训练稳定性配置
         self.gradient_clip_val = 1.0
@@ -61,11 +67,30 @@ class RecursiveAttentionTransformer(LightningModule):
         # 输入处理 - 专为海表温度任务设计
         if not (width and height):
             raise ValueError("Must specify width and height for sea surface temperature data")
-            
-        self.input_projection = nn.Linear(width * height, d_model)
+        
         self.width = width
         self.height = height
         self.seq_len = seq_len
+        
+        # 使用卷积嵌入层来保留空间局部性（类似ConvLSTM的优势）
+        if use_conv_embedding:
+            self.conv_embedding = nn.Sequential(
+                nn.Conv2d(1, 32, kernel_size=3, padding=1),
+                nn.BatchNorm2d(32),
+                nn.ReLU(),
+                nn.Conv2d(32, 64, kernel_size=3, padding=1),
+                nn.BatchNorm2d(64),
+                nn.ReLU(),
+                nn.AdaptiveAvgPool2d((16, 16))  # 降维到固定大小
+            )
+            # 卷积后的特征大小
+            conv_out_size = 64 * 16 * 16
+            self.input_projection = nn.Linear(conv_out_size, d_model)
+        else:
+            self.input_projection = nn.Linear(width * height, d_model)
+        
+        # 添加输入 BatchNorm
+        self.input_norm = nn.LayerNorm(d_model)
         
         # 时序位置编码（用于Transformer序列维度）
         if seq_len and use_spherical_harmonics:
@@ -158,14 +183,32 @@ class RecursiveAttentionTransformer(LightningModule):
         
         # 海表温度输入处理
         x_processed = self._normalize_sst(x)
-        # 重塑输入
-        if len(x.shape) == 4:  # [batch, seq_len, width, height]
-            x_reshaped = x_processed.view(batch_size, x.shape[1], -1)
-        else:  # [batch, seq_len-1, width, height]
-            x_reshaped = x_processed.view(batch_size, self.seq_len - 1, -1)
         
-        # 投影到模型维度
-        x = self.input_projection(x_reshaped)
+        # 使用卷积嵌入保留空间结构
+        if self.use_conv_embedding:
+            # x_processed: [batch, seq_len-1, height, width]
+            seq_len = x_processed.shape[1]
+            # 重塑为 [batch*seq_len, 1, height, width] 用于卷积
+            x_reshaped = x_processed.view(batch_size * seq_len, 1, self.height, self.width)
+            # 通过卷积嵌入
+            x_conv = self.conv_embedding(x_reshaped)  # [batch*seq_len, 64, 16, 16]
+            # 展平卷积特征
+            x_conv_flat = x_conv.view(batch_size * seq_len, -1)  # [batch*seq_len, 64*16*16]
+            # 投影到模型维度
+            x = self.input_projection(x_conv_flat)  # [batch*seq_len, d_model]
+            # 重塑回序列格式
+            x = x.view(batch_size, seq_len, self.d_model)  # [batch, seq_len, d_model]
+        else:
+            # 原始线性投影方式
+            if len(x.shape) == 4:  # [batch, seq_len, width, height]
+                x_reshaped = x_processed.view(batch_size, x.shape[1], -1)
+            else:  # [batch, seq_len-1, width, height]
+                x_reshaped = x_processed.view(batch_size, self.seq_len - 1, -1)
+            # 投影到模型维度
+            x = self.input_projection(x_reshaped)
+        
+        # 输入归一化
+        x = self.input_norm(x)
         
         # 位置编码
         if hasattr(self, 'pos_encoding'):
@@ -280,20 +323,27 @@ class RecursiveAttentionTransformer(LightningModule):
         return val_loss
     
     def configure_optimizers(self):
-        # 简化的优化器配置，专注于稳定训练
+        # 改进的优化器配置，借鉴ConvLSTM的稳定性
+        # 使用更小的学习率和更大的权重衰减
         optimizer = optim.AdamW(
             self.parameters(),
             lr=self.learning_rate,
-            weight_decay=0.01,
+            weight_decay=0.05,  # 增加正则化
             betas=(0.9, 0.999),
             eps=1e-8
         )
         
-        # 使用余弦退火学习率调度器
-        scheduler = optim.lr_scheduler.CosineAnnealingLR(
-            optimizer, 
-            T_max=100
-        )
+        # 使用带预热的余弦退火学习率调度器
+        def lr_lambda(epoch):
+            if epoch < self.warmup_epochs:
+                # 预热阶段：线性增加学习率
+                return (epoch + 1) / self.warmup_epochs
+            else:
+                # 余弦退火阶段
+                progress = (epoch - self.warmup_epochs) / (200 - self.warmup_epochs)
+                return 0.5 * (1 + math.cos(math.pi * progress))
+        
+        scheduler = optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
         
         return {
             "optimizer": optimizer,

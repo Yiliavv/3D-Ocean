@@ -1,5 +1,6 @@
 # 绘制三维海洋图
-from numpy import linspace, meshgrid, transpose, nanmin, nanmax, arange
+from numpy import linspace, meshgrid, transpose, nanmin, nanmax, arange, ma
+import numpy as np
 
 from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
@@ -7,31 +8,29 @@ from matplotlib.colors import LinearSegmentedColormap
 from src.utils.log import Log
 from src.plot.base import create_3d_ax, create_shared_3d_axes, create_ax
 from src.plot.sst import _range
+from src.utils.depth_interpolator import DepthInterpolator
 
-# 创建3维温度场误差的自定义色标：蓝色（负误差）-> 浅绿色（零误差）-> 红色（正误差）
-# 与海表温度误差色标有所区别，使用蓝-绿-红的连续过渡
+# 创建3维温度场误差的自定义色标：深蓝（负误差）-> 浅白（零误差）-> 深红（正误差）
+# 使用与2D海表温度误差图相同的配色方案，保持视觉一致性
 def create_3d_error_colormap():
     """
     创建用于3维温度场误差可视化的自定义色标
+    与2D海表温度误差图使用相同的配色方案
     - 负误差：深蓝 -> 浅蓝
-    - 零误差：明显的绿色
-    - 正误差：黄 -> 橙 -> 深红
-    配色连续过渡，适合3D可视化
+    - 零误差：浅白色
+    - 正误差：浅红 -> 深红
+    颜色配置和谐，不会过于鲜艳
     """
     colors = [
-        '#313695',  # 深蓝（大负误差）
-        '#4575b4',  # 中蓝
-        '#74add1',  # 浅蓝
-        '#abd9e9',  # 极浅蓝
-        '#d1e5f0',  # 浅青蓝
-        '#c7e9c0',  # 浅绿色（接近零）
-        '#74c476',  # 明绿色（零误差）- 更明显
-        '#41ab5d',  # 深绿色（接近零）
-        '#fee08b',  # 浅黄
-        '#fdae61',  # 浅橙
-        '#f46d43',  # 橙色
-        '#d73027',  # 橙红
-        '#a50026',  # 深红（大正误差）
+        '#2166ac',  # 深蓝（大负误差）
+        '#4393c3',  # 中蓝
+        '#92c5de',  # 浅蓝
+        '#d1e5f0',  # 极浅蓝
+        '#f7f7f7',  # 浅白色（零误差）
+        '#fddbc7',  # 极浅红
+        '#f4a582',  # 浅红
+        '#d6604d',  # 中红
+        '#b2182b',  # 深红（大正误差）
     ]
     n_bins = 256
     cmap = LinearSegmentedColormap.from_list('3d_error_cmap', colors, N=n_bins)
@@ -39,41 +38,98 @@ def create_3d_error_colormap():
 
 COLOR_MAP_3D_ERROR = create_3d_error_colormap()
 
-def plot_3d_temperature(temp, lon, lat, depth, step=1, cmap=None, label='temperature [°C]'):
+def plot_3d_temperature(temp, lon, lat, depth, step=1, cmap=None, label='temperature [°C]',
+                        interpolate=False, interp_interval=5.0, interp_method='pchip'):
     """
     绘制三维海温分布图
     
     :param temp: 三维温度数据,形状为 (lon, lat, depth)
     :param lon: 经度范围 [起始经度, 结束经度]
     :param lat: 纬度范围 [起始纬度, 结束纬度] 
-    :param depth: 深度列表
+    :param depth: 深度列表或深度层数
+    :param step: 网格步长
     :param cmap: 色标（可选）
     :param label: 色标标签
+    :param interpolate: 是否进行深度插值（默认False）
+    :param interp_interval: 插值间隔（米），默认5米
+    :param interp_method: 插值方法 'linear', 'pchip', 'cubic'
     :return: 返回3D图像对象
     """
+    # 处理插值
+    if interpolate:
+        if isinstance(depth, int):
+            depth_indices = depth
+        elif isinstance(depth, list):
+            depth_indices = len(depth)
+        else:
+            depth_indices = len(depth)
+        
+        interpolator = DepthInterpolator(
+            depth_indices=depth_indices,
+            target_interval=interp_interval,
+            method=interp_method
+        )
+        
+        # DepthInterpolator 期望格式: (depth, height, width) = (depth, lat, lon)
+        # 当前格式: (lon, lat, depth)
+        # 需要转置: (lon, lat, depth) -> (depth, lat, lon)
+        temp_for_interp = np.transpose(temp, (2, 1, 0))
+        
+        # 对温度数据插值
+        temp_interpolated = interpolator.interpolate(temp_for_interp)
+        
+        # 插值后格式: (depth_new, lat, lon)
+        # 转换回: (lon, lat, depth_new)
+        temp = np.transpose(temp_interpolated, (2, 1, 0))
+        
+        depth = interpolator.get_target_depths()
+        
+        Log.i(f"已应用深度插值: {len(depth)} 层，间隔 {interp_interval}m")
+    
     ax = create_3d_ax()
     
     # 生成网格点
-    lon_grid, lat_grid = meshgrid(_range(lat, step), _range(lon, step))
+    # meshgrid 第一个参数对应 X 轴（经度），第二个参数对应 Y 轴（纬度）
+    lon_grid, lat_grid = meshgrid(_range(lon, step), _range(lat, step))
     
     # 计算色标范围
     vmin = nanmin(temp)
     vmax = nanmax(temp)
     
+    # 检查是否所有值都是 NaN
+    if np.isnan(vmin) or np.isnan(vmax):
+        Log.w("警告：温度数据全部为 NaN，无法绘制")
+        return None
+    
     # 绘制每一层的等温面
-    for i, d in enumerate(depth):        
-        temp_layer = transpose(temp[:, :, i], (1, 0))
+    for i, d in enumerate(depth):
+        # temp 的形状是 (lon, lat, depth) = (180, 80, depth)
+        # temp[:, :, i] 是 (lon, lat) = (180, 80)
+        # meshgrid 产生的网格是 (n_lat, n_lon) = (80, 180)
+        # 需要转置数据为 (lat, lon) 以匹配网格形状
+        temp_layer = temp[:, :, i].T  # 转置: (180, 80) -> (80, 180)
+        
+        # 使用 masked array 来处理 NaN 值（陆地区域）
+        temp_layer_masked = ma.masked_invalid(temp_layer)
+        
+        # 检查当前层是否有有效数据
+        if temp_layer_masked.count() == 0:
+            # 如果当前层全是 masked/NaN，跳过绘制
+            continue
         
         kw = {'zdir': 'z', 'offset': -d, 'vmin': vmin, 'vmax': vmax}
         if cmap is not None:
             kw['cmap'] = cmap
             
-        _ = ax.contourf(lon_grid, lat_grid, temp_layer, **kw)
+        _ = ax.contourf(lon_grid, lat_grid, temp_layer_masked, **kw)
     
-    # 设置坐标轴范围
-    # ax.set_xlim(lon)
-    # ax.set_ylim(lat)
+    # 设置坐标轴范围，确保与数据范围一致
+    ax.set_xlim(lon[0], lon[1])
+    ax.set_ylim(lat[0], lat[1])
     ax.set_zlim(-max(depth), -min(depth))
+    ax.set_xlabel('Longitude (°E)', fontsize=10)
+    ax.set_ylabel('Latitude (°N)', fontsize=10)
+    ax.set_zlabel('Depth (m)', fontsize=10)
     
     # 添加色标
     plt.colorbar(_, ax=ax,
@@ -85,45 +141,106 @@ def plot_3d_temperature(temp, lon, lat, depth, step=1, cmap=None, label='tempera
     return ax
 
 def plot_3d_temperature_error(temp_error, lon, lat, depth, step=1, 
-                               filename='3d_temp_error.png', title='3D Temperature Error'):
+                               filename='3d_temp_error.png', title='3D Temperature Error',
+                               interpolate=False, interp_interval=5.0, interp_method='pchip'):
     """
     绘制三维温度场误差分布图
     
     :param temp_error: 三维温度误差数据,形状为 (lon, lat, depth)
     :param lon: 经度范围 [起始经度, 结束经度]
     :param lat: 纬度范围 [起始纬度, 结束纬度]
-    :param depth: 深度列表
+    :param depth: 深度列表或深度层数
     :param step: 网格步长
     :param filename: 保存文件名
     :param title: 图表标题
+    :param interpolate: 是否进行深度插值（默认False）
+    :param interp_interval: 插值间隔（米），默认5米
+    :param interp_method: 插值方法 'linear', 'pchip', 'cubic'
     :return: 返回3D图像对象
     """
     from src.config.params import ERROR_SAVE_PATH
     
+    # 处理插值
+    if interpolate:
+        if isinstance(depth, int):
+            depth_indices = depth
+        elif isinstance(depth, list):
+            depth_indices = len(depth)
+        else:
+            depth_indices = len(depth)
+        
+        interpolator = DepthInterpolator(
+            depth_indices=depth_indices,
+            target_interval=interp_interval,
+            method=interp_method
+        )
+        
+        # DepthInterpolator 期望格式: (depth, height, width) = (depth, lat, lon)
+        # 当前格式: (lon, lat, depth)
+        # 需要转置: (lon, lat, depth) -> (depth, lat, lon)
+        temp_error_for_interp = np.transpose(temp_error, (2, 1, 0))
+        
+        # 对误差数据插值
+        temp_error_interpolated = interpolator.interpolate(temp_error_for_interp)
+        
+        # 插值后格式: (depth_new, lat, lon)
+        # 转换回: (lon, lat, depth_new)
+        temp_error = np.transpose(temp_error_interpolated, (2, 1, 0))
+        
+        depth = interpolator.get_target_depths()
+        
+        Log.i(f"已应用深度插值: {len(depth)} 层，间隔 {interp_interval}m")
+    
     ax = create_3d_ax()
     
     # 生成网格点
-    lon_grid, lat_grid = meshgrid(_range(lat, step), _range(lon, step))
+    # meshgrid 第一个参数对应 X 轴（经度），第二个参数对应 Y 轴（纬度）
+    lon_grid, lat_grid = meshgrid(_range(lon, step), _range(lat, step))
     
     # 计算误差范围，确保色标以0为中心，使用对称的范围
-    abs_max_error = max(abs(nanmin(temp_error)), abs(nanmax(temp_error)))
+    # 使用 nanmin 和 nanmax 忽略 NaN 值
+    temp_min = nanmin(temp_error)
+    temp_max = nanmax(temp_error)
+    
+    # 检查是否所有值都是 NaN
+    if np.isnan(temp_min) or np.isnan(temp_max):
+        Log.w("警告：温度误差数据全部为 NaN，无法绘制")
+        return None
+    
+    abs_max_error = max(abs(temp_min), abs(temp_max))
     vmin = -abs_max_error
     vmax = abs_max_error
     
     # 绘制每一层的误差等值面
     for i, d in enumerate(depth):
-        error_layer = transpose(temp_error[:, :, i], (1, 0))
+        # temp_error 的形状是 (lon, lat, depth) = (180, 80, depth)
+        # temp_error[:, :, i] 是 (lon, lat) = (180, 80)
+        # meshgrid(_range(lon, step), _range(lat, step)) 产生:
+        # lon_grid: (n_lat, n_lon) = (80, 180), lat_grid: (n_lat, n_lon) = (80, 180)
+        # 需要转置数据为 (lat, lon) 以匹配网格形状
+        error_layer = temp_error[:, :, i].T  # 转置: (180, 80) -> (80, 180)
         
-        _ = ax.contourf(lon_grid, lat_grid, error_layer,
+        # 使用 masked array 来处理 NaN 值（陆地区域）
+        # 这样 matplotlib 可以正确处理 NaN 值，在陆地区域不绘制
+        error_layer_masked = ma.masked_invalid(error_layer)
+        
+        # 检查当前层是否有有效数据
+        if error_layer_masked.count() == 0:
+            # 如果当前层全是 masked/NaN，跳过绘制
+            continue
+        
+        _ = ax.contourf(lon_grid, lat_grid, error_layer_masked,
                        zdir='z', offset=-d,
                        vmin=vmin, vmax=vmax,
                        cmap=COLOR_MAP_3D_ERROR,
                        levels=linspace(vmin, vmax, 30))
     
-    # 设置坐标轴
+    # 设置坐标轴范围，确保与数据范围一致
+    ax.set_xlim(lon[0], lon[1])
+    ax.set_ylim(lat[0], lat[1])
     ax.set_zlim(-max(depth), -min(depth))
-    ax.set_xlabel('Latitude (°N)', fontsize=10)
-    ax.set_ylabel('Longitude (°E)', fontsize=10)
+    ax.set_xlabel('Longitude (°E)', fontsize=10)
+    ax.set_ylabel('Latitude (°N)', fontsize=10)
     ax.set_zlabel('Depth (m)', fontsize=10)
     
     # 添加色标
