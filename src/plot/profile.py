@@ -136,9 +136,12 @@ def plot_3d_temperature(temp, lon, lat, depth, step=1, cmap=None, label='tempera
     ax.set_xlim(lon[0], lon[1])
     ax.set_ylim(lat[0], lat[1])
     ax.set_zlim(-max(depth), -min(depth))
-    ax.set_xlabel('Longitude (°E)', fontsize=10)
-    ax.set_ylabel('Latitude (°N)', fontsize=10)
-    ax.set_zlabel('Depth (m)', fontsize=10)
+    ax.set_xlabel('Longitude (°E)', fontsize=8)
+    ax.set_ylabel('Latitude (°N)', fontsize=8)
+    ax.set_zlabel('Depth (m)', fontsize=8)
+    
+    # 设置坐标轴刻度标签字体大小
+    ax.tick_params(axis='both', labelsize=7)
     
     # 添加色标
     plt.colorbar(_, ax=ax,
@@ -255,9 +258,12 @@ def plot_3d_temperature_error(temp_error, lon, lat, depth, step=1,
     ax.set_xlim(lon[0], lon[1])
     ax.set_ylim(lat[0], lat[1])
     ax.set_zlim(-max(depth), -min(depth))
-    ax.set_xlabel('Longitude (°E)', fontsize=10)
-    ax.set_ylabel('Latitude (°N)', fontsize=10)
-    ax.set_zlabel('Depth (m)', fontsize=10)
+    ax.set_xlabel('Longitude (°E)', fontsize=8)
+    ax.set_ylabel('Latitude (°N)', fontsize=8)
+    ax.set_zlabel('Depth (m)', fontsize=8)
+    
+    # 设置坐标轴刻度标签字体大小
+    ax.tick_params(axis='both', labelsize=7)
     
     # 添加色标
     cbar = plt.colorbar(_, ax=ax,
@@ -267,7 +273,7 @@ def plot_3d_temperature_error(temp_error, lon, lat, depth, step=1,
                         label='Temperature Error (°C)')
     
     # 设置标题
-    ax.set_title(title, fontsize=14, fontweight='bold', pad=20)
+    ax.set_title(title, fontsize=12, fontweight='bold', pad=20)
     
     # 保存图像
     plt.savefig(f'{ERROR_SAVE_PATH}/{filename}', dpi=300, bbox_inches='tight')
