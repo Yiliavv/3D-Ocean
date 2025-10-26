@@ -55,6 +55,8 @@ def plot_3d_temperature(temp, lon, lat, depth, step=1, cmap=None, label='tempera
     :param interp_method: 插值方法 'linear', 'pchip', 'cubic'
     :return: 返回3D图像对象
     """
+    # 记录原始数据形状用于调试
+    
     # 处理插值
     if interpolate:
         if isinstance(depth, int):
@@ -74,13 +76,16 @@ def plot_3d_temperature(temp, lon, lat, depth, step=1, cmap=None, label='tempera
         # 当前格式: (lon, lat, depth)
         # 需要转置: (lon, lat, depth) -> (depth, lat, lon)
         temp_for_interp = np.transpose(temp, (2, 1, 0))
+
         
         # 对温度数据插值
         temp_interpolated = interpolator.interpolate(temp_for_interp)
+        Log.d(f"插值后数据形状: {temp_interpolated.shape}")
         
         # 插值后格式: (depth_new, lat, lon)
         # 转换回: (lon, lat, depth_new)
         temp = np.transpose(temp_interpolated, (2, 1, 0))
+        Log.d(f"转置回后数据形状: {temp.shape}")
         
         depth = interpolator.get_target_depths()
         
@@ -107,7 +112,11 @@ def plot_3d_temperature(temp, lon, lat, depth, step=1, cmap=None, label='tempera
         # temp[:, :, i] 是 (lon, lat) = (180, 80)
         # meshgrid 产生的网格是 (n_lat, n_lon) = (80, 180)
         # 需要转置数据为 (lat, lon) 以匹配网格形状
-        temp_layer = temp[:, :, i].T  # 转置: (180, 80) -> (80, 180)
+        temp_layer = temp[:, :, i]
+
+        # 确保数据形状与网格匹配
+        if temp_layer.shape != lon_grid.shape:
+            temp_layer = temp_layer.T
         
         # 使用 masked array 来处理 NaN 值（陆地区域）
         temp_layer_masked = ma.masked_invalid(temp_layer)
@@ -159,6 +168,9 @@ def plot_3d_temperature_error(temp_error, lon, lat, depth, step=1,
     :return: 返回3D图像对象
     """
     from src.config.params import ERROR_SAVE_PATH
+    
+    # 记录原始数据形状用于调试
+    Log.d(f"输入误差数据形状: {temp_error.shape}")
     
     # 处理插值
     if interpolate:
@@ -218,7 +230,11 @@ def plot_3d_temperature_error(temp_error, lon, lat, depth, step=1,
         # meshgrid(_range(lon, step), _range(lat, step)) 产生:
         # lon_grid: (n_lat, n_lon) = (80, 180), lat_grid: (n_lat, n_lon) = (80, 180)
         # 需要转置数据为 (lat, lon) 以匹配网格形状
-        error_layer = temp_error[:, :, i].T  # 转置: (180, 80) -> (80, 180)
+        error_layer = temp_error[:, :, i]
+        
+        # 确保数据形状与网格匹配
+        if error_layer.shape != lon_grid.shape:
+            error_layer = error_layer.T
         
         # 使用 masked array 来处理 NaN 值（陆地区域）
         # 这样 matplotlib 可以正确处理 NaN 值，在陆地区域不绘制
