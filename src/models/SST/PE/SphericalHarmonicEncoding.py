@@ -151,8 +151,8 @@ class SpatialSphericalHarmonicEncoding(nn.Module):
         self.num_harmonics = (max_degree + 1) ** 2
         
         # 生成空间网格
-        self.lats = torch.arange(lat_range[0], lat_range[1] + resolution, resolution)
-        self.lons = torch.arange(lon_range[0], lon_range[1] + resolution, resolution)
+        self.lats = torch.arange(lat_range[0], lat_range[1], resolution)
+        self.lons = torch.arange(lon_range[0], lon_range[1], resolution)
         self.height = len(self.lats)
         self.width = len(self.lons)
         
@@ -160,18 +160,24 @@ class SpatialSphericalHarmonicEncoding(nn.Module):
         self._precompute_harmonics()
         
         # 球谐波特征投影网络
+        # 将参数量限制为 d_model 的 1/4
+        reduced_dim = d_model // 4
         self.harmonic_projection = nn.Sequential(
-            nn.Linear(self.num_harmonics, d_model // 2),
-            nn.LayerNorm(d_model // 2),
+            nn.Linear(self.num_harmonics, reduced_dim),
+            nn.LayerNorm(reduced_dim),
             nn.GELU(),
-            nn.Linear(d_model // 2, d_model),
+            nn.Linear(reduced_dim, d_model),
             nn.LayerNorm(d_model)
         )
         
         # 可学习的空间偏置（每个位置独立）
+        # 使用 reduced_dim 以减少参数量
         self.spatial_bias = nn.Parameter(
-            torch.zeros(self.height, self.width, d_model) * 0.01
+            torch.zeros(self.height, self.width, reduced_dim) * 0.01
         )
+        
+        # 将 spatial_bias 投影到 d_model 维度
+        self.bias_projection = nn.Linear(reduced_dim, d_model)
         
         self._init_weights()
     
@@ -179,7 +185,8 @@ class SpatialSphericalHarmonicEncoding(nn.Module):
         """初始化权重"""
         for module in self.modules():
             if isinstance(module, nn.Linear):
-                nn.init.xavier_uniform_(module.weight, gain=0.5)
+                # 使用较小的gain，避免编码数值过大导致训练不稳定
+                nn.init.xavier_uniform_(module.weight, gain=0.1)
                 if module.bias is not None:
                     nn.init.constant_(module.bias, 0)
     
@@ -222,71 +229,8 @@ class SpatialSphericalHarmonicEncoding(nn.Module):
         # 投影球谐波特征到模型维度
         projected = self.harmonic_projection(self.harmonics)  # [height, width, d_model]
         
-        # 添加可学习的空间偏置
-        encoding = projected + self.spatial_bias
+        # 投影空间偏置到 d_model 维度并添加
+        bias_projected = self.bias_projection(self.spatial_bias)  # [height, width, d_model]
+        encoding = projected + bias_projected
         
         return encoding
-
-
-class TemporalPositionalEncoding(nn.Module):
-    """
-    时序位置编码（用于 Transformer 的序列维度）
-    
-    使用正弦-余弦位置编码，提供时间序列的顺序信息
-    """
-    def __init__(self, seq_len, d_model, dropout=0.1):
-        super().__init__()
-        self.seq_len = seq_len
-        self.d_model = d_model
-        self.dropout = nn.Dropout(dropout)
-        
-        # 创建位置编码矩阵
-        pe = torch.zeros(seq_len, d_model)
-        position = torch.arange(0, seq_len).unsqueeze(1).float()
-        
-        div_term = torch.exp(
-            torch.arange(0, d_model, 2).float() * -(math.log(10000.0) / d_model)
-        )
-        
-        pe[:, 0::2] = torch.sin(position * div_term)
-        pe[:, 1::2] = torch.cos(position * div_term)
-        
-        # 注册为 buffer
-        self.register_buffer('pe', pe)
-    
-    def forward(self, x=None):
-        """
-        Args:
-            x: 可选，[batch, seq_len, d_model]
-               如果提供，返回 x + pe；否则只返回 pe
-        
-        Returns:
-            [1, seq_len, d_model] 或 [batch, seq_len, d_model]
-        """
-        if x is None:
-            return self.pe.unsqueeze(0)  # [1, seq_len, d_model]
-        else:
-            return x + self.pe[:x.size(1), :]
-
-
-class SphericalHarmonicEncoding(nn.Module):
-    """
-    球谐波位置编码（兼容接口）
-    
-    保持与旧代码的兼容性，实际使用时序位置编码
-    如果需要空间球谐波编码，请使用 SpatialSphericalHarmonicEncoding
-    """
-    def __init__(self, seq_len, d_model, max_degree=4, hidden_dim=64):
-        super().__init__()
-        self.seq_len = seq_len
-        self.d_model = d_model
-        
-        # 使用标准时序位置编码
-        self.temporal_encoding = TemporalPositionalEncoding(seq_len, d_model)
-        
-    def forward(self, positions=None):
-        """
-        Returns:
-            [1, seq_len, d_model] 时序位置编码
-        """
-        return self.temporal_encoding()

@@ -3,17 +3,16 @@ import torch
 import numpy as np
 import platform
 import os
-from torch import save, load
+import tempfile
 from lightning import Trainer
-from lightning.pytorch.loggers import WandbLogger
 from lightning.pytorch.callbacks import ModelCheckpoint
 from torch.utils.data import DataLoader, Subset
-import wandb
+from typing import List, Optional
 
-from src.plot.sst import plot_sst, plot_sst_diff, plot_2d_kernel_density, plot_nino
+from src.plot.sst import plot_sst, plot_sst_diff, plot_nino
 
 from src.config.area import Area
-from src.config.params import WANDB_PROJECT, WANDB_ENTITY
+from src.trainer.plugins import PluginManager, WandbPlugin, BasePlugin
 
 class BaseTrainer:
     """
@@ -24,7 +23,6 @@ class BaseTrainer:
         uid: str, 训练器唯一标识
         area: Area, 区域
         model_class: LightningModule, 模型类
-        save_path: str, 保存路径
         checkpoint_path: str, checkpoint 路径 (用于恢复训练)
         dataset_params: dict, 数据集参数
         trainer_params: dict, 训练参数
@@ -66,7 +64,6 @@ class BaseTrainer:
             area=area,
             model_class=YourModel,
             dataset_class=YourDataset,
-            save_path='out/models/model.pkl',
             trainer_params={'epochs': 100},
             use_checkpoint=True
         )
@@ -79,7 +76,7 @@ class BaseTrainer:
             area=area,
             model_class=YourModel,
             dataset_class=YourDataset,
-            checkpoint_path='out/checkpoints/SST_Model/last.ckpt',  # 加载 checkpoint
+            checkpoint_path=f'{PROJECT_PATH}/out/checkpoints/SST_Model/last.ckpt',  # 加载 checkpoint（使用PROJECT_PATH）
             trainer_params={'epochs': 150},  # 可以修改超参数
             use_checkpoint=True
         )
@@ -93,14 +90,13 @@ class BaseTrainer:
                  area: Area,
                  model_class = None,
                  dataset_class = None,
-                 save_path: str = None,
-                 checkpoint_path: str = None,  # 新增：checkpoint 路径
-                 pre_model: bool = False,  # 保留向后兼容
+                 checkpoint_path: str = None,  # checkpoint 路径
                  dataset_params: dict = {},
                  trainer_params: dict = {},
                  model_params: dict = {},
-                 use_checkpoint: bool = True,  # 新增：是否使用 checkpoint
-                 use_wandb: bool = True):
+                 use_checkpoint: bool = True,  # 是否使用 checkpoint
+                 use_wandb: bool = False,  # 是否使用 wandb（向后兼容，将自动注册 WandbPlugin）
+                 plugins: Optional[List[BasePlugin]] = None):  # 自定义插件列表
         
         self.trainer_uid = uid
 
@@ -116,30 +112,31 @@ class BaseTrainer:
         self.trainer_params = trainer_params
         self.model_params = model_params
         
-        # 保存路径和 checkpoint
-        self.save_path = save_path
+        # Checkpoint配置
         self.checkpoint_path = checkpoint_path
         self.use_checkpoint = use_checkpoint
         
-        # 向后兼容：支持旧的 pre_model 参数
-        self.pre_model = pre_model
-        if pre_model and save_path and not checkpoint_path:
-            print("⚠️  检测到使用旧的 pre_model 参数，建议使用 checkpoint_path 参数")
-            self.model = load(self.save_path, weights_only=False)
-            self.trained = True
-        else:
-            self.model = None
-            self.trained = False
+        # 模型状态
+        self.model = None
+        self.trained = False
         
-        # wandb 配置
-        self.use_wandb = use_wandb
-        self.wandb_logger = None
+        # 插件系统
+        self.plugin_manager = PluginManager()
+        
+        # 向后兼容：如果 use_wandb=True，自动注册 WandbPlugin
+        if use_wandb:
+            wandb_plugin = WandbPlugin(enabled=True)
+            self.plugin_manager.register(wandb_plugin)
+        
+        # 注册用户自定义插件
+        if plugins:
+            self.plugin_manager.register_all(plugins)
         
         # checkpoint callback
         self.checkpoint_callback = None
     
     def split(self, dataset):
-        split_ratio = self.trainer_params.get('split_ratio', [0.8, 0.2])
+        split_ratio = self.trainer_params.get('split_ratio', [0.9, 0.1])
         batch_size = self.trainer_params.get('batch_size', 20)
         
         # 计算训练集大小（按时间顺序有序分割）
@@ -184,13 +181,50 @@ class BaseTrainer:
         
         return train_loader, val_loader
         
+    @staticmethod
+    def find_latest_checkpoint(title: str) -> str:
+        """
+        查找指定模型的最新 checkpoint
+        
+        Args:
+            title: 模型名称
+            
+        Returns:
+            checkpoint_path: 最新的 checkpoint 路径，如果不存在则返回 None
+        """
+        from src.config.params import PROJECT_PATH
+        checkpoint_dir = f'{PROJECT_PATH}/out/checkpoints/{title}'
+        
+        if not os.path.exists(checkpoint_dir):
+            return None
+        
+        # 查找 last.ckpt（总是最新的）
+        last_ckpt = os.path.join(checkpoint_dir, 'last.ckpt')
+        if os.path.exists(last_ckpt):
+            return last_ckpt
+        
+        # 如果没有 last.ckpt，查找最新的 epoch checkpoint
+        ckpt_files = []
+        for f in os.listdir(checkpoint_dir):
+            if f.endswith('.ckpt'):
+                ckpt_path = os.path.join(checkpoint_dir, f)
+                ckpt_files.append((os.path.getmtime(ckpt_path), ckpt_path))
+        
+        if ckpt_files:
+            # 按修改时间排序，返回最新的
+            ckpt_files.sort(reverse=True)
+            return ckpt_files[0][1]
+        
+        return None
+    
     def _create_checkpoint_callback(self):
         """创建 checkpoint callback"""
         if not self.use_checkpoint:
             return None
         
-        # checkpoint 保存目录
-        checkpoint_dir = f'out/checkpoints/{self.title}'
+        # checkpoint 保存目录（使用项目根目录的绝对路径）
+        from src.config.params import PROJECT_PATH
+        checkpoint_dir = f'{PROJECT_PATH}/out/checkpoints/{self.title}'
         os.makedirs(checkpoint_dir, exist_ok=True)
         
         # 配置 checkpoint callback
@@ -200,15 +234,23 @@ class BaseTrainer:
             monitor=self.trainer_params.get('monitor', 'val_loss'),
             mode=self.trainer_params.get('mode', 'min'),
             save_top_k=self.trainer_params.get('save_top_k', 3),
-            save_last=True,  # 保存最后一个 checkpoint
-            verbose=True,
+            save_last=True,  # 保存最后一个 checkpoint (last.ckpt)
+            verbose=False,  # 关闭保存时的详细打印
         )
         
         print(f"\n💾 Checkpoint 配置:")
         print(f"  • 保存路径: {checkpoint_dir}")
         print(f"  • 监控指标: {checkpoint_callback.monitor}")
         print(f"  • 保存最优: Top-{checkpoint_callback.save_top_k}")
-        print(f"  • 保存最新: True\n")
+        print(f"  • 保存最新: True (last.ckpt)")
+        
+        # 检查是否有已有的 checkpoint
+        latest_ckpt = self.find_latest_checkpoint(self.title)
+        if latest_ckpt:
+            print(f"  • 发现已有 checkpoint: {latest_ckpt}")
+            print(f"    提示: 设置 checkpoint_path='{latest_ckpt}' 可恢复训练\n")
+        else:
+            print()
         
         return checkpoint_callback
     
@@ -235,7 +277,7 @@ class BaseTrainer:
             resume_from_checkpoint = self.checkpoint_path
             print(f"\n🔄 从 checkpoint 恢复训练: {self.checkpoint_path}\n")
         
-        if not self.pre_model and not resume_from_checkpoint:
+        if not resume_from_checkpoint:
             # 创建新模型
             self.model = self.model_class(
                 **self.model_params
@@ -263,9 +305,13 @@ class BaseTrainer:
         
         epochs = self.trainer_params.get('epochs', 100)
         
-        # 初始化 wandb logger
-        if self.use_wandb:
-            self.wandb_logger = self._init_wandb_logger()
+        # 调用插件的 on_train_start 钩子
+        self.plugin_manager.on_train_start(
+            self, self.model,
+            dataset=dataset,
+            train_loader=train_loader,
+            val_loader=val_loader
+        )
         
         # 创建 checkpoint callback
         self.checkpoint_callback = self._create_checkpoint_callback()
@@ -283,12 +329,19 @@ class BaseTrainer:
         callbacks = []
         if self.checkpoint_callback:
             callbacks.append(self.checkpoint_callback)
+        # 添加插件提供的 callbacks
+        plugin_callbacks = self.plugin_manager.get_all_lightning_callbacks()
+        callbacks.extend(plugin_callbacks)
         if callbacks:
             trainer_config['callbacks'] = callbacks
         
-        # 添加 wandb logger
-        if self.wandb_logger:
-            trainer_config['logger'] = self.wandb_logger
+        # 添加插件提供的 loggers
+        loggers = self.plugin_manager.get_all_lightning_loggers()
+        if loggers:
+            # 如果只有一个 logger，直接使用；否则使用列表
+            trainer_config['logger'] = loggers[0] if len(loggers) == 1 else loggers
+        # 禁用 Lightning 默认日志目录（使用临时目录，不会在项目根目录创建 lightning_logs）
+        trainer_config['default_root_dir'] = tempfile.gettempdir()
         
         # 梯度累积
         accumulate_grad_batches = self.trainer_params.get('accumulate_grad_batches', 1)
@@ -332,211 +385,21 @@ class BaseTrainer:
         # 计算吞吐量
         total_samples = len(train_loader.dataset) * epochs
         throughput = total_samples / train_time if train_time > 0 else 0
+        self.total_samples = total_samples  # 保存供插件使用
         print(f"Training Throughput: {throughput:.2f} samples/second")
         print(f"================================================")
 
-        # 记录最终指标到 wandb
-        if self.use_wandb and self.wandb_logger:
-            self._log_final_metrics(train_time, throughput)
-
         self.trained = True
 
-        if self.save_path:
-            self.save()
-            
-            # 保存模型到 wandb artifacts
-            if self.use_wandb and self.wandb_logger:
-                self._save_model_artifact()
-
-        # 关闭 wandb run
-        if self.use_wandb:
-            wandb.finish()
+        # 调用插件的 on_train_end 钩子
+        self.plugin_manager.on_train_end(
+            self, self.model,
+            train_time=train_time,
+            throughput=throughput,
+            total_samples=total_samples
+        )
 
         return self.model
-    
-    def _init_wandb_logger(self):
-        """初始化 wandb logger"""
-        try:
-            # 构建配置字典
-            config = {
-                'model': self.model_class.__name__,
-                'dataset': self.dataset_class.__name__,
-                'area': {
-                    'lon': self.area.lon.tolist() if hasattr(self.area.lon, 'tolist') else self.area.lon,
-                    'lat': self.area.lat.tolist() if hasattr(self.area.lat, 'tolist') else self.area.lat,
-                    'title': self.area.title,
-                },
-                'model_params': self.model_params,
-                'dataset_params': self.dataset_params,
-                'trainer_params': self.trainer_params,
-            }
-            
-            # 获取模型的损失函数和优化器配置
-            if self.model:
-                optimizer_config = self._get_optimizer_config()
-                if optimizer_config:
-                    config['optimizer'] = optimizer_config
-                
-                loss_function_info = self._get_loss_function_info()
-                if loss_function_info:
-                    config['loss_function'] = loss_function_info
-            
-            # 创建 wandb logger
-            logger = WandbLogger(
-                project=WANDB_PROJECT,
-                entity=WANDB_ENTITY,
-                name=f"{self.title}_{self.model_class.__name__}",
-                id=self.trainer_uid,
-                config=config,
-                save_dir='./out/wandb_logs',
-            )
-            
-            print(f"\n📊 Wandb 已启用")
-            print(f"  • Project: {WANDB_PROJECT}")
-            print(f"  • Run ID: {self.trainer_uid}")
-            print(f"  • Run URL: {logger.experiment.url}\n")
-            
-            return logger
-            
-        except Exception as e:
-            print(f"\n⚠️  Wandb 初始化失败: {str(e)}")
-            print(f"  训练将继续，但不记录到 wandb\n")
-            return None
-    
-    def _get_optimizer_config(self):
-        """获取优化器配置信息"""
-        try:
-            # Lightning 模型通过 configure_optimizers() 返回优化器
-            if hasattr(self.model, 'configure_optimizers'):
-                optimizers_config = self.model.configure_optimizers()
-                
-                # 处理不同的返回格式
-                optimizer = None
-                scheduler = None
-                
-                if isinstance(optimizers_config, tuple):
-                    # 返回 (optimizer, scheduler) 或 ([optimizers], [schedulers])
-                    optimizers, schedulers = optimizers_config
-                    optimizer = optimizers[0] if isinstance(optimizers, list) else optimizers
-                    scheduler = schedulers[0] if isinstance(schedulers, list) and schedulers else None
-                elif isinstance(optimizers_config, list):
-                    # 返回 [optimizer]
-                    optimizer = optimizers_config[0]
-                else:
-                    # 直接返回 optimizer
-                    optimizer = optimizers_config
-                
-                config = {}
-                
-                if optimizer:
-                    # 获取优化器类型和参数
-                    config['type'] = optimizer.__class__.__name__
-                    
-                    # 获取参数组（包含学习率等）
-                    if hasattr(optimizer, 'param_groups') and optimizer.param_groups:
-                        param_group = optimizer.param_groups[0]
-                        config['learning_rate'] = param_group.get('lr', 'N/A')
-                        config['weight_decay'] = param_group.get('weight_decay', 0)
-                        
-                        # 获取其他常见参数
-                        if 'momentum' in param_group:
-                            config['momentum'] = param_group['momentum']
-                        if 'betas' in param_group:
-                            config['betas'] = param_group['betas']
-                        if 'eps' in param_group:
-                            config['eps'] = param_group['eps']
-                
-                # 记录学习率调度器
-                if scheduler:
-                    config['scheduler'] = {
-                        'type': scheduler.__class__.__name__,
-                    }
-                    # 获取调度器参数
-                    if hasattr(scheduler, 'T_max'):
-                        config['scheduler']['T_max'] = scheduler.T_max
-                    if hasattr(scheduler, 'gamma'):
-                        config['scheduler']['gamma'] = scheduler.gamma
-                    if hasattr(scheduler, 'step_size'):
-                        config['scheduler']['step_size'] = scheduler.step_size
-                
-                return config
-                
-        except Exception as e:
-            print(f"⚠️  获取优化器配置失败: {str(e)}")
-            return None
-    
-    def _get_loss_function_info(self):
-        """获取损失函数信息"""
-        try:
-            loss_info = {}
-            
-            # 检查是否有自定义损失函数
-            if hasattr(self.model, 'custom_mse_loss'):
-                loss_info['type'] = 'Custom MSE Loss'
-                loss_info['description'] = 'Custom MSE with NaN handling'
-                loss_info['handles_nan'] = True
-            elif hasattr(self.model, 'loss_fn'):
-                loss_info['type'] = self.model.loss_fn.__class__.__name__
-            else:
-                # 默认 MSE
-                loss_info['type'] = 'MSE'
-            
-            # 检查是否有损失权重或其他配置
-            if hasattr(self.model, 'loss_weight'):
-                loss_info['weight'] = self.model.loss_weight
-            
-            return loss_info
-            
-        except Exception as e:
-            print(f"⚠️  获取损失函数信息失败: {str(e)}")
-            return None
-    
-    def _log_final_metrics(self, train_time, throughput):
-        """记录最终训练指标"""
-        try:
-            final_metrics = {
-                'train_time_seconds': train_time,
-                'throughput_samples_per_second': throughput,
-            }
-            
-            # 记录最终的损失值
-            if hasattr(self.model, 'train_loss') and self.model.train_loss:
-                final_metrics['final_train_loss'] = self.model.train_loss[-1]
-            
-            if hasattr(self.model, 'val_loss') and self.model.val_loss:
-                final_metrics['final_val_loss'] = self.model.val_loss[-1]
-                # 计算最佳验证损失
-                final_metrics['best_val_loss'] = min(self.model.val_loss)
-            
-            wandb.log(final_metrics)
-            
-        except Exception as e:
-            print(f"⚠️  记录最终指标失败: {str(e)}")
-    
-    def _save_model_artifact(self):
-        """保存模型到 wandb artifacts"""
-        try:
-            # 创建 artifact
-            artifact = wandb.Artifact(
-                name=f"{self.title}_model",
-                type='model',
-                description=f"{self.model_class.__name__} trained on {self.area.title}",
-                metadata={
-                    'model_class': self.model_class.__name__,
-                    'dataset_class': self.dataset_class.__name__,
-                    'epochs': self.trainer_params.get('epochs', 100),
-                    'batch_size': self.trainer_params.get('batch_size', 20),
-                }
-            )
-            
-            # 添加模型文件
-            if self.save_path:
-                artifact.add_file(self.save_path)
-                wandb.log_artifact(artifact)
-                print(f"\n✅ 模型已保存到 wandb artifacts: {artifact.name}")
-            
-        except Exception as e:
-            print(f"\n⚠️  保存模型到 wandb 失败: {str(e)}")
     
     def _print_optimization_summary(self, accumulate_grad_batches):
         """打印优化配置摘要"""
@@ -557,7 +420,8 @@ class BaseTrainer:
             if self.checkpoint_path and os.path.exists(self.checkpoint_path):
                 print(f"  • 恢复自: {self.checkpoint_path}")
             else:
-                print(f"  • 保存路径: out/checkpoints/{self.title}")
+                from src.config.params import PROJECT_PATH
+                print(f"  • 保存路径: {PROJECT_PATH}/out/checkpoints/{self.title}")
                 print(f"  • 监控指标: {self.trainer_params.get('monitor', 'val_loss')}")
                 print(f"  • 保存最优: Top-{self.trainer_params.get('save_top_k', 3)}")
         
@@ -597,30 +461,47 @@ class BaseTrainer:
             print(f"\n🔧 模型编译:")
             print(f"  • 已启用: {self.trainer_params.get('compile_mode', 'default')} 模式")
         
-        # Wandb
-        if self.use_wandb:
-            print(f"\n📊 Wandb 日志:")
-            print(f"  • 已启用: 实时记录训练指标")
+        # 插件信息
+        enabled_plugins = self.plugin_manager.get_enabled_plugins()
+        if enabled_plugins:
+            print(f"\n🔌 插件:")
+            for plugin in enabled_plugins:
+                print(f"  • {plugin.name}: 已启用")
         
         print("="*60 + "\n")
 
     def predict(self, offset: int, plot: bool = False) -> tuple:
-        
         """
         预测
         
         :param offset: 数据偏移量
-        :return: 输入和预测输出
+        :param plot: 是否绘制预测结果图
+        :return: (input, output, pred_output, rmse, r2, ssta) 元组
         """
-
-        print(self.save_path)
-
+        # 加载模型（从 checkpoint）
         if not self.trained:
-            self.model = load(self.save_path, weights_only=False)
-            self.trained = True
+            if self.checkpoint_path and os.path.exists(self.checkpoint_path):
+                # 从 checkpoint 加载（适用于 Lightning 模型）
+                print(f"📦 从 checkpoint 加载模型: {self.checkpoint_path}")
+                self.model = self.model_class.load_from_checkpoint(
+                    self.checkpoint_path,
+                    **self.model_params
+                )
+                # 确保模型在正确的设备上
+                device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+                self.model = self.model.to(device)
+                self.model.eval()
+                self.trained = True
+            else:
+                raise ValueError(
+                    f'无已训练模型。请提供 checkpoint_path: {self.checkpoint_path}'
+                )
             
         if not self.model:
-            raise ValueError('无已训练模型')
+            raise ValueError('模型加载失败')
+        
+        # 确定模型所在的设备
+        device = next(self.model.parameters()).device
         
         dataset_params = {
             **self.dataset_params,
@@ -638,11 +519,16 @@ class BaseTrainer:
         input, output = next(iter(pred_loader))
         ssta = pred_dataset.read_ssta(offset)
         
+        # 将数据移动到模型所在的设备
+        input = input.to(device)
+        output = output.to(device)
+        
         pred_output = self.model(input)
         
-        input = input.detach().numpy()
-        output = output.detach().numpy()
-        pred_output = pred_output.detach().numpy()
+        # 转换为numpy之前，先移回CPU
+        input = input.detach().cpu().numpy()
+        output = output.detach().cpu().numpy()
+        pred_output = pred_output.detach().cpu().numpy()
         
         input = input[0, 0, 0, :, :]
         output = output[0, 0, :, :]
@@ -668,6 +554,67 @@ class BaseTrainer:
             
         return input, output, pred_output, rmse, r2, ssta
     
-
-    def save(self):
-        save(self.model, self.save_path)
+    def evaluate(self, offsets: list, plot: bool = False) -> dict:
+        """
+        批量评估模型在多个时间点的表现
+        
+        :param offsets: 数据偏移量列表
+        :param plot: 是否绘制每个时间点的预测结果
+        :return: 包含所有评估结果的字典
+        """
+        results = {
+            'offsets': offsets,
+            'rmse': [],
+            'r2': [],
+            'details': []
+        }
+        
+        print(f"\n📊 开始评估 {len(offsets)} 个时间点...")
+        print("=" * 60)
+        
+        for i, offset in enumerate(offsets):
+            print(f"\n[{i+1}/{len(offsets)}] 评估 offset={offset}")
+            try:
+                input, output, pred_output, rmse, r2, ssta = self.predict(
+                    offset=offset, 
+                    plot=plot
+                )
+                results['rmse'].append(rmse)
+                results['r2'].append(r2)
+                results['details'].append({
+                    'offset': offset,
+                    'rmse': rmse,
+                    'r2': r2
+                })
+            except Exception as e:
+                print(f"⚠️  offset={offset} 评估失败: {str(e)}")
+                results['rmse'].append(np.nan)
+                results['r2'].append(np.nan)
+        
+        # 计算统计信息
+        valid_rmse = [r for r in results['rmse'] if not np.isnan(r)]
+        valid_r2 = [r for r in results['r2'] if not np.isnan(r)]
+        
+        if valid_rmse:
+            results['mean_rmse'] = np.mean(valid_rmse)
+            results['std_rmse'] = np.std(valid_rmse)
+            results['min_rmse'] = np.min(valid_rmse)
+            results['max_rmse'] = np.max(valid_rmse)
+        
+        if valid_r2:
+            results['mean_r2'] = np.mean(valid_r2)
+            results['std_r2'] = np.std(valid_r2)
+            results['min_r2'] = np.min(valid_r2)
+            results['max_r2'] = np.max(valid_r2)
+        
+        print("\n" + "=" * 60)
+        print("📊 评估摘要:")
+        if valid_rmse:
+            print(f"  RMSE: {results['mean_rmse']:.4f} ± {results['std_rmse']:.4f}")
+            print(f"   范围: [{results['min_rmse']:.4f}, {results['max_rmse']:.4f}]")
+        if valid_r2:
+            print(f"  R²:   {results['mean_r2']:.4f} ± {results['std_r2']:.4f}")
+            print(f"   范围: [{results['min_r2']:.4f}, {results['max_r2']:.4f}]")
+        print("=" * 60 + "\n")
+        
+        return results
