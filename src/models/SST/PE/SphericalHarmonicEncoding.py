@@ -131,7 +131,7 @@ class SpatialSphericalHarmonicEncoding(nn.Module):
     为每个空间网格点计算球谐波特征，提供球面几何感知的位置编码
     适用于全球海洋温度数据的空间特征提取
     """
-    def __init__(self, lat_range, lon_range, d_model, max_degree=4, resolution=1.0):
+    def __init__(self, lat_range, lon_range, max_degree=4, resolution=1.0):
         """
         Args:
             lat_range: [lat_min, lat_max] 纬度范围（度）
@@ -143,7 +143,6 @@ class SpatialSphericalHarmonicEncoding(nn.Module):
         super().__init__()
         self.lat_range = lat_range
         self.lon_range = lon_range
-        self.d_model = d_model
         self.max_degree = max_degree
         self.resolution = resolution
         
@@ -159,36 +158,15 @@ class SpatialSphericalHarmonicEncoding(nn.Module):
         # 预计算球谐波基函数（可缓存）
         self._precompute_harmonics()
         
-        # 球谐波特征投影网络
-        # 将参数量限制为 d_model 的 1/4
-        reduced_dim = d_model // 4
-        self.harmonic_projection = nn.Sequential(
-            nn.Linear(self.num_harmonics, reduced_dim),
-            nn.LayerNorm(reduced_dim),
-            nn.GELU(),
-            nn.Linear(reduced_dim, d_model),
-            nn.LayerNorm(d_model)
+         # 可学习的球谐波权重（每个基函数一个权重）
+        self.harmonic_weights = nn.Parameter(
+            torch.ones(self.num_harmonics) * 0.1  # 初始化为小的正值
         )
         
         # 可学习的空间偏置（每个位置独立）
-        # 使用 reduced_dim 以减少参数量
         self.spatial_bias = nn.Parameter(
-            torch.zeros(self.height, self.width, reduced_dim) * 0.01
+            torch.zeros(self.height, self.width) * 0.01
         )
-        
-        # 将 spatial_bias 投影到 d_model 维度
-        self.bias_projection = nn.Linear(reduced_dim, d_model)
-        
-        self._init_weights()
-    
-    def _init_weights(self):
-        """初始化权重"""
-        for module in self.modules():
-            if isinstance(module, nn.Linear):
-                # 使用较小的gain，避免编码数值过大导致训练不稳定
-                nn.init.xavier_uniform_(module.weight, gain=0.1)
-                if module.bias is not None:
-                    nn.init.constant_(module.bias, 0)
     
     def _precompute_harmonics(self):
         """预计算所有空间位置的球谐波特征"""
@@ -224,13 +202,14 @@ class SpatialSphericalHarmonicEncoding(nn.Module):
     def forward(self):
         """
         Returns:
-            encoding: [height, width, d_model] 空间位置编码
+            encoding: [height, width] 空间位置编码
         """
-        # 投影球谐波特征到模型维度
-        projected = self.harmonic_projection(self.harmonics)  # [height, width, d_model]
         
-        # 投影空间偏置到 d_model 维度并添加
-        bias_projected = self.bias_projection(self.spatial_bias)  # [height, width, d_model]
-        encoding = projected + bias_projected
+        # 加权求和：对 num_harmonics 维度进行加权求和
+        weighted_harmonics = (self.harmonics * self.harmonic_weights).sum(dim=-1)
+        
+        # 添加空间偏置
+        encoding = weighted_harmonics + self.spatial_bias
+        # encoding: [height, width]
         
         return encoding

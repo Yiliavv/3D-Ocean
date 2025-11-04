@@ -168,7 +168,7 @@ class ERA5SSTMonthlyDataset(Dataset):
         
         self.lon = np.array(lon)
         self.lat = np.array(lat)
-        self.start_time = arrow.get('2004-01-01')
+        self.start_time = arrow.get('1980-01-01')
         self.end_time = arrow.get('2024-12-01')
         
         print(f'起始时间：{self.start_time.shift(months=offset).format("YYYY-MM-DD")}')

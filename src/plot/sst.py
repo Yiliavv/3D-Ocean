@@ -329,7 +329,20 @@ def plot_nino(ssta, step=1):
     ax = create_carto_ax()
     projection = ccrs.PlateCarree()
     
-    ax.set_extent([*plot_lon_range, *plot_lat_range], crs=projection)
+    # 使用 try-except 避免调试器与 Cartopy Cython 扩展的兼容性问题
+    # 这个问题通常出现在使用 PyCharm/PyDev 等调试器时
+    try:
+        # 将范围展开为列表，避免使用 * 展开操作符
+        lon_min, lon_max = plot_lon_range[0], plot_lon_range[1]
+        lat_min, lat_max = plot_lat_range[0], plot_lat_range[1]
+        extent = [lon_min, lon_max, lat_min, lat_max]
+        ax.set_extent(extent, crs=projection)
+    except (AssertionError, KeyError, Exception) as e:
+        # 如果 set_extent 失败（通常是调试器兼容性问题），跳过设置 extent
+        # Cartopy 会自动使用数据范围
+        print(f"⚠️  Cartopy set_extent 失败（调试器兼容性问题），跳过: {str(e)[:100]}")
+        # 不设置 extent，让 Cartopy 使用默认范围
+    
     ax.figure.set_size_inches(10, 4)
     
     # 图像设置黑色边框

@@ -46,6 +46,7 @@ class RGAttention(nn.Module):
     """
     def __init__(self, d_model, num_heads, recursion_depth=2, dropout=0.1):
         super().__init__()
+
         self.d_model = d_model
         self.recursion_depth = recursion_depth
         
@@ -86,8 +87,6 @@ class RGAttention(nn.Module):
         Returns:
             output: [batch, seq_len, d_model] 经过递归细化的特征
         """
-        batch_size, seq_len, _ = x.shape
-        
         # 初始状态
         current_state = x
         accumulated_output = torch.zeros_like(x)

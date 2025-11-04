@@ -63,8 +63,7 @@ class RGTransformer(LightningModule):
                  learning_rate=1e-4,
                  lat_range=None,
                  lon_range=None,
-                 resolution=1.0,
-                 gradient_clip_val=1.0):
+                 resolution=1.0):
         """
         Args:
             width: 海表温度图像宽度
@@ -79,12 +78,10 @@ class RGTransformer(LightningModule):
             lat_range: [lat_min, lat_max] 纬度范围（度），用于空间位置编码
             lon_range: [lon_min, lon_max] 经度范围（度），用于空间位置编码
             resolution: 空间分辨率（度）
-            gradient_clip_val: 梯度裁剪阈值，None表示不裁剪（默认: 1.0）
         """
         super().__init__()
         
         self.learning_rate = learning_rate
-        self.gradient_clip_val = gradient_clip_val
         
         # 输入处理 - 专为海表温度任务设计
         if not (width and height):
@@ -112,19 +109,15 @@ class RGTransformer(LightningModule):
             nn.Linear(bottleneck_dim, width * height)
         )
         
-        # 空间位置编码（基于经纬度的球谐波编码）
-        if lat_range is not None and lon_range is not None:
-            self.spatial_pos_encoding = SpatialSphericalHarmonicEncoding(
-                lat_range=lon_range,
-                lon_range=lat_range,
-                d_model=d_model,
-                max_degree=2,
-                resolution=resolution
-            )
-            # 可学习的空间编码缩放因子（用于稳定训练）
-            self.spatial_enc_scale = nn.Parameter(torch.tensor(0.1))
+        self.spatial_pos_encoding = SpatialSphericalHarmonicEncoding(
+            lat_range=lat_range,
+            lon_range=lon_range,
+            max_degree=2,
+            resolution=resolution
+        )
+        # 可学习的空间编码缩放因子（用于稳定训练）
+        self.spatial_enc_scale = nn.Parameter(torch.tensor(0.1))
     
-        
         # Transformer 层的组件（直接在这里组装，不使用外部 Block 类）
         # 单层 Transformer：注意力 + FFN + 归一化 + 残差连接
         
@@ -139,14 +132,40 @@ class RGTransformer(LightningModule):
         # 前馈网络（标准 FFN with GELU）
         self.ffn = FeedForward(d_model, dim_feedforward, dropout)
         
-        # 层归一化（两个：一个用于attention，一个用于FFN）
+        # 层归一化（Pre-LN模式：每个子层前归一化）
+        # norm1: 注意力层前的归一化
+        # norm2: FFN层前的归一化
         self.norm1 = nn.LayerNorm(d_model, eps=1e-5)
         self.norm2 = nn.LayerNorm(d_model, eps=1e-5)
         
         self.dropout = nn.Dropout(dropout)
 
-        # 输入归一化
-        self.input_norm = nn.LayerNorm(d_model, eps=1e-5)
+        self.layer_norm = nn.LayerNorm(d_model, eps=1e-5)
+        
+        # 时间位置编码（可学习的嵌入）
+        # 用于区分序列中的不同时间步，解决注意力权重均匀分布的问题
+        # max_seq_len 取 seq_len 和 seq_len-1 的最大值（处理两种情况）
+        max_seq_len = max(seq_len, seq_len - 1)
+        self.temporal_pos_encoding = nn.Embedding(max_seq_len, d_model)
+        # 可学习的时间编码缩放因子（用于稳定训练）
+        self.temporal_enc_scale = nn.Parameter(torch.tensor(0.1))
+        
+        # 输出聚合：可学习的查询向量，用于从所有时间步提取信息
+        # 替代简单的 "只使用最后一个时间步" 的方式
+        self.output_query = nn.Parameter(torch.randn(1, 1, d_model))
+        # 初始化查询向量（使用 Xavier 初始化）
+        nn.init.xavier_uniform_(self.output_query, gain=0.1)
+
+
+        # 用来记录可能需要可视化的数据
+        self.viz = {
+            'position_encoding': None,
+            'attention_weights': None,
+            'sst_after_ffn': None,
+            'sst_after_attention': None,
+            'sst_after_position_encoding': None,
+            'sst_after_temporal_encoding': None,
+        }
         
     def _create_mask(self, x):
         """
@@ -166,6 +185,15 @@ class RGTransformer(LightningModule):
             return None
     
     def forward(self, x):
+        """
+        前向传播
+        
+        Args:
+            x: 输入数据 [batch, seq_len, width, height] 或 [batch, seq_len-1, width, height]
+        
+        Returns:
+            output: 预测结果 [batch, 1, width, height]
+        """
         batch_size = x.shape[0]
         
         # 创建掩码（在输入处理之前）
@@ -173,57 +201,83 @@ class RGTransformer(LightningModule):
         mask = self._create_mask(original_input)
         
         # 海表温度输入处理
-        x_processed = self._normalize_sst(x)
-        
-        # 线性投影方式
+        x = self._normalize_sst(x)
+
+
+        # ======= 生成空间位置编码 =======
+            
+        spatial_enc = self.spatial_pos_encoding()  # [lat点数, lon点数]
+            
+        # 确保spatial_weight都在正确的设备上
+        spatial_weight = self.spatial_enc_scale if hasattr(self, 'spatial_enc_scale') and self.spatial_enc_scale is not None else 0.01
+
+        self.viz['position_encoding'] = spatial_enc
+
+        # ======= 添加空间位置编码 =======
+            
+        x = x + spatial_enc * spatial_weight
+
+        self.viz['sst_after_position_encoding'] = x
+
+        # ======= 输入处理 =======
+
         if len(x.shape) == 4:  # [batch, seq_len, width, height]
-            x_reshaped = x_processed.view(batch_size, x.shape[1], -1)
+            x = x.view(batch_size, x.shape[1], -1)
         else:  # [batch, seq_len-1, width, height]
-            x_reshaped = x_processed.view(batch_size, self.seq_len - 1, -1)
+            x = x.view(batch_size, self.seq_len - 1, -1)
         
-        # 在投影前嵌入空间位置编码（如果启用）
-        if self.spatial_pos_encoding is not None:
-            # 获取输入数据的设备
-            device = x_reshaped.device
-            
-            spatial_enc = self.spatial_pos_encoding()  # [enc_height, enc_width, d_model] = [lat点数, lon点数, d_model]
-            
-            # 确保spatial_enc在正确的设备上
-            spatial_enc = spatial_enc.to(device)
-            
-            # 尺寸匹配，直接使用
-            spatial_enc_flat = spatial_enc.view(self.height * self.width, self.d_model)
-            spatial_feature_1d = spatial_enc_flat[:, 0]  # [height*width] 取第一维
-            
-            # 确保spatial_feature_1d和spatial_weight都在正确的设备上
-            spatial_weight = self.spatial_enc_scale if hasattr(self, 'spatial_enc_scale') and self.spatial_enc_scale is not None else 0.01
-            if isinstance(spatial_weight, torch.Tensor):
-                spatial_weight = spatial_weight.to(device)
-            
-            x_reshaped = x_reshaped + spatial_weight * spatial_feature_1d.unsqueeze(0).unsqueeze(0)
+        # ======= 投影到 d_model 维度 =======
+    
+        x = self.input_projection(x)  # [batch, seq_len, d_model]
         
-        # 投影到 d_model 维度
-        x = self.input_projection(x_reshaped)  # [batch, seq_len, d_model]
+        # ======= 添加时间位置编码 =======
+
+        seq_len_actual = x.shape[1]
+        temporal_pos = torch.arange(seq_len_actual, device=x.device)  # [seq_len]
+        temporal_enc = self.temporal_pos_encoding(temporal_pos)  # [seq_len, d_model]
+        # 使用可学习的缩放因子，并添加到所有batch中
+        x = x + self.temporal_enc_scale * temporal_enc.unsqueeze(0)  # [batch, seq_len, d_model]
+
+        self.viz['sst_after_temporal_encoding'] = x
         
-        x = self.input_norm(x)  # [batch, seq_len, reduced_dim]
-        
+        # ======= 添加 dropout =======
+        x = self.layer_norm(x)
         x = self.dropout(x)
-        
-        # Transformer 单层（Pre-LN 模式）
-        # LN -> Attention -> Residual -> LN -> FFN -> Residual
-        
-        # 注意力子层：LN -> Attention -> Dropout -> Residual
+
+        # ======= 注意力计算 =======
+    
         attn_out = self.attention(self.norm1(x), mask)
+
+        self.viz['attention_weights'] = attn_out
+
+        # ======= 添加注意力输出 =======
+
         x = x + self.dropout(attn_out)
+
+        self.viz['sst_after_attention'] = x
         
-        # FFN 子层：LN -> FFN -> Residual
+
+        # ======= 添加 FFN =======
+
         ffn_out = self.ffn(self.norm2(x))
+
         x = x + ffn_out
+
+        self.viz['sst_after_ffn'] = x
         
-        # 输出投影 - 海表温度预测
-        # 只使用最后一个时间步进行预测
-        x = x[:, -1, :]  # [batch, d_model]
-        output = self.output_projection(x)  # [batch, width*height]
+        # ======= 使用可学习的查询向量与所有时间步计算注意力权重 =======
+        query = self.output_query.expand(batch_size, -1, -1)  # [batch, 1, d_model]
+        
+        # 计算查询对序列的注意力分数
+        # 使用点积注意力：query @ x^T / sqrt(d_model)
+        query_attention_scores = torch.matmul(query, x.transpose(1, 2)) / (self.d_model ** 0.5)  # [batch, 1, seq_len]
+        query_attention = F.softmax(query_attention_scores, dim=-1)  # [batch, 1, seq_len]
+        
+        # 加权聚合所有时间步
+        x_aggregated = torch.matmul(query_attention, x).squeeze(1)  # [batch, d_model]
+
+        # ======= 投影到空间维度 =======
+        output = self.output_projection(x_aggregated)  # [batch, width*height]
         # 重塑回空间维度
         output = output.view(batch_size, 1, self.width, self.height)
         
@@ -286,25 +340,8 @@ class RGTransformer(LightningModule):
         val_loss = self.custom_mse_loss(y_pred, y)
         
         self.log('val_loss', val_loss, prog_bar=True, on_step=False, on_epoch=True)
+
         return val_loss
     
     def configure_optimizers(self):
-        optimizer = optim.AdamW(self.parameters(), lr=self.learning_rate)
-        return optimizer
-    
-    def on_before_optimizer_step(self, optimizer):
-        # 梯度裁剪，防止梯度爆炸导致训练不稳定
-        # 注意：如果 BaseTrainer 通过 trainer_params['gradient_clip_val'] 设置了裁剪，
-        # Lightning Trainer 会在回调之前自动执行裁剪，所以这里只作为备用/默认值
-        # 为了避免重复裁剪，这里检查是否已经有 trainer 级别的裁剪
-        # （通过检查 trainer.current_epoch 是否可用来判断是否在训练中）
-        if hasattr(self, 'trainer') and self.trainer is not None:
-            # 如果 Trainer 配置了 gradient_clip_val，它会在回调前执行，这里不再重复
-            # 只有在 Trainer 未配置时才使用模型的默认值
-            if not hasattr(self.trainer, 'gradient_clip_val') or self.trainer.gradient_clip_val is None:
-                if self.gradient_clip_val is not None and self.gradient_clip_val > 0:
-                    torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=self.gradient_clip_val)
-        else:
-            # 没有 trainer 的情况下（如直接调用模型），使用模型的默认值
-            if self.gradient_clip_val is not None and self.gradient_clip_val > 0:
-                torch.nn.utils.clip_grad_norm_(self.parameters(), max_norm=self.gradient_clip_val)
+        return optim.AdamW(self.parameters(), lr=self.learning_rate)
