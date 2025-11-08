@@ -581,16 +581,19 @@ class Wandb:
     
     def _save_checkpoint(self, checkpoint_callback) -> None:
         """保存 checkpoint 到 wandb artifacts（使用 PyTorch Lightning 保存的路径）"""
-        if not self.enabled or not checkpoint_callback:
+        if not self.enabled or not checkpoint_callback or not self.logger:
             return
         
         try:
-            
             # 使用 PyTorch Lightning 自动保存的最佳 checkpoint 路径
             checkpoint_path = checkpoint_callback.best_model_path
             
             if not checkpoint_path or not os.path.exists(checkpoint_path):
+                print(f"⚠️  Checkpoint 路径不存在或为空: {checkpoint_path}")
                 return
+            
+            print(f"📦 正在上传 checkpoint 到 wandb...")
+            print(f"  • Checkpoint 路径: {checkpoint_path}")
             
             artifact = wandb.Artifact(
                 name=f"{self.model_class.__name__}_{self.uid}",
@@ -599,7 +602,15 @@ class Wandb:
             )
             
             artifact.add_file(checkpoint_path)
-            wandb.log_artifact(artifact)
+            
+            # 使用 logger 的 experiment 对象来记录 artifact（确保在正确的 run 上下文中）
+            self.logger.experiment.log_artifact(artifact)
+            
+            print(f"✅ Checkpoint 已成功上传到 wandb")
+            print(f"  • Artifact 名称: {self.model_class.__name__}_{self.uid}")
+            print(f"  • Artifact 类型: model")
             
         except Exception as e:
             print(f"⚠️  保存checkpoint到 wandb 失败: {str(e)}")
+            import traceback
+            traceback.print_exc()

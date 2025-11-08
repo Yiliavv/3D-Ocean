@@ -565,9 +565,9 @@ class BasePrediction:
         output = output.detach().cpu().numpy()
         pred_output = pred_output.detach().cpu().numpy()
         
-        input = input[0, 0, 0, :, :]
-        output = output[0, 0, :, :]
-        pred_output = pred_output[0, 0, :, :]
+        input = input[0, 0, :, :]
+        output = output[0, :, :]
+        pred_output = pred_output[0, :, :]
         
         masked = np.isnan(output)
         pred_output[masked] = np.nan

@@ -158,10 +158,6 @@ class OISSTMonthlyDataset(Dataset):
         fore_ = sst_time_series[:self.seq_len - 1, ...]
         last_ = sst_time_series[-1, ...]
         
-        # 增加通道维度: (seq_len, height, width) -> (seq_len, 1, height, width)
-        fore_ = unsqueeze(fore_, dim=1)
-        last_ = unsqueeze(last_, dim=0)
-        
         return fore_, last_
     
     def __read_sst__(self, index: int):

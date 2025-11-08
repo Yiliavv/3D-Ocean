@@ -213,10 +213,6 @@ class ERA5SSTMonthlyDataset(Dataset):
         
         fore_ = sst_time_series[:self.seq_len - 1, ...]
         last_ = sst_time_series[-1, ...]
-        
-        # 增加一个通道维度, 通道数为 1, 即 (seq_len, width, height) -> (seq_len, 1,  width, height)
-        fore_ = unsqueeze(fore_, dim=1)
-        last_ = unsqueeze(last_, dim=0)
 
         return fore_, last_
         
