@@ -11,8 +11,9 @@ from lightning import Trainer
 from lightning.pytorch.callbacks import ModelCheckpoint
 from torch.utils.data import DataLoader, Subset
 
-from src.plot.sst import plot_sst, plot_sst_diff, plot_nino
-from src.config.area import Area, PROJECT_PATH
+from src.plot.sst import plot_sst, plot_sst_diff, plot_nino, plot_sequence, plot_attention
+from src.config.area import Area
+from src.config.params import CHECKPOINT_SAVE_PATH
 from src.trainer.wandb import Wandb
 
 class BaseTrainer:
@@ -80,7 +81,6 @@ class BaseTrainer:
                  area: Area,
                  model_class = None,
                  dataset_class = None,
-                 checkpoint_path: str = None,  # checkpoint 路径
                  dataset_params: dict = {},
                  trainer_params: dict = {},
                  model_params: dict = {},
@@ -101,7 +101,6 @@ class BaseTrainer:
         self.model_params = model_params
         
         # Checkpoint配置
-        self.checkpoint_path = checkpoint_path
         self.use_checkpoint = use_checkpoint
         
         # 模型状态
@@ -178,12 +177,11 @@ class BaseTrainer:
         if not self.use_checkpoint:
             return None
         
-        checkpoint_dir = f'{PROJECT_PATH}/out/checkpoints/{self.model_class.__name__}'
-        os.makedirs(checkpoint_dir, exist_ok=True)
+        os.makedirs(CHECKPOINT_SAVE_PATH, exist_ok=True)
         
         checkpoint_callback = ModelCheckpoint(
-            dirpath=checkpoint_dir,
-            filename=self.model_class.__name__,
+            dirpath= f"{CHECKPOINT_SAVE_PATH}/{self.trainer_uid}",
+            filename=f'{self.model_class.__name__}.ckpt',
             monitor=self.trainer_params.get('monitor', 'val_loss'),
             mode=self.trainer_params.get('mode', 'min'),
             save_top_k=self.trainer_params.get('save_top_k', 1),
@@ -191,11 +189,21 @@ class BaseTrainer:
             verbose=False,
         )
         
-        print(f"\n💾 Checkpoint: {checkpoint_dir}\n")
+        print(f"\n💾 Checkpoint: {CHECKPOINT_SAVE_PATH}/{self.trainer_uid}/{f'{self.model_class.__name__}.ckpt'}\n")
         
         return checkpoint_callback
     
-    def train(self):
+    def train(self, run_id: str = None):
+
+        run_id = run_id or self.trainer_uid
+
+        ckpt_path = f"{CHECKPOINT_SAVE_PATH}/{run_id}/{self.model_class.__name__}.ckpt"
+
+        if os.path.exists(ckpt_path):
+            print(f"\n🔄 从 checkpoint 恢复: {ckpt_path}\n")
+        else:
+            print(f"\n🔄 从 checkpoint 恢复: {ckpt_path}\n")
+
         lon = self.area.lon
         lat = self.area.lat
         
@@ -223,12 +231,6 @@ class BaseTrainer:
                 self.model = torch.compile(self.model, mode=compile_mode)
             else:
                 print("⚠️  PyTorch版本 < 2.0, 模型编译不可用")
-        
-        # 检查 checkpoint 路径
-        ckpt_path = None
-        if self.checkpoint_path and os.path.exists(self.checkpoint_path):
-            ckpt_path = self.checkpoint_path
-            print(f"\n🔄 从 checkpoint 恢复: {self.checkpoint_path}\n")
         
         epochs = self.trainer_params.get('epochs', 100)
         
@@ -456,54 +458,67 @@ class BasePrediction:
         
         # 使用 wandb API（官方方法）
         api = wandb.Api()
-        
+
         # 构建完整的 artifact 路径：entity/project/artifact_name:version
-        artifact_base_name = f"{self.model_class.__name__}_{self.wandb_run_id}"
+        # 使用传入的 run_id（而不是 self.wandb_run_id），确保与上传时使用的 run_id 一致
+        artifact_base_name = f"{self.model_class.__name__}_{run_id}"
         artifact_full_path = f"{WANDB_ENTITY}/{WANDB_PROJECT}/{artifact_base_name}:{version}"
 
         # 构建本地缓存目录（使用项目目录下的 artifacts 文件夹）
-        cache_dir = os.path.join(PROJECT_PATH, 'src', 'artifacts', f"{artifact_base_name}_{version}")
+        cache_dir = os.path.join(CHECKPOINT_SAVE_PATH, run_id)
         
         # 检查本地缓存目录是否存在且包含 checkpoint 文件
-        if os.path.exists(cache_dir):
-            checkpoint_files = [f for f in os.listdir(cache_dir) if f.endswith('.ckpt')]
-            if checkpoint_files:
-                print(f"  • 使用本地缓存: {cache_dir}")
-                download_dir = cache_dir
-            else:
-                # 目录存在但没有 checkpoint 文件，需要重新下载
-                print(f"  • 查找 Artifact: {artifact_full_path}")
-                artifact = api.artifact(artifact_full_path)
-                # 下载到指定的缓存目录
-                download_dir = artifact.download(root=cache_dir)
-                print(f"  • 已下载到: {download_dir}")
+        checkpoint_file = cache_dir + f'/{self.model_class.__name__}.ckpt'
+        
+        if os.path.exists(checkpoint_file):
+            print(f"  • 使用本地缓存: {checkpoint_file}")
         else:
             # 目录不存在，需要从 wandb 下载
             print(f"  • 查找 Artifact: {artifact_full_path}")
             artifact = api.artifact(artifact_full_path)
-            # 下载到指定的缓存目录
-            download_dir = artifact.download(root=cache_dir)
-            print(f"  • 已下载到: {download_dir}")
+            
+            # 确保缓存目录存在
+            os.makedirs(cache_dir, exist_ok=True)
+            
+            # 下载 artifact 到缓存目录
+            artifact.download(root=cache_dir)
+            
+            # 查找下载的 .ckpt 文件（可能名称不同）
+            ckpt_files = [f for f in os.listdir(cache_dir) if f.endswith('.ckpt')]
+            
+            if not ckpt_files:
+                raise FileNotFoundError(f"在下载的 artifact 中未找到 .ckpt 文件: {cache_dir}")
+            
+            # 如果下载的文件名不是期望的名称，重命名它
+            downloaded_ckpt = os.path.join(cache_dir, ckpt_files[0])
 
+            if downloaded_ckpt != checkpoint_file:
+                print(f"  • 重命名文件: {ckpt_files[0]} -> {self.model_class.__name__}.ckpt")
+                os.rename(downloaded_ckpt, checkpoint_file)
         
-        # 查找 checkpoint 文件（可能是 last.ckpt 或带 epoch 信息的文件名）
-        checkpoint_files = [f for f in os.listdir(download_dir) if f.endswith('.ckpt')]
+        # 先创建模型实例（不加载权重），用于初始化延迟初始化的层
+        temp_model = self.model_class(**self.model_params)
         
-        if not checkpoint_files:
-            raise FileNotFoundError(f"在下载的 artifact 中未找到 .ckpt 文件: {download_dir}")
+        # 如果模型有 RGAttention，需要先初始化投影层
+        # 创建一个虚拟输入来触发投影层的初始化
+        if hasattr(temp_model, 'attention') and hasattr(temp_model.attention, '_init_projections'):
+            # 获取模型的输入维度
+            width = self.model_params.get('width', 360)
+            height = self.model_params.get('height', 160)
+            seq_len = self.model_params.get('seq_len', 2)
+            
+            # 创建虚拟输入来触发投影层初始化
+            dummy_input = torch.zeros(1, seq_len - 1, width, height)
+            try:
+                _ = temp_model.attention(dummy_input)
+                print(f"  • 已初始化延迟投影层")
+            except:
+                pass  # 如果初始化失败，继续尝试加载
         
-        # 优先使用 last.ckpt，否则使用第一个找到的
-        if 'last.ckpt' in checkpoint_files:
-            checkpoint_path = os.path.join(download_dir, 'last.ckpt')
-        else:
-            checkpoint_path = os.path.join(download_dir, checkpoint_files[0])
-            print(f"  • 使用找到的 checkpoint: {checkpoint_files[0]}")
-        
-        print(f"  • Checkpoint 路径: {checkpoint_path}")
-
+        # 加载 checkpoint
         self.model = self.model_class.load_from_checkpoint(
-            checkpoint_path, 
-            strict=True,
+            checkpoint_file, 
+            strict=False,
             **self.model_params
         )
         
@@ -582,29 +597,29 @@ class BasePrediction:
 
         # 绘制模型可视化
 
+        x_normed = self.model.viz['x_normed'].detach().cpu().numpy()[0, :, :, :]
         position_encoding = self.model.viz['position_encoding'].detach().cpu().numpy()
-        sst_after_position_encoding = self.model.viz['sst_after_position_encoding'].detach().cpu().numpy()
-        sst_after_attention = self.model.viz['sst_after_attention'].detach().cpu().numpy()
-        sst_after_ffn = self.model.viz['sst_after_ffn'].detach().cpu().numpy()
+        attention_out = self.model.viz['attention'].detach().cpu().numpy()[0, :, :, :]
+        ffn_out = self.model.viz['ffn'].detach().cpu().numpy()[0, :, :, :]
+        sst_after = self.model.viz['sst_after'].detach().cpu().numpy()[0, :, :, :]
+        temporal_weights = self.model.viz['temporal_weights'].detach().cpu().numpy()
 
         print(f"--------------------------------")
         print(f" 📊 Model: {self.model_class.__name__} Prediction Position Encoding:")
+        print(f"x_normed: {x_normed.shape}")
         print(f"position_encoding: {position_encoding.shape}")
-        print(f"sst_after_position_encoding: {sst_after_position_encoding.shape}")
-        print(f"sst_after_attention: {sst_after_attention.shape}")
-        print(f"sst_after_ffn: {sst_after_ffn.shape}")
+        print(f"attention_out: {attention_out.shape}")
+        print(f"ffn_out: {ffn_out.shape}")
+        print(f"sst_after: {sst_after.shape}")
+        print(f"temporal_weights: {temporal_weights.shape}")
         print(f"--------------------------------")
 
 
         # 其他参数
         spatial_enc_scale = self.model.spatial_enc_scale.detach().cpu().numpy()
-        harmonic_weights = self.model.spatial_pos_encoding.harmonic_weights.detach().cpu().numpy()
-        spatial_bias = self.model.spatial_pos_encoding.spatial_bias.detach().cpu().numpy()
 
         print(f" 📊 Model: {self.model_class.__name__} Prediction Other Parameters:")
         print(f"spatial_enc_scale: {spatial_enc_scale}")
-        print(f"harmonic_weights: {harmonic_weights}")
-        print(f"spatial_bias: {spatial_bias}")
         print(f"--------------------------------")
         
         if plot:
@@ -614,6 +629,12 @@ class BasePrediction:
             ax_nino = plot_nino(ssta, step=resolution)
             ax_sst = plot_sst(pred_output, self.area.lon, self.area.lat, step=resolution)
             ax_diff = plot_sst_diff(pred_diff, self.area.lon, self.area.lat, step=resolution)
+
+            plot_attention(position_encoding, self.area.lon, self.area.lat, step=resolution, title='Position Encoding')
+            plot_sequence(x_normed, self.area.lon, self.area.lat, step=resolution, title='X Normed', plot_type='attention')
+            plot_sequence(attention_out, self.area.lon, self.area.lat, step=resolution, title='Attention out', plot_type='attention')
+            plot_sequence(ffn_out, self.area.lon, self.area.lat, step=resolution, title='FFN Output', plot_type='ffn')
+
             
             # 将图像记录到 wandb（如果 wandb 可用）
             if self.wandb:

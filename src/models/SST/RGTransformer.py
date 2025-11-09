@@ -18,7 +18,8 @@ RG-Transformer: 递归泛化注意力 Transformer 模型
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from lightning import LightningModule, Callback
+
+from lightning import LightningModule
 from torch import optim
 
 # 导入注意力模块（只包含注意力计算，不包含 FFN）
@@ -35,21 +36,28 @@ class FeedForward(nn.Module):
     结构: Linear -> GELU -> Dropout -> Linear -> Dropout
     这是 Transformer 的标准 FFN 实现
     """
-    def __init__(self, d_model, dim_feedforward, dropout=0.1):
+    def __init__(self, width, height, dim_feedforward, dropout=0.1):
         super().__init__()
-        self.linear1 = nn.Linear(d_model, dim_feedforward)
-        self.linear2 = nn.Linear(dim_feedforward, d_model)
-        self.dropout = nn.Dropout(dropout)
-        
-    def forward(self, x):
-        # Linear -> GELU -> Dropout -> Linear -> Dropout
-        x = self.linear1(x)
-        x = F.gelu(x)
-        x = self.dropout(x)
-        x = self.linear2(x)
-        x = self.dropout(x)
-        return x
+        self.linear = nn.Linear(width * height, dim_feedforward)
+        self.gelu = nn.GELU()
+        self.linear2 = nn.Linear(dim_feedforward, width * height)
 
+    def forward(self, x):
+        batch_size, seq_len, width, height = x.shape
+
+        # [batch, seq_len, width, height] -> [batch, seq_len, dim_feedforward]
+        x = x.view(batch_size, seq_len, width * height)
+
+        # [batch, seq_len, width * height] -> [batch, seq_len, dim_feedforward]
+        x = self.linear(x)
+        x = self.gelu(x)
+
+        # [batch, seq_len, dim_feedforward] -> [batch, seq_len, width * height]
+        x = self.linear2(x)
+        x = x.view(batch_size, seq_len, width, height)
+
+        return x
+        
 class RGTransformer(LightningModule):
     """递归泛化注意力 Transformer - 海表温度预测模型"""
     
@@ -93,22 +101,6 @@ class RGTransformer(LightningModule):
         
         self.d_model = d_model
         
-        # 线性投影层（使用瓶颈结构减少参数量）
-        # 计算中间维度：使用 d_model/2 作为瓶颈，可减少约50%参数
-        bottleneck_dim = d_model // 2
-        self.input_projection = nn.Sequential(
-            nn.Linear(width * height, bottleneck_dim),
-            nn.LayerNorm(bottleneck_dim),
-            nn.GELU(),
-            nn.Linear(bottleneck_dim, d_model)
-        )
-        self.output_projection = nn.Sequential(
-            nn.Linear(d_model, bottleneck_dim),
-            nn.LayerNorm(bottleneck_dim),
-            nn.GELU(),
-            nn.Linear(bottleneck_dim, width * height)
-        )
-        
         self.spatial_pos_encoding = SpatialSphericalHarmonicEncoding(
             lat_range=lat_range,
             lon_range=lon_range,
@@ -130,83 +122,39 @@ class RGTransformer(LightningModule):
         )
         
         # 前馈网络（标准 FFN with GELU）
-        self.ffn = FeedForward(d_model, dim_feedforward, dropout)
-        
-        # 层归一化（Pre-LN模式：每个子层前归一化）
-        # norm1: 注意力层前的归一化
-        # norm2: FFN层前的归一化
-        self.norm1 = nn.LayerNorm(d_model, eps=1e-5)
-        self.norm2 = nn.LayerNorm(d_model, eps=1e-5)
+        self.ffn = FeedForward(width, height, dim_feedforward, dropout)
         
         self.dropout = nn.Dropout(dropout)
-
-        self.layer_norm = nn.LayerNorm(d_model, eps=1e-5)
         
-        # 时间位置编码（可学习的嵌入）
-        # 用于区分序列中的不同时间步，解决注意力权重均匀分布的问题
-        # max_seq_len 取 seq_len 和 seq_len-1 的最大值（处理两种情况）
-        max_seq_len = max(seq_len, seq_len - 1)
-        self.temporal_pos_encoding = nn.Embedding(max_seq_len, d_model)
-        # 可学习的时间编码缩放因子（用于稳定训练）
-        self.temporal_enc_scale = nn.Parameter(torch.tensor(0.1))
+        # LayerNorm 层（在__init__中初始化，确保设备一致性）
+        # 对空间维度 [width, height] 进行归一化
+        self.layer_norm = nn.LayerNorm((width, height), eps=1e-5)
+        self.norm1 = nn.LayerNorm((width, height), eps=1e-5)
+        self.norm2 = nn.LayerNorm((width, height), eps=1e-5)
         
-        # 输出聚合：可学习的查询向量，用于从所有时间步提取信息
-        # 替代简单的 "只使用最后一个时间步" 的方式
-        self.output_query = nn.Parameter(torch.randn(1, 1, d_model))
-        # 初始化查询向量（使用 Xavier 初始化）
-        nn.init.xavier_uniform_(self.output_query, gain=0.1)
-
+        # 可学习的时序权重向量：用于加权聚合所有时间步的信息
+        self.temporal_weights = nn.Parameter(torch.ones(seq_len - 1) / (seq_len - 1))
 
         # 用来记录可能需要可视化的数据
-        self.viz = {
-            'position_encoding': None,
-            'attention_weights': None,
-            'sst_after_ffn': None,
-            'sst_after_attention': None,
-            'sst_after_position_encoding': None,
-            'sst_after_temporal_encoding': None,
-        }
-        
-    def _create_mask(self, x):
-        """
-        创建掩码（用于海表温度的NaN值）
-        
-        对于4-D输入 [batch, seq_len, width, height]，返回 [batch, seq_len]
-        对于其他形状，返回 None（不使用掩码）
-        """
-        if len(x.shape) == 4:
-            # [batch, seq_len, width, height]
-            nan_mask = torch.isnan(x)
-            # 聚合到序列维度：如果某个时间步的空间位置中有NaN，则该时间步被掩码
-            mask = nan_mask.any(dim=(2, 3))  # [batch, seq_len]
-            return mask
-        else:
-            # 对于其他形状，不使用掩码
-            return None
+        self.viz = {}
     
     def forward(self, x):
         """
         前向传播
         
         Args:
-            x: 输入数据 [batch, seq_len, width, height] 或 [batch, seq_len-1, width, height]
+            x: [batch, seq_len-1, width, height]
         
         Returns:
-            output: 预测结果 [batch, 1, width, height]
-        """
-        batch_size = x.shape[0]
-        
-        # 创建掩码（在输入处理之前）
-        original_input = x
-        mask = self._create_mask(original_input)
-        
-        # 海表温度输入处理
+            output: [batch, width, height]
+        """        
+        # 海表温度输入处理 - 先处理 NaN，确保后续计算不会产生 NaN
         x = self._normalize_sst(x)
 
-
         # ======= 生成空间位置编码 =======
-            
-        spatial_enc = self.spatial_pos_encoding()  # [lat点数, lon点数]
+        
+        # [width, height]
+        spatial_enc = self.spatial_pos_encoding()
             
         # 确保spatial_weight都在正确的设备上
         spatial_weight = self.spatial_enc_scale if hasattr(self, 'spatial_enc_scale') and self.spatial_enc_scale is not None else 0.01
@@ -214,72 +162,65 @@ class RGTransformer(LightningModule):
         self.viz['position_encoding'] = spatial_enc
 
         # ======= 添加空间位置编码 =======
-            
+        
+        # [batch, seq_len-1, width, height]
+        # 将空间位置编码添加到输入中
         x = x + spatial_enc * spatial_weight
 
         self.viz['sst_after_position_encoding'] = x
 
-        # ======= 输入处理 =======
+        # ======= LayerNorm 和 Dropout =======
 
-        if len(x.shape) == 4:  # [batch, seq_len, width, height]
-            x = x.view(batch_size, x.shape[1], -1)
-        else:  # [batch, seq_len-1, width, height]
-            x = x.view(batch_size, self.seq_len - 1, -1)
-        
-        # ======= 投影到 d_model 维度 =======
-    
-        x = self.input_projection(x)  # [batch, seq_len, d_model]
-        
-        # ======= 添加时间位置编码 =======
-
-        seq_len_actual = x.shape[1]
-        temporal_pos = torch.arange(seq_len_actual, device=x.device)  # [seq_len]
-        temporal_enc = self.temporal_pos_encoding(temporal_pos)  # [seq_len, d_model]
-        # 使用可学习的缩放因子，并添加到所有batch中
-        x = x + self.temporal_enc_scale * temporal_enc.unsqueeze(0)  # [batch, seq_len, d_model]
-
-        self.viz['sst_after_temporal_encoding'] = x
-        
-        # ======= 添加 dropout =======
+        # [batch, seq_len-1, width, height]
+        # 注意：LayerNorm 在 normalize 之后
         x = self.layer_norm(x)
         x = self.dropout(x)
 
+        self.viz['x_normed'] = x
+
         # ======= 注意力计算 =======
     
-        attn_out = self.attention(self.norm1(x), mask)
+        # [batch, seq_len-1, width, height]
+        # 不使用 mask，因为 NaN 已经通过 normalize 处理了
+        attn_out = self.attention(self.norm1(x))
 
-        self.viz['attention_weights'] = attn_out
+        self.viz['attention'] = attn_out
 
-        # ======= 添加注意力输出 =======
-
-        x = x + self.dropout(attn_out)
-
-        self.viz['sst_after_attention'] = x
-        
-
-        # ======= 添加 FFN =======
+        # ======= 计算 FFN =======
 
         ffn_out = self.ffn(self.norm2(x))
 
+        self.viz['ffn'] = ffn_out
+
+        # ======= 添加注意力输出（标准残差连接） =======
+        
+        # [batch, seq_len-1, width, height]
+        x = x + attn_out
+        
+        self.viz['sst_after_attention'] = x
+
+        # ======= 添加 FFN 输出（标准残差连接） =======
+        
+        # [batch, seq_len-1, width, height]
         x = x + ffn_out
 
-        self.viz['sst_after_ffn'] = x
-        
-        # ======= 使用可学习的查询向量与所有时间步计算注意力权重 =======
-        query = self.output_query.expand(batch_size, -1, -1)  # [batch, 1, d_model]
-        
-        # 计算查询对序列的注意力分数
-        # 使用点积注意力：query @ x^T / sqrt(d_model)
-        query_attention_scores = torch.matmul(query, x.transpose(1, 2)) / (self.d_model ** 0.5)  # [batch, 1, seq_len]
-        query_attention = F.softmax(query_attention_scores, dim=-1)  # [batch, 1, seq_len]
-        
-        # 加权聚合所有时间步
-        x_aggregated = torch.matmul(query_attention, x).squeeze(1)  # [batch, d_model]
+        self.viz['sst_after'] = x
 
-        # ======= 投影到空间维度 =======
-        output = self.output_projection(x_aggregated)  # [batch, width*height]
-        # 重塑回空间维度
-        output = output.view(batch_size, 1, self.width, self.height)
+        # ======= 可学习的时序聚合 =======
+        # [batch, seq_len-1, width, height] -> [batch, width, height]
+        
+        # 对权重进行 softmax 归一化，确保权重和为1
+        normalized_weights = F.softmax(self.temporal_weights, dim=0)  # [seq_len-1]
+        
+        # 记录时序权重用于可视化
+        self.viz['temporal_weights'] = normalized_weights
+        
+        # 对每个时间步应用权重并加权求和
+        # normalized_weights: [seq_len-1] -> [1, seq_len-1, 1, 1]
+        weights = normalized_weights.view(1, -1, 1, 1)
+        
+        # 加权求和：[batch, seq_len-1, width, height] -> [batch, width, height]
+        output = (x * weights).sum(dim=1)
         
         return output
     
@@ -344,4 +285,12 @@ class RGTransformer(LightningModule):
         return val_loss
     
     def configure_optimizers(self):
-        return optim.AdamW(self.parameters(), lr=self.learning_rate)
+        optimizer = optim.AdamW(
+            self.parameters(), 
+            lr=self.learning_rate,
+            weight_decay=0.01,  # 添加权重衰减
+            betas=(0.9, 0.999),
+            eps=1e-8
+        )
+
+        return optimizer

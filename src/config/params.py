@@ -12,6 +12,8 @@ BASE_OISST_DATA_PATH = f"{WORKSPACE_PATH}/OISST"
 
 # 模型保存路径
 MODEL_SAVE_PATH = f"{PROJECT_PATH}/out/models"
+# checkpoint 保存路径
+CHECKPOINT_SAVE_PATH = f"{PROJECT_PATH}/out/checkpoints"
 # 误差保存路径
 ERROR_SAVE_PATH = f"{PROJECT_PATH}/out/error"
 # 预测保存路径

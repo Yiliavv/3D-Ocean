@@ -595,20 +595,86 @@ class Wandb:
             print(f"📦 正在上传 checkpoint 到 wandb...")
             print(f"  • Checkpoint 路径: {checkpoint_path}")
             
+            # 使用 logger 的 experiment 对象来记录 artifact（确保在正确的 run 上下文中）
+            run = self.logger.experiment
+            
+            # 检查 run 是否活跃
+            if not run:
+                raise ValueError("Wandb run 不存在或未初始化")
+            
+            # 使用实际的 run.id 来命名 artifact（确保一致性）
+            # 注意：如果 wandb 复用了旧 run，run.id 可能与 self.uid 不同
+            actual_run_id = run.id
+            artifact_name = f"{self.model_class.__name__}_{actual_run_id}"
+            
+            print(f"  • 正在上传 artifact 到 run: {actual_run_id}")
+            print(f"  • Artifact 名称: {artifact_name}")
+            
             artifact = wandb.Artifact(
-                name=f"{self.model_class.__name__}_{self.uid}",
+                name=artifact_name,
                 type='model',
                 description=f"{self.model_class.__name__} on {self.area.title}"
             )
             
             artifact.add_file(checkpoint_path)
             
-            # 使用 logger 的 experiment 对象来记录 artifact（确保在正确的 run 上下文中）
-            self.logger.experiment.log_artifact(artifact)
+            # 记录 artifact 到 wandb
+            # log_artifact 会自动 finalize artifact，但可能需要一些时间才能被查询到
+            run.log_artifact(artifact)
+            print(f"  • Artifact 上传请求已发送")
+            
+            # 确保 artifact 被 finalize（如果还没有的话）
+            # 注意：log_artifact 应该会自动 finalize，但为了确保，我们显式调用
+            try:
+                if hasattr(artifact, 'finalize'):
+                    # 检查是否已经 finalize
+                    if hasattr(artifact, 'is_finalized') and not artifact.is_finalized():
+                        artifact.finalize()
+                    elif not hasattr(artifact, 'is_finalized'):
+                        # 如果没有 is_finalized 方法，直接尝试 finalize
+                        artifact.finalize()
+            except Exception as finalize_error:
+                # finalize 可能已经自动调用，或者方法不存在
+                pass
+            
+            # 等待 artifact 上传和注册完成
+            # log_artifact 是同步的，但 artifact 在 wandb 服务器上的注册可能需要一些时间
+            import time
+            print(f"  • 等待 artifact 上传和注册完成...")
+            time.sleep(3)  # 给 wandb 服务器一些时间来处理 artifact
+            
+            # 验证 artifact 是否已成功上传（可选，用于调试）
+            # 注意：即使上传成功，artifact 可能需要几秒钟才能在 wandb API 中可见
+            try:
+                # 尝试通过 API 查询 artifact（用于验证）
+                from src.config.params import WANDB_PROJECT, WANDB_ENTITY
+                api = wandb.Api()
+                artifact_path = f"{WANDB_ENTITY}/{WANDB_PROJECT}/{artifact_name}:latest"
+                
+                # 尝试多次查询（最多3次，每次间隔2秒）
+                max_retries = 3
+                artifact_found = False
+                for retry in range(max_retries):
+                    try:
+                        _ = api.artifact(artifact_path)
+                        artifact_found = True
+                        print(f"  • ✅ Artifact 已确认在 wandb 中可见（尝试 {retry + 1}/{max_retries}）")
+                        break
+                    except Exception as e:
+                        if retry < max_retries - 1:
+                            time.sleep(2)  # 等待2秒后重试
+                        else:
+                            print(f"  • ⚠️  Artifact 可能仍在注册中（已尝试 {max_retries} 次）")
+                            print(f"  • 提示: 请稍后手动在 wandb 界面中检查 artifact 是否存在")
+            except Exception as verify_error:
+                print(f"  • ⚠️  验证 artifact 时出错: {str(verify_error)}")
+                print(f"  • 提示: 请手动在 wandb 界面中检查 artifact 是否存在")
             
             print(f"✅ Checkpoint 已成功上传到 wandb")
-            print(f"  • Artifact 名称: {self.model_class.__name__}_{self.uid}")
+            print(f"  • Artifact 名称: {artifact_name}")
             print(f"  • Artifact 类型: model")
+            print(f"  • Run ID: {actual_run_id}")
+            print(f"  • 注意: 如果立即查询 artifact 失败，请等待几秒钟后重试")
             
         except Exception as e:
             print(f"⚠️  保存checkpoint到 wandb 失败: {str(e)}")

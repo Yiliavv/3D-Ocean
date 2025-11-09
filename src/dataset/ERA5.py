@@ -4,158 +4,29 @@ import arrow
 import numpy as np
 import netCDF4 as nc
 
-from torch import tensor, unsqueeze, float32
+from torch import tensor, float32
 from torch.utils.data import Dataset
 
-from src.config.params import BASE_ERA5_DAILY_DATA_PATH, BASE_ERA5_MONTHLY_DATA_PATH
-from src.utils.util import resource_era5_monthly_sst_data
+from src.config.params import BASE_ERA5_MONTHLY_DATA_PATH
 
-# ERA5 海表数据集
-class ERA5SSTDataset(Dataset):
-    """
-    ERA5 SST 数据集
 
-    :arg  width: 序列长度宽度
-    :arg  step: 时间平移步长
-    :arg  offset: 时间偏移 (该偏移值是数据批次的偏移，即已经除以了时间步长的值)
-    :arg  lon: 经度范围
-    :arg  lat: 纬度范围
-    :arg  resolution: 空间分辨率（度）
-    """
-
-    def __init__(self, width=10, step=10, offset=0, lon=None, lat=None, resolution=1, *args):
-        super().__init__(*args)
-                    
-        if lat is None:
-            lat = np.array([0, 0])
-        if lon is None:
-            lon = np.array([0, 0])
-
-        self.step = step
-        self.width = width
-        self.offset = offset
-        self.lon = np.array(lon)
-        self.lat = np.array(lat)
-        self.resolution = resolution
-        
-        self.cur = 0
-        # 数据集中包含的时间范围
-        self.s_time = arrow.get('2004-01-01')
-        self.e_time = arrow.get('2024-12-31')
-        
-        # 实例级缓存
-        self._cache = {}
-    
-    def __read_item__(self, time: arrow.Arrow):
-        """
-        读取单个时间点的数据，用于从数据文件中读取数据
-        能够跨文件处理
-        """
-        year = time.year
-        
-        # 计算文件内偏移
-        s_time = arrow.get(year, 1, 1)
-        offset = (time - s_time).days
-        
-        # 使用实例缓存
-        if year in self._cache:
-            sst = self._cache[year]
-        else:            
-            # 读文件
-            sst, _ = self.__read_sst__(year)
-            
-            # 刷新缓存（限制缓存大小为3年，防止内存溢出）
-            if len(self._cache) >= 3:
-                # 删除最早的缓存
-                oldest_year = min(self._cache.keys())
-                del self._cache[oldest_year]
-            
-            self._cache[year] = sst
-            
-        # 经纬度反向
-        sst = np.flip(sst, axis=1)
-        
-        # 经纬度坐标转换为数组索引
-        # ERA5: 0.25°分辨率，全球范围 [-180, 180] × [-90, 90]
-        lon_indices = (np.arange(self.lon[0], self.lon[1], self.resolution)) * 4
-        lat_indices = (np.arange(self.lat[0], self.lat[1], self.resolution) + 90) * 4
-        
-        lon_indices = lon_indices.astype(np.int32)
-        lat_indices = lat_indices.astype(np.int32)
-        
-        lon_grid, lat_grid = np.meshgrid(lon_indices, lat_indices)
-            
-        return sst[offset, lat_grid, lon_grid]
-    
-    def __read_sst__(self, year: int):
-        """
-        读取文件中的温度和时间数据
-        """
-        file_path = f"{BASE_ERA5_DAILY_DATA_PATH}/{year}-dailymean.nc"
-        
-        # 检查文件是否存在
-        if not os.path.exists(file_path):
-            raise FileNotFoundError(f"数据文件不存在: {file_path}")
-        
-        try:
-            nc_file = nc.Dataset(file_path, 'r', format='NETCDF4')
-            variables = nc_file.variables
-
-            sst = variables['sst'][:]
-            time = variables['valid_time'][:]
-            
-            nc_file.close()
-
-            return sst, time
-        except Exception as e:
-            raise IOError(f"读取文件 {file_path} 时出错: {str(e)}")
-
-    def __len__(self):
-        day_len = (self.e_time - self.s_time).days
-        length = (day_len - self.width) / self.step
-        
-        return int(length) - self.offset
-
-    def __getitem__(self, index):
-        self.cur = index
-        
-        offset = self.offset + self.cur
-        start_index = offset * self.step
-        end_index = start_index + self.width
-        
-        # 计算时间范围
-        s_time = self.s_time.shift(days=start_index)
-        e_time = self.s_time.shift(days=end_index)
-        
-        time_range = arrow.Arrow.span_range('day', s_time, e_time)
-        
-        # 优化：预分配数组而非使用list动态扩展
-        time_list = list(time_range)
-        sst_time_series = np.empty((len(time_list), *self.__read_item__(s_time).shape), dtype=np.float32)
-        
-        for i, (time, _) in enumerate(time_list):
-            sst_time_series[i] = self.__read_item__(time)
-        
-        # 数据预处理
-        sst_time_series = sst_time_series - 273.15
-        sst_time_series[sst_time_series > 99] = np.nan
-        
-        # 优化：移除不必要的.copy()，tensor会自动复制数据
-        sst_time_series = tensor(sst_time_series, dtype=float32)
-
-        fore_ = sst_time_series[:self.width - 1, ...]
-        last_ = sst_time_series[-1, ...]
-
-        # 增加一个通道维度, 通道数为 1, 即 (seq_len, width, height) -> (seq_len, 1,  width, height)
-        fore_ = unsqueeze(fore_, dim=1)
-        last_ = unsqueeze(last_, dim=0)
-
-        return fore_, last_ 
-    
 # ERA5 海表月平均温度数据集
 class ERA5SSTMonthlyDataset(Dataset):
     """
-    ERA5 SST 月平均温度数据集
+    ERA5 SST 月平均温度数据集（单文件模式）
+    
+    支持多种分辨率: 0.25°, 0.5°, 1°, 2°
+    参考 OISST 数据集的方式，根据分辨率选择对应的单文件
+    
+    数据时间范围: 1940-01-01 至 2024-12-01
+    
+    注意：使用前需要先运行重采样脚本生成对应分辨率的单文件
+    
+    :arg seq_len: 序列长度（包含输入和输出）
+    :arg offset: 时间偏移（数据批次的偏移）
+    :arg lon: 经度范围 [lon_min, lon_max]
+    :arg lat: 纬度范围 [lat_min, lat_max]
+    :arg resolution: 空间分辨率（度），支持 0.25, 0.5, 1, 2
     """
     
     def __init__(self, seq_len=2, offset=0, lon=None, lat=None, resolution=1):
@@ -168,7 +39,7 @@ class ERA5SSTMonthlyDataset(Dataset):
         
         self.lon = np.array(lon)
         self.lat = np.array(lat)
-        self.start_time = arrow.get('1980-01-01')
+        self.start_time = arrow.get('1940-01-01')
         self.end_time = arrow.get('2024-12-01')
         
         print(f'起始时间：{self.start_time.shift(months=offset).format("YYYY-MM-DD")}')
@@ -177,15 +48,90 @@ class ERA5SSTMonthlyDataset(Dataset):
         self.seq_len = seq_len
         self.resolution = resolution
         
-        # 优化：使用懒加载器，避免一次性加载1.5GB数据
-        self.sst_data = resource_era5_monthly_sst_data(BASE_ERA5_MONTHLY_DATA_PATH)
+        # 根据分辨率选择数据源（单文件模式）
+        self.nc_file_path = self.__get_file_path__()
+        
+        # 检查文件是否存在
+        if not os.path.exists(self.nc_file_path):
+            raise FileNotFoundError(
+                f"ERA5数据文件不存在: {self.nc_file_path}\n"
+                f"请先运行重采样脚本生成对应分辨率的文件。"
+            )
+        
+        # 单文件模式（类似 OISST）
+        self._nc_file = None
+        self._sst_data = None
+        self._lon_data = None
+        self._lat_data = None
+        self._time_data = None
+        self.__load_data__()
         
         # 缓存气候平均态，避免read_ssta重复计算
         self._climatology_cache = {}
     
+    def __get_file_path__(self):
+        """
+        根据分辨率返回对应的文件路径（单文件模式）
+        
+        :return: 文件路径
+        """
+        if self.resolution == 0.25:
+            filename = 'ERA5.mon.mean.nc'
+        elif self.resolution == 0.5:
+            filename = 'ERA5.mon.mean.0.5deg.nc'
+        elif self.resolution == 1:
+            filename = 'ERA5.mon.mean.1.0deg.nc'
+        elif self.resolution == 2:
+            filename = 'ERA5.mon.mean.2.0deg.nc'
+        else:
+            raise ValueError(f"不支持的分辨率: {self.resolution}，支持的分辨率为 0.25, 0.5, 1, 2")
+        
+        # 在 BASE_ERA5_MONTHLY_DATA_PATH 的父目录查找（重采样后的文件）
+        parent_dir = os.path.dirname(BASE_ERA5_MONTHLY_DATA_PATH)
+        file_path = os.path.join(parent_dir, filename)
+        
+        return file_path
+    
+    def __load_data__(self):
+        """
+        加载单文件数据（类似 OISST）
+        """
+        try:
+            self._nc_file = nc.Dataset(self.nc_file_path, 'r', format='NETCDF4')
+            
+            # 读取原始数据
+            sst_data = self._nc_file.variables['sst'][:]  # [time, lat, lon]
+            self._lon_data = self._nc_file.variables['lon'][:]
+            self._lat_data = self._nc_file.variables['lat'][:]
+            self._time_data = self._nc_file.variables['time'][:]
+            
+            # 转换经度：[0, 360] -> [-180, 180]（如果需要）
+            if self._lon_data.max() > 180:
+                self._lon_data = np.where(self._lon_data > 180, self._lon_data - 360, self._lon_data)
+                # 重新排序经度
+                lon_sort_indices = np.argsort(self._lon_data)
+                self._lon_data = self._lon_data[lon_sort_indices]
+                # 相应地重新排序SST数据
+                sst_data = sst_data[:, :, lon_sort_indices]
+            
+            # 翻转纬度（ERA5 数据需要翻转）
+            self._lat_data = np.flip(self._lat_data)
+            sst_data = np.flip(sst_data, axis=1)
+            
+            self._sst_data = sst_data
+            
+            print(f'成功加载ERA5数据: {self._sst_data.shape}')
+            print(f'时间步数: {len(self._time_data)}')
+            print(f'经度范围: [{self._lon_data.min():.2f}, {self._lon_data.max():.2f}]')
+            print(f'纬度范围: [{self._lat_data.min():.2f}, {self._lat_data.max():.2f}]')
+            print(f'分辨率: {self.resolution}°')
+            
+        except Exception as e:
+            raise IOError(f"读取ERA5文件 {self.nc_file_path} 时出错: {str(e)}")
+    
     def __len__(self):
-        month_len = len(self.sst_data)
-        length = month_len - self.seq_len
+        total_months = len(self._time_data)
+        length = total_months - self.seq_len
         
         return length - self.offset
     
@@ -216,29 +162,62 @@ class ERA5SSTMonthlyDataset(Dataset):
 
         return fore_, last_
         
-    def __read_files__(self):
-        for file in os.listdir(BASE_ERA5_MONTHLY_DATA_PATH):
-            if file.endswith('.nc'):
-                self.files.append(f"{BASE_ERA5_MONTHLY_DATA_PATH}/{file}")
-                
     def __read_sst__(self, index: int):
-        # 懒加载器返回的已经是2D数组，不需要额外切片
-        sst = self.sst_data[index]
+        """
+        读取指定时间索引的SST数据
         
-        sst = np.flip(sst, axis=0)
+        :param index: 时间索引（从0开始）
+        :return: SST数据 [height, width]
+        """
+        # 从内存中读取数据
+        sst = self._sst_data[index, :, :]  # [lat, lon]
         
+        # 温度转换：开尔文 -> 摄氏度
         sst = sst - 273.15
         
-        # 经纬度坐标转换为数组索引
-        lon_indices = (np.arange(self.lon[0], self.lon[1], self.resolution)) * 4
-        lat_indices = (np.arange(self.lat[0], self.lat[1], self.resolution) + 90) * 4
+        # 处理异常值
+        sst = sst.astype(np.float32)
+        sst[sst > 99] = np.nan
+        sst[sst < -10] = np.nan
         
-        lon_indices = lon_indices.astype(np.int32)
-        lat_indices = lat_indices.astype(np.int32)
+        # 提取指定经纬度范围的数据
+        lon_indices = self.__get_lon_indices__()
+        lat_indices = self.__get_lat_indices__()
         
+        # 创建网格索引
         lon_grid, lat_grid = np.meshgrid(lon_indices, lat_indices)
         
         return sst[lat_grid, lon_grid]
+    
+    def __get_lon_indices__(self):
+        """
+        将经度范围转换为数组索引
+        """
+        lon_min = self.lon[0]
+        lon_max = self.lon[1]
+        
+        # 使用实际的数据坐标
+        lon_indices = []
+        for lon in np.arange(lon_min, lon_max, self.resolution):
+            # 找到最接近的索引
+            idx = np.argmin(np.abs(self._lon_data - lon))
+            lon_indices.append(idx)
+        return np.array(lon_indices, dtype=np.int32)
+    
+    def __get_lat_indices__(self):
+        """
+        将纬度范围转换为数组索引
+        """
+        lat_min = self.lat[0]
+        lat_max = self.lat[1]
+        
+        # 使用实际的数据坐标
+        lat_indices = []
+        for lat in np.arange(lat_min, lat_max, self.resolution):
+            # 找到最接近的索引
+            idx = np.argmin(np.abs(self._lat_data - lat))
+            lat_indices.append(idx)
+        return np.array(lat_indices, dtype=np.int32)
 
     def read_ssta(self, index: int):
         """
@@ -287,4 +266,14 @@ class ERA5SSTMonthlyDataset(Dataset):
         ssta = current_sst - climatology_sst
         
         return ssta
+    
+    def __del__(self):
+        """
+        析构函数：关闭NC文件
+        """
+        if self._nc_file is not None:
+            try:
+                self._nc_file.close()
+            except:
+                pass
                 

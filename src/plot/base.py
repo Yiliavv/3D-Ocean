@@ -71,15 +71,57 @@ def create_carto_ax():
     
     return ax
 
-def create_carto_axes(row=1, col=1):
+def create_carto_axes(row=1, col=1, shared='all'):
     """
     创建多个基础投影地图，分辩率为 2400
+    
+    :param row: 子图的行数
+    :param col: 子图的列数
+    :param shared: 共享类型,可选值为 'all'(共享 x 和 y 轴),'x'(仅共享 x 轴),'y'(仅共享 y 轴)
+    :return: 返回一个包含所有子图的数组（可能是1D或2D）
     """
-    axes = []
-    for m in range(row):
-        for n in range(col):
-            axes.append(create_carto_ax())
-            
+    # 设置字体为 Liberation Serif（Times New Roman 的开源等效字体）
+    plt.rcParams['font.family'] = 'Liberation Serif'
+    
+    # 设置共享坐标轴
+    match shared:
+        case 'all':
+            sharex = True
+            sharey = True
+        case 'x':
+            sharex = True
+            sharey = False
+        case 'y':
+            sharey = True
+            sharex = False
+        case _:
+            sharex = sharey = False
+
+    # 创建带有 cartopy 投影的子图
+    fig, axes = plt.subplots(
+        row, col, 
+        dpi=2400, 
+        subplot_kw={'projection': ccrs.PlateCarree()},
+        sharex=sharex, 
+        sharey=sharey
+    )
+
+    # 处理 axes 可能是一维或二维数组的情况
+    # 确保 axes 是二维数组以便统一处理
+    if row == 1 and col == 1:
+        axes = np.array([[axes]])
+    elif row == 1:
+        axes = axes[np.newaxis, :] if isinstance(axes, np.ndarray) else np.array([axes])
+    elif col == 1:
+        axes = axes[:, np.newaxis] if isinstance(axes, np.ndarray) else np.array([[ax] for ax in axes])
+    
+    # 为每个子图添加地理特征
+    # 使用 flatten() 获取所有子图，无论 axes 是1D还是2D
+    axes_flat = axes.flatten() if isinstance(axes, np.ndarray) else [axes]
+    for ax in axes_flat:
+        ax.add_feature(cfeat.LAND)
+        ax.add_feature(cfeat.COASTLINE, linewidth=0.5)
+    
     return axes
 
 
