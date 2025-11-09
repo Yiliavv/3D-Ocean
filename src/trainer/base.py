@@ -23,7 +23,6 @@ class BaseTrainer:
     参数:
         area: Area, 区域
         model_class: LightningModule, 模型类
-        checkpoint_path: str, checkpoint 路径 (用于恢复训练)
         dataset_params: dict, 数据集参数
         trainer_params: dict, 训练参数
         model_params: dict, 模型参数
@@ -69,7 +68,6 @@ class BaseTrainer:
             area=area,
             model_class=YourModel,
             dataset_class=YourDataset,
-            checkpoint_path=f'{PROJECT_PATH}/out/checkpoints/YourModel/last.ckpt',  # 加载 checkpoint（使用PROJECT_PATH）
             trainer_params={'epochs': 150},  # 可以修改超参数
             use_checkpoint=True
         )
@@ -199,11 +197,6 @@ class BaseTrainer:
 
         ckpt_path = f"{CHECKPOINT_SAVE_PATH}/{run_id}/{self.model_class.__name__}.ckpt"
 
-        if os.path.exists(ckpt_path):
-            print(f"\n🔄 从 checkpoint 恢复: {ckpt_path}\n")
-        else:
-            print(f"\n🔄 从 checkpoint 恢复: {ckpt_path}\n")
-
         lon = self.area.lon
         lat = self.area.lat
         
@@ -277,7 +270,12 @@ class BaseTrainer:
         train_start = time.time()
         
         # 训练（PyTorch Lightning 自动处理 checkpoint 恢复）
-        trainer.fit(self.model, train_loader, val_loader, ckpt_path=ckpt_path)
+        if os.path.exists(ckpt_path):
+            print(f"\n🔄 使用 checkpoint: {ckpt_path}\n")
+            trainer.fit(self.model, train_loader, val_loader, ckpt_path=ckpt_path)
+        else:
+            print(f"\n🔄 从头开始训练\n")
+            trainer.fit(self.model, train_loader, val_loader)
         
         train_time = time.time() - train_start
         
@@ -313,13 +311,8 @@ class BaseTrainer:
         if self.use_checkpoint:
             print(f"\n💾 Checkpoint:")
             print(f"  • 启用: True")
-            if self.checkpoint_path and os.path.exists(self.checkpoint_path):
-                print(f"  • 恢复自: {self.checkpoint_path}")
-            else:
-                from src.config.params import PROJECT_PATH
-                print(f"  • 保存路径: {PROJECT_PATH}/out/checkpoints/{self.model_class.__name__}")
-                print(f"  • 监控指标: {self.trainer_params.get('monitor', 'val_loss')}")
-                print(f"  • 保存最优: Top-{self.trainer_params.get('save_top_k', 3)}")
+            print(f"  • 监控指标: {self.trainer_params.get('monitor', 'val_loss')}")
+            print(f"  • 保存最优: Top-{self.trainer_params.get('save_top_k', 3)}")
         
         # 数据加载优化
         print("\n📦 数据加载:")
