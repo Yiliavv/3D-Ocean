@@ -534,4 +534,4 @@ def set_seed(seed):
     torch.cuda.manual_seed_all(seed)
     # 确保cuDNN的确定性行为
     torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.benchmark = True

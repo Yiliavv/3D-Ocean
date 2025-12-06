@@ -3,16 +3,11 @@ RG-Transformer: 递归泛化注意力 Transformer 模型
 专为海表温度时空序列预测任务设计
 
 架构设计：
-- 采用标准 Transformer 模式：自己组装 Block，而不是依赖外部 Block 类
-- 注意力机制：使用 RGAttention（递归泛化自注意力，参数共享）
-- FFN：使用标准前馈网络（GELU 激活）
-- 归一化：Pre-LN 模式（训练更稳定）
-- 残差连接：可学习的缩放因子
-
-优势：
-- 灵活性高：可以自由调整每层的组成
-- 职责清晰：注意力模块只负责注意力，Transformer 负责组装
-- 易于调试：Block 的组装逻辑都在一处
+- 采用 Patch Embedding 方案解决分辨率锁定问题
+- 注意力机制：使用 RGAttentionWithGlobalQuery（递归泛化自注意力 + 全局查询注意力）
+- 空间处理：使用 Patch Embedding 将空间网格转换为特征向量，实现分辨率无关
+- 时序处理：对每个 Patch 位置独立进行时序建模，但在全空间共享权重
+- 全局查询：通过可学习的全局查询向量引入历史上下文信息
 """
 
 import torch
@@ -22,41 +17,33 @@ import torch.nn.functional as F
 from lightning import LightningModule
 from torch import optim
 
-# 导入注意力模块（只包含注意力计算，不包含 FFN）
+# 导入注意力模块
 from src.models.SST.PE.SphericalHarmonicEncoding import (
     SpatialSphericalHarmonicEncoding,
 )
 from src.models.SST.Attention.RGAttention import RGAttention
 
 
-class FeedForward(nn.Module):
+class ChannelFeedForward(nn.Module):
     """
-    标准的前馈网络（FFN）
+    基于通道的前馈网络（Channel-Mixing FFN）
     
-    结构: Linear -> GELU -> Dropout -> Linear -> Dropout
-    这是 Transformer 的标准 FFN 实现
+    结构: Linear(d_model) -> GELU -> Dropout -> Linear(d_model) -> Dropout
+    作用于特征维度，对空间位置共享权重
     """
-    def __init__(self, width, height, dim_feedforward, dropout=0.1):
+    def __init__(self, d_model, dim_feedforward, dropout=0.1):
         super().__init__()
-        self.linear = nn.Linear(width * height, dim_feedforward)
-        self.gelu = nn.GELU()
-        self.linear2 = nn.Linear(dim_feedforward, width * height)
+        self.net = nn.Sequential(
+            nn.Linear(d_model, dim_feedforward),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Linear(dim_feedforward, d_model),
+            nn.Dropout(dropout)
+        )
 
     def forward(self, x):
-        batch_size, seq_len, width, height = x.shape
-
-        # [batch, seq_len, width, height] -> [batch, seq_len, dim_feedforward]
-        x = x.view(batch_size, seq_len, width * height)
-
-        # [batch, seq_len, width * height] -> [batch, seq_len, dim_feedforward]
-        x = self.linear(x)
-        x = self.gelu(x)
-
-        # [batch, seq_len, dim_feedforward] -> [batch, seq_len, width * height]
-        x = self.linear2(x)
-        x = x.view(batch_size, seq_len, width, height)
-
-        return x
+        # x: [..., d_model]
+        return self.net(x)
         
 class RGTransformer(LightningModule):
     """递归泛化注意力 Transformer - 海表温度预测模型"""
@@ -71,7 +58,9 @@ class RGTransformer(LightningModule):
                  learning_rate=1e-4,
                  lat_range=None,
                  lon_range=None,
-                 resolution=1.0):
+                 resolution=1.0,
+                 patch_size=4,
+                 **kwargs):
         """
         Args:
             width: 海表温度图像宽度
@@ -81,146 +70,165 @@ class RGTransformer(LightningModule):
             num_heads: 注意力头数
             dim_feedforward: 前馈网络维度
             dropout: Dropout比例
-            recursion_depth: RG注意力的递归深度（递归多少次）
+            recursion_depth: RG注意力的递归深度
             learning_rate: 学习率
-            lat_range: [lat_min, lat_max] 纬度范围（度），用于空间位置编码
-            lon_range: [lon_min, lon_max] 经度范围（度），用于空间位置编码
-            resolution: 空间分辨率（度）
+            lat_range: [lat_min, lat_max] 纬度范围
+            lon_range: [lon_min, lon_max] 经度范围
+            resolution: 空间分辨率
+            patch_size: Patch大小（分块大小），默认4x4
+            global_context_size: 全局查询向量数量
+            use_global_query: 是否启用全局查询
         """
         super().__init__()
         
         self.learning_rate = learning_rate
+        self.train_loss = []
+        self.val_loss = []
         
-        # 输入处理 - 专为海表温度任务设计
         if not (width and height):
-            raise ValueError("Must specify width and height for sea surface temperature data")
+            raise ValueError("Must specify width and height")
         
         self.width = width
         self.height = height
         self.seq_len = seq_len
-        
         self.d_model = d_model
+        self.patch_size = patch_size
         
+        # 空间位置编码（在原始分辨率上计算）
         self.spatial_pos_encoding = SpatialSphericalHarmonicEncoding(
             lat_range=lat_range,
             lon_range=lon_range,
             max_degree=2,
             resolution=resolution
         )
-        # 可学习的空间编码缩放因子（用于稳定训练）
-        self.spatial_enc_scale = nn.Parameter(torch.tensor(0.1))
-    
-        # Transformer 层的组件（直接在这里组装，不使用外部 Block 类）
-        # 单层 Transformer：注意力 + FFN + 归一化 + 残差连接
+        self.spatial_enc_scale = nn.Parameter(torch.tensor(0.5))
         
-        # RG递归注意力模块
+        # ======= Patch Embedding 模块 =======
+        # 将 [1, H, W] -> [d_model, H/p, W/p]
+        self.patch_embed = nn.Conv2d(
+            in_channels=1, 
+            out_channels=d_model,
+            kernel_size=patch_size,
+            stride=patch_size
+        )
+        
+        # ======= Patch Recovery 模块 =======
+        # 将 [d_model, H/p, W/p] -> [1, H, W]
+        self.patch_recovery = nn.ConvTranspose2d(
+            in_channels=d_model,
+            out_channels=1,
+            kernel_size=patch_size,
+            stride=patch_size
+        )
+    
+        # ======= Transformer 组件 =======
+        
+        # RG递归注意力模块（时序注意力）
         self.attention = RGAttention(
             d_model=d_model,
             num_heads=num_heads,
             recursion_depth=recursion_depth,
-            dropout=dropout
+            dropout=dropout,
+            use_global_token=True # 启用轻量级 Global Token
         )
         
-        # 前馈网络（标准 FFN with GELU）
-        self.ffn = FeedForward(width, height, dim_feedforward, dropout)
+        # Channel-Mixing FFN
+        self.ffn = ChannelFeedForward(d_model, dim_feedforward, dropout)
         
         self.dropout = nn.Dropout(dropout)
         
-        # LayerNorm 层（在__init__中初始化，确保设备一致性）
-        # 对空间维度 [width, height] 进行归一化
-        self.layer_norm = nn.LayerNorm((width, height), eps=1e-5)
-        self.norm1 = nn.LayerNorm((width, height), eps=1e-5)
-        self.norm2 = nn.LayerNorm((width, height), eps=1e-5)
+        # LayerNorm 现在作用于 d_model 维度
+        self.layer_norm = nn.LayerNorm(d_model)
+        self.norm1 = nn.LayerNorm(d_model)
+        self.norm2 = nn.LayerNorm(d_model)
         
-        # 可学习的时序权重向量：用于加权聚合所有时间步的信息
+        # 可学习的时序权重向量
         self.temporal_weights = nn.Parameter(torch.ones(seq_len - 1) / (seq_len - 1))
 
-        # 用来记录可能需要可视化的数据
         self.viz = {}
     
     def forward(self, x):
         """
-        前向传播
-        
         Args:
             x: [batch, seq_len-1, width, height]
-        
         Returns:
             output: [batch, width, height]
         """        
-        # 海表温度输入处理 - 先处理 NaN，确保后续计算不会产生 NaN
+        batch_size, seq_len_minus_1, width, height = x.shape
+        
+        # 1. 输入归一化和位置编码
+        # 这一步在原始分辨率进行，利用球谐编码的物理特性
         x = self._normalize_sst(x)
-
-        # ======= 生成空间位置编码 =======
         
-        # [width, height]
+        # 生成空间位置编码 [width, height]
         spatial_enc = self.spatial_pos_encoding()
-            
-        # 确保spatial_weight都在正确的设备上
-        spatial_weight = self.spatial_enc_scale if hasattr(self, 'spatial_enc_scale') and self.spatial_enc_scale is not None else 0.01
-
-        self.viz['position_encoding'] = spatial_enc
-
-        # ======= 添加空间位置编码 =======
+        spatial_weight = self.spatial_enc_scale
         
-        # [batch, seq_len-1, width, height]
-        # 将空间位置编码添加到输入中
+        # 添加位置编码到输入数据中（广播加法）
+        # [batch, seq, W, H] + [W, H]
         x = x + spatial_enc * spatial_weight
-
-        self.viz['sst_after_position_encoding'] = x
-
-        # ======= LayerNorm 和 Dropout =======
-
-        # [batch, seq_len-1, width, height]
-        # 注意：LayerNorm 在 normalize 之后
-        x = self.layer_norm(x)
-        x = self.dropout(x)
-
-        self.viz['x_normed'] = x
-
-        # ======= 注意力计算 =======
-    
-        # [batch, seq_len-1, width, height]
-        # 不使用 mask，因为 NaN 已经通过 normalize 处理了
-        attn_out = self.attention(self.norm1(x))
-
-        self.viz['attention'] = attn_out
-
-        # ======= 计算 FFN =======
-
-        ffn_out = self.ffn(self.norm2(x))
-
-        self.viz['ffn'] = ffn_out
-
-        # ======= 添加注意力输出（标准残差连接） =======
         
-        # [batch, seq_len-1, width, height]
-        x = x + attn_out
+        # 2. Patch Embedding
+        # reshape to combine batch and seq for Conv2d: [B*S, 1, W, H]
+        x_flat = x.view(-1, 1, width, height)
         
-        self.viz['sst_after_attention'] = x
-
-        # ======= 添加 FFN 输出（标准残差连接） =======
+        # [B*S, d_model, W', H']
+        x_embed = self.patch_embed(x_flat)
         
-        # [batch, seq_len-1, width, height]
-        x = x + ffn_out
-
-        self.viz['sst_after'] = x
-
-        # ======= 可学习的时序聚合 =======
-        # [batch, seq_len-1, width, height] -> [batch, width, height]
+        _, d_model, w_feat, h_feat = x_embed.shape
         
-        # 对权重进行 softmax 归一化，确保权重和为1
-        normalized_weights = F.softmax(self.temporal_weights, dim=0)  # [seq_len-1]
+        # 3. 准备 Transformer 输入
+        # 我们需要在时序维度上进行 Attention，对每个空间位置独立处理
+        # Reshape: [B, S, D, W', H']
+        x_embed = x_embed.view(batch_size, seq_len_minus_1, d_model, w_feat, h_feat)
         
-        # 记录时序权重用于可视化
-        self.viz['temporal_weights'] = normalized_weights
+        # Permute to [B, W', H', S, D] -> Flatten spatial: [B*W'*H', S, D]
+        # 这样每个 (batch_idx, spatial_loc) 都有一个独立的时间序列
+        x_tokens = x_embed.permute(0, 3, 4, 1, 2).contiguous()
+        x_tokens = x_tokens.view(-1, seq_len_minus_1, d_model)
         
-        # 对每个时间步应用权重并加权求和
-        # normalized_weights: [seq_len-1] -> [1, seq_len-1, 1, 1]
-        weights = normalized_weights.view(1, -1, 1, 1)
+        # 4. Transformer Block
         
-        # 加权求和：[batch, seq_len-1, width, height] -> [batch, width, height]
-        output = (x * weights).sum(dim=1)
+        # LayerNorm & Dropout
+        x_tokens = self.layer_norm(x_tokens)
+        x_tokens = self.dropout(x_tokens)
+        
+        # Attention Block
+        # [N, S, D]
+        attn_out = self.attention(self.norm1(x_tokens))
+        x_tokens = x_tokens + attn_out  # Residual
+        
+        # FFN Block
+        ffn_out = self.ffn(self.norm2(x_tokens))
+        x_tokens = x_tokens + ffn_out   # Residual
+        
+        # 5. 时序聚合
+        # [N, S, D] -> [N, D] (Weighted Sum)
+        
+        normalized_weights = F.softmax(self.temporal_weights, dim=0)
+        # weights: [S, 1]
+        weights = normalized_weights.view(-1, 1)
+        
+        # [N, S, D] * [S, 1] -> sum(dim=1) -> [N, D]
+        # x_tokens: [batch*w'*h', seq, d_model]
+        output_tokens = (x_tokens * weights).sum(dim=1)
+        
+        # 6. 恢复空间结构和分辨率
+        # [B*W'*H', D] -> [B, W', H', D]
+        output_tokens = output_tokens.view(batch_size, w_feat, h_feat, d_model)
+        
+        # [B, D, W', H'] for ConvTranspose2d
+        output_tokens = output_tokens.permute(0, 3, 1, 2).contiguous()
+        
+        # Upsample: [B, D, W', H'] -> [B, 1, W, H]
+        output_map = self.patch_recovery(output_tokens)
+        
+        # Remove channel dim: [B, W, H]
+        output = output_map.squeeze(1)
+        
+        # 保存一些可视化数据 (取第一个样本的均值等，避免数据量过大)
+        if batch_size > 0:
+            self.viz['temporal_weights'] = normalized_weights
         
         return output
     
@@ -235,62 +243,44 @@ class RGTransformer(LightningModule):
         """
         处理NaN值的MSE损失函数
         
-        海洋数据中陆地区域为NaN，此函数只计算有效海洋区域的损失
-        
         Args:
-            y_pred: 模型预测值 [batch, channels, height, width]
-            y_true: 真实值 [batch, channels, height, width]
-        
-        Returns:
-            loss: MSE损失值，如果没有有效值则返回0（保持在计算图中）
+            y_pred: [batch, width, height]
+            y_true: [batch, width, height]
         """
-        # 创建有效值掩码：同时考虑y_true和y_pred的NaN
-        # 只有当y_true和y_pred都不是NaN的位置才参与损失计算
+        # 创建有效值掩码
         y_true_mask = torch.isnan(y_true)
         y_pred_mask = torch.isnan(y_pred)
-        valid_mask = ~(y_true_mask | y_pred_mask)  # 两个都不是NaN才有效
+        valid_mask = ~(y_true_mask | y_pred_mask)
         
-        # 统计有效值数量
         num_valid = valid_mask.sum()
         
         if num_valid > 0:
-            # 只对有效区域计算损失
             y_pred_valid = y_pred[valid_mask]
             y_true_valid = y_true[valid_mask]
             loss = F.mse_loss(y_pred_valid, y_true_valid, reduction='mean')
             return loss
         else:
-            # 没有有效值时返回0，但保持在计算图中
             return y_pred.sum() * 0.0
     
     def training_step(self, batch, batch_idx):
         x, y = batch
         y_pred = self(x)
-        
-        # 使用自定义MSE损失（自动处理NaN值）
         loss = self.custom_mse_loss(y_pred, y)
-        
+        self.train_loss.append(loss.detach().cpu().item())
         self.log('train_loss', loss, prog_bar=True, on_step=True, on_epoch=True)
         return loss
     
     def validation_step(self, batch, batch_idx):
         x, y = batch
         y_pred = self(x)
-        
-        # 使用自定义MSE损失处理NaN值
         val_loss = self.custom_mse_loss(y_pred, y)
-        
+        self.val_loss.append(val_loss.detach().cpu().item())
         self.log('val_loss', val_loss, prog_bar=True, on_step=False, on_epoch=True)
-
         return val_loss
     
     def configure_optimizers(self):
         optimizer = optim.AdamW(
             self.parameters(), 
             lr=self.learning_rate,
-            weight_decay=0.01,  # 添加权重衰减
-            betas=(0.9, 0.999),
-            eps=1e-8
         )
-
         return optimizer

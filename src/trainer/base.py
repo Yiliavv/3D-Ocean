@@ -291,7 +291,9 @@ class BaseTrainer:
 
         # 处理 wandb 训练结束
         if self.wandb:
-            self.wandb.finish(train_time, self.checkpoint_callback)
+            # 默认训练结束后关闭 wandb run，除非在 trainer_params 中显式设置为 False
+            close_run = self.trainer_params.get('close_wandb', True)
+            self.wandb.finish(train_time, self.checkpoint_callback, close_run=close_run)
 
         return self.model
     
@@ -590,22 +592,20 @@ class BasePrediction:
 
         # 绘制模型可视化
 
-        x_normed = self.model.viz['x_normed'].detach().cpu().numpy()[0, :, :, :]
-        position_encoding = self.model.viz['position_encoding'].detach().cpu().numpy()
-        attention_out = self.model.viz['attention'].detach().cpu().numpy()[0, :, :, :]
-        ffn_out = self.model.viz['ffn'].detach().cpu().numpy()[0, :, :, :]
-        sst_after = self.model.viz['sst_after'].detach().cpu().numpy()[0, :, :, :]
-        temporal_weights = self.model.viz['temporal_weights'].detach().cpu().numpy()
+        # position_encoding = self.model.viz['position_encoding'].detach().cpu().numpy()
+        # attention_out = self.model.viz['attention'].detach().cpu().numpy()[0, :, :, :]
+        # ffn_out = self.model.viz['ffn'].detach().cpu().numpy()[0, :, :, :]
+        # sst_after = self.model.viz['sst_after'].detach().cpu().numpy()[0, :, :, :]
+        # temporal_weights = self.model.viz['temporal_weights'].detach().cpu().numpy()
 
-        print(f"--------------------------------")
-        print(f" 📊 Model: {self.model_class.__name__} Prediction Position Encoding:")
-        print(f"x_normed: {x_normed.shape}")
-        print(f"position_encoding: {position_encoding.shape}")
-        print(f"attention_out: {attention_out.shape}")
-        print(f"ffn_out: {ffn_out.shape}")
-        print(f"sst_after: {sst_after.shape}")
-        print(f"temporal_weights: {temporal_weights.shape}")
-        print(f"--------------------------------")
+        # print(f"--------------------------------")
+        # print(f" 📊 Model: {self.model_class.__name__} Prediction Position Encoding:")
+        # print(f"position_encoding: {position_encoding.shape}")
+        # print(f"attention_out: {attention_out.shape}")
+        # print(f"ffn_out: {ffn_out.shape}")
+        # print(f"sst_after: {sst_after.shape}")
+        # print(f"temporal_weights: {temporal_weights.shape}")
+        # print(f"--------------------------------")
 
 
         # 其他参数
@@ -623,10 +623,10 @@ class BasePrediction:
             ax_sst = plot_sst(pred_output, self.area.lon, self.area.lat, step=resolution)
             ax_diff = plot_sst_diff(pred_diff, self.area.lon, self.area.lat, step=resolution)
 
-            plot_attention(position_encoding, self.area.lon, self.area.lat, step=resolution, title='Position Encoding')
-            plot_sequence(x_normed, self.area.lon, self.area.lat, step=resolution, title='X Normed', plot_type='attention')
-            plot_sequence(attention_out, self.area.lon, self.area.lat, step=resolution, title='Attention out', plot_type='attention')
-            plot_sequence(ffn_out, self.area.lon, self.area.lat, step=resolution, title='FFN Output', plot_type='ffn')
+            # plot_attention(position_encoding, self.area.lon, self.area.lat, step=resolution, title='Position Encoding')
+            # plot_sequence(x_normed, self.area.lon, self.area.lat, step=resolution, title='X Normed', plot_type='attention')
+            # plot_sequence(attention_out, self.area.lon, self.area.lat, step=resolution, title='Attention out', plot_type='attention')
+            # plot_sequence(ffn_out, self.area.lon, self.area.lat, step=resolution, title='FFN Output', plot_type='ffn')
 
             
             # 将图像记录到 wandb（如果 wandb 可用）

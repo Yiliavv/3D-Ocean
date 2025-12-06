@@ -73,7 +73,7 @@ class Up(nn.Module):
         return self.conv(x)
 
 
-class UNet3DReconstructor(LightningModule):
+class UNet3D(LightningModule):
     """
     U-Net 3D 温度场重建器
     
