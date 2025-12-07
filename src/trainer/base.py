@@ -179,7 +179,7 @@ class BaseTrainer:
         
         checkpoint_callback = ModelCheckpoint(
             dirpath= f"{CHECKPOINT_SAVE_PATH}/{self.trainer_uid}",
-            filename=f'{self.model_class.__name__}.ckpt',
+            filename=f'{self.model_class.__name__}',
             monitor=self.trainer_params.get('monitor', 'val_loss'),
             mode=self.trainer_params.get('mode', 'min'),
             save_top_k=self.trainer_params.get('save_top_k', 1),
@@ -187,7 +187,7 @@ class BaseTrainer:
             verbose=False,
         )
         
-        print(f"\n💾 Checkpoint: {CHECKPOINT_SAVE_PATH}/{self.trainer_uid}/{f'{self.model_class.__name__}.ckpt'}\n")
+        print(f"\n💾 Checkpoint: {CHECKPOINT_SAVE_PATH}/{self.trainer_uid}/{f'{self.model_class.__name__}'}\n")
         
         return checkpoint_callback
     
@@ -195,7 +195,7 @@ class BaseTrainer:
 
         run_id = run_id or self.trainer_uid
 
-        ckpt_path = f"{CHECKPOINT_SAVE_PATH}/{run_id}/{self.model_class.__name__}.ckpt"
+        ckpt_path = f"{CHECKPOINT_SAVE_PATH}/{run_id}/{self.model_class.__name__}"
 
         lon = self.area.lon
         lat = self.area.lat
@@ -488,7 +488,7 @@ class BasePrediction:
             downloaded_ckpt = os.path.join(cache_dir, ckpt_files[0])
 
             if downloaded_ckpt != checkpoint_file:
-                print(f"  • 重命名文件: {ckpt_files[0]} -> {self.model_class.__name__}.ckpt")
+                print(f"  • 重命名文件: {ckpt_files[0]} -> {self.model_class.__name__}")
                 os.rename(downloaded_ckpt, checkpoint_file)
         
         # 先创建模型实例（不加载权重），用于初始化延迟初始化的层

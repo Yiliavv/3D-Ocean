@@ -81,6 +81,8 @@ class Argo3DTemperatureDataset(Dataset):
         
         # 直接使用原始数据（保留 NaN），由模型的 custom_mse_loss 处理
         temp = np.transpose(temp, (1, 0, 2))
+        # 南北纬度对换，转换为正北正南
+        temp = temp[::-1, :, :]
         temp = temp[lat_grid, lon_grid, self.depth[0]:self.depth[1]]
         
         # print(f"=========== temp 3d ==========: {temp.shape}")
