@@ -124,7 +124,7 @@ class UNet3DNatureAnalyzer:
         """
         if groups is None:
             groups = ['fig1_architecture', 'fig2_feature_maps', 'fig3_skip_connections',
-                     'fig4_nan_handling']
+                     'fig4_nan_handling', 'fig5_vertical_reconstruction', 'fig6_temperature_profiles']
         
         print("=" * 100)
         print("🔬 UNet3D Model Analysis - Nature Quality Figures")
@@ -157,6 +157,34 @@ class UNet3DNatureAnalyzer:
             if verbose:
                 print("\n🌊 Figure 4: NaN Handling Mechanism...")
             self.results['fig4'] = self.generate_fig4_nan_handling(sample_data, verbose=verbose)
+        
+        # Figure 5: Vertical Reconstruction
+        if 'fig5_vertical_reconstruction' in groups:
+            if verbose:
+                print("\n📐 Figure 5: Vertical Temperature Reconstruction...")
+            self.results['fig5'] = self.generate_fig5_vertical_reconstruction(sample_data, verbose=verbose)
+        
+        # Figure 6: Temperature Profiles
+        if 'fig6_temperature_profiles' in groups:
+            if verbose:
+                print("\n📈 Figure 6: Temperature Profiles at Multiple Locations...")
+            # 使用 Figure 5 的输出，或重新计算
+            if 'fig5' in self.results and 'output_3d' in self.results['fig5']:
+                output_3d = self.results['fig5']['output_3d']
+                depths = self.results['fig5']['depths']
+            else:
+                # 重新计算
+                sample_input = torch.from_numpy(sample_data).unsqueeze(0).unsqueeze(0).float()
+                self.model.eval()
+                with torch.no_grad():
+                    output = self.model(sample_input)
+                output_3d = output[0].cpu().numpy()
+                nan_mask = np.isnan(sample_data)
+                for d in range(output_3d.shape[0]):
+                    output_3d[d][nan_mask] = np.nan
+                depths = np.array([0, 10, 50, 100, 200, 400, 600, 800, 1000, 1500])[:output_3d.shape[0]]
+            
+            self.results['fig6'] = self.generate_fig6_temperature_profiles(output_3d, depths, verbose=verbose)
         
         print("\n" + "=" * 100)
         print("✅ Analysis Complete! Figures saved to:", self.output_dir)
@@ -311,58 +339,36 @@ class UNet3DNatureAnalyzer:
     def generate_fig3_skip_connections(self, sample_data: np.ndarray, verbose: bool = True) -> Dict:
         """
         Figure 3: Impact of Skip Connections
+        通过用零张量替代跳跃连接来展示其重要性（使用同一个训练好的模型）
         """
-        # 创建无跳跃连接的对比模型
-        class UNet3DNoSkip(nn.Module):
-            def __init__(self, base_channels):
-                super().__init__()
-                from src.models.Profile.UNet3D import DoubleConv, Down
-                
-                self.inc = DoubleConv(1, base_channels)
-                self.down1 = Down(base_channels, base_channels * 2)
-                self.down2 = Down(base_channels * 2, base_channels * 4)
-                self.down3 = Down(base_channels * 4, base_channels * 8)
-                self.down4 = Down(base_channels * 8, base_channels * 16)
-                
-                self.up1 = nn.Sequential(
-                    nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
-                    DoubleConv(base_channels * 16, base_channels * 8))
-                self.up2 = nn.Sequential(
-                    nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
-                    DoubleConv(base_channels * 8, base_channels * 4))
-                self.up3 = nn.Sequential(
-                    nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
-                    DoubleConv(base_channels * 4, base_channels * 2))
-                self.up4 = nn.Sequential(
-                    nn.Upsample(scale_factor=2, mode='bilinear', align_corners=True),
-                    DoubleConv(base_channels * 2, base_channels))
-                
-                self.outc = nn.Conv2d(base_channels, 10, kernel_size=1)
-            
-            def forward(self, x):
-                x = torch.nan_to_num(x, nan=0.0)
-                x = self.inc(x)
-                x = self.down1(x)
-                x = self.down2(x)
-                x = self.down3(x)
-                x = self.down4(x)
-                x = self.up1(x)
-                x = self.up2(x)
-                x = self.up3(x)
-                x = self.up4(x)
-                return self.outc(x)
         
-        base_channels = self.model.inc.double_conv[0].out_channels
-        model_no_skip = UNet3DNoSkip(base_channels)
+        def forward_no_skip(model, x):
+            """无跳跃连接的前向传播 - 用零张量替代跳跃连接"""
+            x = torch.nan_to_num(x, nan=0.0)
+            
+            # 编码器 - 正常执行
+            x1 = model.inc(x)
+            x2 = model.down1(x1)
+            x3 = model.down2(x2)
+            x4 = model.down3(x3)
+            x5 = model.down4(x4)
+            
+            # 解码器 - 用零张量替代跳跃连接特征
+            # 这样保持模型权重不变，只是不传递高分辨率信息
+            x = model.up1(x5, torch.zeros_like(x4))
+            x = model.up2(x, torch.zeros_like(x3))
+            x = model.up3(x, torch.zeros_like(x2))
+            x = model.up4(x, torch.zeros_like(x1))
+            
+            return model.outc(x)
         
         sample_input = torch.from_numpy(sample_data).unsqueeze(0).unsqueeze(0).float()
         
         self.model.eval()
-        model_no_skip.eval()
         
         with torch.no_grad():
             output_with_skip = self.model(sample_input)
-            output_no_skip = model_no_skip(sample_input)
+            output_no_skip = forward_no_skip(self.model, sample_input)
         
         # 绘制对比
         fig, axes = plt.subplots(2, 5, figsize=(14, 6),
@@ -468,6 +474,197 @@ class UNet3DNatureAnalyzer:
         plt.close()
         
         return {'save_path': str(save_path)}
+    
+    def generate_fig5_vertical_reconstruction(self, sample_data: np.ndarray, verbose: bool = True) -> Dict:
+        """
+        Figure 5: Vertical Temperature Reconstruction from SST
+        Shows the 2D to 3D reconstruction process
+        """
+        # 准备输入
+        sample_input = torch.from_numpy(sample_data).unsqueeze(0).unsqueeze(0).float()
+        nan_mask = np.isnan(sample_data)
+        
+        # 模型预测
+        self.model.eval()
+        with torch.no_grad():
+            output_3d = self.model(sample_input)  # [1, depth, H, W]
+        
+        output_np = output_3d[0].cpu().numpy()  # [depth, H, W]
+        
+        # 应用NaN掩码
+        for d in range(output_np.shape[0]):
+            output_np[d][nan_mask] = np.nan
+        
+        # 创建图形
+        fig = plt.figure(figsize=(16, 8))
+        gs = fig.add_gridspec(2, 5, hspace=0.3, wspace=0.25, 
+                             height_ratios=[1, 1])
+        
+        # Row 1: 输入SST
+        ax0 = plt.subplot(gs[0, 0], projection=ccrs.PlateCarree())
+        im0 = ax0.imshow(sample_data, cmap='RdYlBu_r', origin='upper',
+                        extent=[-180, 180, -80, 80], transform=ccrs.PlateCarree(),
+                        vmin=-2, vmax=30)
+        ax0.coastlines(linewidth=0.3)
+        ax0.add_feature(cfeature.LAND, facecolor='gray', alpha=0.3)
+        ax0.set_title('(a) Input SST', fontsize=10, fontweight='bold')
+        ax0.set_xticks([])
+        ax0.set_yticks([])
+        plt.colorbar(im0, ax=ax0, orientation='horizontal', pad=0.02, fraction=0.05)
+        
+        # Row 1: 不同深度层的水平切面 (选择4个代表性深度)
+        depth_indices = [0, 3, 6, 9]
+        depth_labels = ['Surface (0m)', '100m', '600m', '1500m']
+        
+        for i, (d_idx, d_label) in enumerate(zip(depth_indices, depth_labels)):
+            ax = plt.subplot(gs[0, i+1], projection=ccrs.PlateCarree())
+            
+            data = output_np[d_idx]
+            im = ax.imshow(data, cmap='RdYlBu_r', origin='upper',
+                          extent=[-180, 180, -80, 80], transform=ccrs.PlateCarree(),
+                          vmin=-2, vmax=30)
+            ax.coastlines(linewidth=0.3)
+            ax.add_feature(cfeature.LAND, facecolor='gray', alpha=0.3)
+            ax.set_title(f'({chr(98+i)}) {d_label}', fontsize=10, fontweight='bold')
+            ax.set_xticks([])
+            ax.set_yticks([])
+            plt.colorbar(im, ax=ax, orientation='horizontal', pad=0.02, fraction=0.05)
+        
+        # 创建深度坐标
+        depths = np.array([0, 10, 50, 100, 200, 400, 600, 800, 1000, 1500])[:output_np.shape[0]]
+        lons = np.linspace(-180, 180, output_np.shape[2])
+        lats = np.linspace(-80, 80, output_np.shape[1])
+        
+        # Row 2: 垂直剖面 - 沿赤道 (lat=0)
+        ax_eq = plt.subplot(gs[1, 0:3])
+        
+        lat_idx = output_np.shape[1] // 2
+        vertical_section_eq = output_np[:, lat_idx, :]
+        
+        LON, DEP = np.meshgrid(lons, depths)
+        
+        im_eq = ax_eq.contourf(LON, DEP, vertical_section_eq, levels=20, 
+                               cmap='RdYlBu_r', vmin=-2, vmax=30)
+        ax_eq.contour(LON, DEP, vertical_section_eq, levels=10, 
+                     colors='black', linewidths=0.3, alpha=0.3)
+        ax_eq.set_xlabel('Longitude (°E)', fontsize=10)
+        ax_eq.set_ylabel('Depth (m)', fontsize=10)
+        ax_eq.set_title('(f) Equatorial Vertical Section (Lat = 0°)', 
+                       fontsize=10, fontweight='bold')
+        ax_eq.invert_yaxis()
+        ax_eq.set_ylim(depths[-1], 0)
+        plt.colorbar(im_eq, ax=ax_eq, orientation='vertical', 
+                    label='Temperature (°C)', pad=0.02)
+        
+        # Row 2: 垂直剖面 - 沿特定经度
+        ax_pac = plt.subplot(gs[1, 3:5])
+        
+        lon_idx = output_np.shape[2] // 2
+        vertical_section_pac = output_np[:, :, lon_idx]
+        
+        LAT, DEP2 = np.meshgrid(lats, depths)
+        
+        im_pac = ax_pac.contourf(LAT, DEP2, vertical_section_pac, levels=20,
+                                cmap='RdYlBu_r', vmin=-2, vmax=30)
+        ax_pac.contour(LAT, DEP2, vertical_section_pac, levels=10,
+                      colors='black', linewidths=0.3, alpha=0.3)
+        ax_pac.set_xlabel('Latitude (°N)', fontsize=10)
+        ax_pac.set_ylabel('Depth (m)', fontsize=10)
+        ax_pac.set_title('(g) Meridional Section (Lon = 0°)', 
+                        fontsize=10, fontweight='bold')
+        ax_pac.invert_yaxis()
+        ax_pac.set_ylim(depths[-1], 0)
+        plt.colorbar(im_pac, ax=ax_pac, orientation='vertical',
+                    label='Temperature (°C)', pad=0.02)
+        
+        plt.tight_layout()
+        save_path = self.output_dir / 'Figure5_VerticalReconstruction.png'
+        plt.savefig(save_path, dpi=600, bbox_inches='tight')
+        if verbose:
+            print(f"✅ Figure 5 saved: {save_path}")
+        plt.close()
+        
+        return {'save_path': str(save_path), 'output_3d': output_np, 'depths': depths}
+    
+    def generate_fig6_temperature_profiles(self, output_3d: np.ndarray, 
+                                           depths: np.ndarray,
+                                           verbose: bool = True) -> Dict:
+        """
+        Figure 6: Temperature Profiles at Multiple Locations
+        多个代表性位置的温度廓线对比图
+        """
+        H, W = output_3d.shape[1], output_3d.shape[2]
+        lats = np.linspace(-80, 80, H)
+        lons = np.linspace(-180, 180, W)
+        
+        # 定义多个代表性观测点（覆盖不同纬度带和海域）
+        # (lat_idx, lon_idx, name, color, marker)
+        locations = [
+            # 热带海域
+            (H//2, W//4, 'Tropical Pacific (0°, 90°W)', '#E63946', 'o'),
+            (H//2, W*3//4, 'Tropical Indian (0°, 90°E)', '#F4A261', 's'),
+            (H//2, W//2, 'Tropical Atlantic (0°, 0°)', '#E76F51', '^'),
+            # 副热带
+            (int(H*0.625), W//4, 'Subtropical N. Pacific (20°N, 90°W)', '#2A9D8F', 'D'),
+            (int(H*0.375), W*3//4, 'Subtropical S. Indian (20°S, 90°E)', '#264653', 'v'),
+            # 中纬度
+            (int(H*0.75), W//2, 'Mid-lat N. Atlantic (40°N, 0°)', '#457B9D', 'p'),
+            (int(H*0.25), W//2, 'Mid-lat S. Atlantic (40°S, 0°)', '#1D3557', 'h'),
+            # 高纬度
+            (int(H*0.875), W//4, 'Subpolar N. Pacific (60°N, 90°W)', '#9B2335', '*'),
+            (int(H*0.125), W*3//4, 'Southern Ocean (60°S, 90°E)', '#023047', 'X'),
+        ]
+        
+        # 创建图形
+        fig, ax = plt.subplots(figsize=(10, 8))
+        
+        # 绘制所有廓线
+        for lat_i, lon_i, loc_name, color, marker in locations:
+            # 边界检查
+            lat_i = min(max(lat_i, 0), H-1)
+            lon_i = min(max(lon_i, 0), W-1)
+            
+            temperature_profile = output_3d[:, lat_i, lon_i]
+            
+            # 跳过全NaN的廓线
+            if np.all(np.isnan(temperature_profile)):
+                continue
+            
+            ax.plot(temperature_profile, depths, marker=marker, linestyle='-', 
+                   linewidth=2, markersize=6, color=color, label=loc_name, alpha=0.85)
+        
+        ax.set_xlabel('Temperature (°C)', fontsize=12)
+        ax.set_ylabel('Depth (m)', fontsize=12)
+        ax.invert_yaxis()
+        ax.set_ylim(depths[-1], 0)
+        ax.set_xlim(-2, 32)
+        ax.grid(True, alpha=0.3, linestyle='--')
+        
+        # 添加图例
+        ax.legend(loc='lower right', fontsize=9, framealpha=0.95, 
+                 ncol=1, borderaxespad=1)
+        
+        # 添加典型温度结构标注
+        ax.axhspan(0, 100, alpha=0.05, color='red', label='_Mixed Layer')
+        ax.axhspan(100, 500, alpha=0.05, color='blue', label='_Thermocline')
+        
+        # 添加文字标注
+        ax.text(28, 50, 'Mixed\nLayer', fontsize=9, ha='center', va='center', 
+               color='gray', style='italic')
+        ax.text(28, 300, 'Thermocline', fontsize=9, ha='center', va='center', 
+               color='gray', style='italic')
+        ax.text(28, 1000, 'Deep\nWater', fontsize=9, ha='center', va='center', 
+               color='gray', style='italic')
+        
+        plt.tight_layout()
+        save_path = self.output_dir / 'Figure6_TemperatureProfiles.png'
+        plt.savefig(save_path, dpi=600, bbox_inches='tight')
+        if verbose:
+            print(f"✅ Figure 6 saved: {save_path}")
+        plt.close()
+        
+        return {'save_path': str(save_path)}
+    
 
 
 def analyze_unet3d_nature(model: nn.Module,
