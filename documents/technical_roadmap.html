@@ -1,0 +1,1096 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Technical Roadmap: Global Ocean Temperature Modeling</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #003366; /* Deep Ocean Navy */
+            --secondary-color: #005b80; /* Sea Blue - Darker for contrast */
+            --accent-color: #a03000; /* Rust/Coral - Darker for contrast */
+            --bg-color: #ffffff;
+            --card-bg: #ffffff;
+            --text-main: #000000; /* Pure black for paper */
+            --text-muted: #333333; /* Dark gray */
+            --border-color: #000000; /* High contrast border */
+            --arrow-color: #000000; /* Black arrows */
+            --line-width: 2px;
+        }
+
+        #lang-btn {
+            position: absolute;
+            top: 20px;
+            right: 180px;
+            padding: 8px 16px;
+            background-color: #fff;
+            color: var(--primary-color);
+            border: 2px solid var(--primary-color);
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: "Times New Roman", serif; /* Serif for academic look */
+            font-weight: 600;
+            font-size: 16px;
+            z-index: 1000;
+        }
+
+        #lang-btn:hover {
+            background-color: #f0f0f0;
+        }
+
+        #export-btn {
+            position: absolute;
+            top: 20px;
+            right: 20px;
+            padding: 8px 16px;
+            background-color: var(--secondary-color);
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-family: "Times New Roman", serif;
+            font-weight: 600;
+            font-size: 16px;
+            z-index: 1000;
+        }
+
+        #export-btn:hover {
+            background-color: var(--primary-color);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: "Times New Roman", Times, serif; /* Academic standard */
+            background-color: #ffffff;
+            color: var(--text-main);
+            line-height: 1.4;
+            margin: 0;
+            padding: 20px;
+            min-width: 1000px;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: #ffffff;
+            padding: 40px;
+            border: none; /* Remove border for cleaner export */
+            position: relative;
+        }
+
+        h1 {
+            font-family: Arial, sans-serif; /* Headers can remain sans-serif for clarity or match body */
+            font-size: 36px;
+            color: var(--primary-color);
+            margin: 0 0 10px 0;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            text-align: center;
+        }
+
+        .subtitle {
+            font-family: "Times New Roman", serif;
+            font-size: 20px;
+            color: var(--secondary-color);
+            font-weight: bold;
+            text-align: center;
+            margin-bottom: 40px;
+            display: block;
+        }
+
+        /* Diagram Layout */
+        .roadmap-diagram {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 50px;
+            position: relative;
+            width: 100%;
+        }
+
+        /* Phase Box Styles */
+        .phase-box {
+            background: var(--card-bg);
+            border: 2px solid var(--border-color);
+            border-radius: 0; /* Sharp corners */
+            padding: 0;
+            position: relative;
+            width: 100%;
+            z-index: 10;
+            box-shadow: none; /* Flat style */
+        }
+
+        .phase-header {
+            background-color: #f0f0f0; /* Light gray header */
+            padding: 10px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 2px solid var(--border-color);
+        }
+
+        .phase-title-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .phase-icon {
+            width: 28px;
+            height: 28px;
+            fill: var(--primary-color);
+        }
+
+        .phase-title {
+            font-family: Arial, sans-serif;
+            font-weight: 800;
+            font-size: 20px; /* Larger */
+            color: var(--primary-color);
+            text-transform: uppercase;
+        }
+
+        .phase-subtitle {
+            font-family: "Times New Roman", serif;
+            font-size: 20px; /* Larger */
+            color: var(--text-main);
+            font-weight: 600;
+        }
+
+        .phase-content {
+            padding: 20px;
+        }
+
+        /* --- Phase 1 Pipeline Styles --- */
+        .pipeline-container {
+            display: flex;
+            align-items: stretch;
+            justify-content: space-between;
+            gap: 15px;
+            margin-bottom: 15px;
+            background: #fff;
+            padding: 10px;
+            border: none;
+        }
+
+        .pipeline-step {
+            flex: 1;
+            background: #fff;
+            border: 2px solid var(--border-color);
+            border-radius: 0;
+            padding: 15px 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            position: relative;
+        }
+
+        .pipeline-step.source { border-top: 4px solid #1976d2; }
+        .pipeline-step.process { border-top: 4px solid #f57c00; }
+        .pipeline-step.output { border-top: 4px solid #388e3c; }
+
+        .step-icon { font-size: 24px; margin-bottom: 10px; line-height: 1; }
+        
+        .step-header {
+            font-family: Arial, sans-serif;
+            font-size: 16px; /* Larger */
+            font-weight: 700;
+            text-transform: uppercase;
+            color: #000;
+            margin-bottom: 10px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 5px;
+            width: 100%;
+        }
+
+        .step-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            width: 100%;
+        }
+
+        .mini-item {
+            font-size: 16px; /* Larger */
+            background: #f9f9f9;
+            padding: 6px 8px;
+            border-radius: 0;
+            color: #000;
+            border: 1px solid #ccc;
+            font-weight: 500;
+        }
+        
+        .mini-item strong { color: #000; }
+
+        .pipeline-arrow {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #000;
+            font-size: 28px;
+            padding: 0 5px;
+            font-weight: bold;
+        }
+
+        /* --- Phase 2 & 3 Model Architecture Styles --- */
+        .model-stack-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 10px;
+            background: #fff;
+            padding: 0;
+            border: none;
+        }
+
+        .model-layer {
+            width: 100%;
+            text-align: center;
+            padding: 10px;
+            border-radius: 0;
+            font-size: 16px; /* Larger */
+            font-weight: 600;
+            position: relative;
+            border: 2px solid var(--border-color);
+        }
+
+        .model-layer.input-layer {
+            background: #f0f8ff;
+            color: #000;
+        }
+
+        .model-layer.output-layer {
+            background: #f0fff0;
+            color: #000;
+        }
+
+        .stack-arrow {
+            color: var(--arrow-color);
+            font-size: 20px;
+            line-height: 1;
+            font-weight: bold;
+        }
+
+        .model-core-box {
+            width: 100%;
+            background: #fffbf0;
+            border: 2px solid var(--border-color);
+            border-radius: 0;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+            position: relative;
+        }
+        
+        .model-core-box.blue-theme {
+            background: #f0faff;
+            border-color: var(--border-color);
+        }
+        
+        .model-core-box.blue-theme .core-title {
+            color: #005b80;
+            border-bottom-color: #005b80;
+        }
+
+        .core-title {
+            font-family: Arial, sans-serif;
+            font-weight: 700;
+            font-size: 18px; /* Larger */
+            color: #a03000;
+            text-align: center;
+            text-transform: uppercase;
+            border-bottom: 2px solid #ccc;
+            padding-bottom: 8px;
+            margin-bottom: 8px;
+        }
+
+        .component-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        .model-component {
+            flex: 1;
+            background: #fff;
+            border: 1px solid #000;
+            border-radius: 0;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            text-align: center;
+            font-size: 15px; /* Larger */
+            color: #000;
+            font-weight: 600;
+        }
+
+        .model-component.innovation {
+            background: #fff3e0;
+        }
+        
+        .model-component.blue-highlight {
+            background: #e1f5fe;
+        }
+
+        .comp-icon {
+            font-size: 20px;
+            margin-bottom: 4px;
+            display: none; /* Hide icons in components for cleaner look */
+        }
+
+        .comp-label {
+            font-weight: 700;
+            color: #000;
+            font-size: 16px;
+        }
+
+        .validation-strip {
+            width: 100%;
+            background: #f5f5f5;
+            border: 1px solid var(--border-color);
+            padding: 8px;
+            text-align: center;
+            font-size: 15px; /* Larger */
+            color: #000;
+            margin-top: 5px;
+            border-radius: 0;
+            font-weight: 500;
+        }
+
+
+        /* --- Phase 4 Evaluation Grid Styles --- */
+        .eval-grid-container {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 15px;
+            background: #fff;
+            padding: 0;
+            border: none;
+            margin-bottom: 15px;
+        }
+
+        .eval-card {
+            background: #fff;
+            border: 2px solid var(--border-color);
+            border-radius: 0;
+            padding: 12px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            text-align: center;
+            box-shadow: none;
+        }
+
+        .eval-card:hover {
+            border-color: var(--border-color);
+            background: #f9f9f9;
+        }
+        
+        .eval-icon-box {
+            display: none; /* Hide icons for paper style */
+        }
+        
+        .eval-title {
+            font-family: Arial, sans-serif;
+            font-size: 16px; /* Larger */
+            font-weight: 700;
+            color: #000;
+            margin-bottom: 8px;
+            text-transform: uppercase;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 4px;
+            width: 100%;
+        }
+        
+        .eval-metrics {
+            font-size: 15px; /* Larger */
+            color: #000;
+            line-height: 1.5;
+            width: 100%;
+            font-weight: 500;
+        }
+        
+        .metric-tag {
+            display: inline-block;
+            background: #f0f0f0;
+            color: #000;
+            padding: 2px 6px;
+            border: 1px solid #999;
+            margin: 2px;
+        }
+        
+        .ablation-tag {
+            display: inline-block;
+            background: #fff;
+            color: #000;
+            padding: 2px 6px;
+            border: 1px solid #999;
+            margin: 2px;
+        }
+
+        /* LAYOUT LAYERS */
+        .layer-top { 
+            width: 50%; 
+            z-index: 30;
+        }
+        
+        .layer-middle { 
+            display: flex; 
+            justify-content: center; 
+            width: 100%; 
+            gap: 5%; 
+            position: relative; 
+            z-index: 20;
+        }
+        
+        .layer-middle .phase-box { 
+            width: 45%; 
+        }
+        
+        .layer-bottom { 
+            width: 90%; 
+            z-index: 10;
+        }
+
+        /* CONNECTOR LINES - High contrast */
+        .connector-line { 
+            position: absolute; 
+            background-color: #000; 
+            z-index: 0; 
+            width: 2px;
+        }
+        
+        .arrow-head { 
+            position: absolute; 
+            width: 0; 
+            height: 0; 
+            border-left: 8px solid transparent; 
+            border-right: 8px solid transparent; 
+            border-top: 12px solid #000; 
+            left: 50%; 
+            transform: translateX(-50%); 
+        }
+
+        /* Adjust connector positions for simpler layout */
+        .line-stem-top { width: 2px; height: 20px; top: 100%; left: 50%; }
+        .line-cross-top { height: 2px; width: calc(100% + 2px); top: calc(100% + 20px); left: -1px; }
+        .line-drop-left { width: 2px; height: 20px; top: calc(100% + 20px); left: -1px; }
+        .line-drop-right { width: 2px; height: 20px; top: calc(100% + 20px); right: -1px; }
+
+        .line-stem-mid-left { width: 2px; height: 20px; bottom: -20px; left: 25%; }
+        .line-stem-mid-right { width: 2px; height: 20px; bottom: -20px; right: 25%; }
+        .line-cross-bottom { height: 2px; width: 50%; bottom: -20px; left: 25%; }
+        .line-stem-final { width: 2px; height: 20px; bottom: -40px; left: 50%; }
+
+        /* Technical Section - Simplified */
+        .tech-section { 
+            margin-top: 15px; 
+            border-top: 2px solid #000; 
+            padding-top: 10px; 
+            background: #fff; 
+        }
+        .tech-title { 
+            font-family: Arial, sans-serif; 
+            font-size: 16px; /* Larger */
+            font-weight: 700; 
+            color: #000; 
+            margin-bottom: 8px; 
+            text-transform: uppercase; 
+        }
+        .tech-narrative { 
+            font-family: "Times New Roman", serif;
+            font-size: 18px; /* Larger for paper */
+            color: #000; 
+            line-height: 1.6; 
+            text-align: justify; 
+            font-weight: 400; 
+        }
+        .tech-narrative strong { color: #000; font-weight: 700; }
+        .keyword { color: #000; font-style: italic; font-weight: 700; }
+
+        footer { margin-top: 50px; text-align: center; font-size: 14px; color: #666; border-top: 1px solid #ccc; padding-top: 15px; font-family: "Times New Roman", serif; }
+    </style>
+</head>
+<body>
+
+    <div class="container" id="capture-target">
+        <button id="lang-btn" onclick="toggleLanguage()">中文 / EN</button>
+        <button id="export-btn" onclick="exportImage()">Export as Image</button>
+        
+        <!-- English Content -->
+        <div id="content-en" style="display: block;">
+            <div class="roadmap-diagram">
+            
+            <!-- Phase 1: Data Layer (Top) -->
+            <div class="phase-box layer-top">
+                <div class="phase-header">
+                    <div class="phase-title-group">
+                        <svg class="phase-icon" viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 4.01 2 6.5S6.48 11 12 11s10-2.01 10-4.5S17.52 2 12 2zm0 2c3.33 0 6.26.74 7.94 1.88-.65.46-1.47.82-2.44 1.09C15.96 5.59 14.08 4.5 12 4.5s-3.96 1.09-5.5 2.47c-.97-.27-1.79-.63-2.44-1.09C5.74 4.74 8.67 4 12 4zm0 16c-5.52 0-10-2.01-10-4.5V14c0 2.49 4.48 4.5 10 4.5s10-2.01 10-4.5v1.5c0 2.49-4.48 4.5-10 4.5zm0-5c-5.52 0-10-2.01-10-4.5V9c0 2.49 4.48 4.5 10 4.5s10-2.01 10-4.5v1.5c0 2.49-4.48 4.5-10 4.5zm0-5c-5.52 0-10-2.01-10-4.5V9c0 2.49 4.48 4.5 10 4.5s10-2.01 10-4.5v1.5c0 2.49-4.48 4.5-10 4.5z"/>
+                        </svg>
+                        <span class="phase-title">Phase I</span>
+                    </div>
+                    <span class="phase-subtitle">Data Preprocessing & Fusion</span>
+                </div>
+                <div class="phase-content">
+                    <div class="pipeline-container">
+                        <!-- Step 1: Input -->
+                        <div class="pipeline-step source">
+                            <div class="step-icon">📥</div>
+                            <div class="step-header">Multi-Source Input</div>
+                            <div class="step-list">
+                                <div class="mini-item"><strong>ERA5</strong> Reanalysis</div>
+                                <div class="mini-item"><strong>Argo</strong> In-situ</div>
+                                <div class="mini-item" style="background:none; border:none; color:#333; font-style: italic;">(2004-2024)</div>
+                            </div>
+                        </div>
+                        <div class="pipeline-arrow">➔</div>
+                        <!-- Step 2: Processing -->
+                        <div class="pipeline-step process">
+                            <div class="step-icon">⚙️</div>
+                            <div class="step-header">Preprocessing</div>
+                            <div class="step-list">
+                                <div class="mini-item">NaN Masking</div>
+                                <div class="mini-item">STD Decomposition</div>
+                                <div class="mini-item">Spatial Alignment</div>
+                            </div>
+                        </div>
+                        <div class="pipeline-arrow">➔</div>
+                        <!-- Step 3: Output -->
+                        <div class="pipeline-step output">
+                            <div class="step-icon">📊</div>
+                            <div class="step-header">Standardized Grid</div>
+                            <div class="step-list">
+                                <div class="mini-item">Resampled (0.25° - 2°)</div>
+                                <div class="mini-item">Normalized Tensors</div>
+                                <div class="mini-item">Aligned Spatiotemporal</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tech-section">
+                        <div class="tech-title">Technical Specifications</div>
+                        <div class="tech-narrative">
+                            <strong>Pipeline Logic:</strong> Heterogeneous data is first ingested from satellite (ERA5) and float (Argo) sources. It passes through a <span class="keyword">Cleaning & Masking</span> filter to handle missing values, followed by <span class="keyword">Periodic Signal Decomposition</span> to isolate seasonal trends. Finally, data is projected onto a unified <strong>Lat/Lon Grid</strong> at multiple resolutions for model consumption.
+                        </div>
+                    </div>
+                </div>
+                <!-- Connectors -->
+                <div class="connector-line line-stem-top"></div>
+                <div class="connector-line line-cross-top"></div>
+                <div class="connector-line line-drop-left"><div class="arrow-head" style="top: 20px;"></div></div>
+                <div class="connector-line line-drop-right"><div class="arrow-head" style="top: 20px;"></div></div>
+            </div>
+
+            <!-- Middle Layer: Parallel Models -->
+            <div class="layer-middle">
+                <div class="connector-line line-stem-mid-left"></div>
+                <div class="connector-line line-stem-mid-right"></div>
+                <div class="connector-line line-cross-bottom"></div>
+                <div class="connector-line line-stem-final"><div class="arrow-head" style="top: 20px;"></div></div>
+
+                <!-- Phase 2 -->
+                <div class="phase-box">
+                    <div class="phase-header">
+                        <div class="phase-title-group">
+                            <svg class="phase-icon" viewBox="0 0 24 24">
+                                <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
+                            </svg>
+                            <span class="phase-title">Phase II</span>
+                        </div>
+                        <span class="phase-subtitle">SST Forecast</span>
+                    </div>
+                    <div class="phase-content">
+                        <!-- Model Architecture Stack -->
+                        <div class="model-stack-container">
+                            <div class="model-layer input-layer">
+                                <strong>Input:</strong> Historical SST Sequence (T-n)
+                            </div>
+                            <div class="stack-arrow">⬇</div>
+                            <div class="model-core-box">
+                                <div class="core-title">RG-Transformer Core</div>
+                                <div class="component-row">
+                                    <div class="model-component innovation">
+                                        <div class="comp-icon">🌐</div>
+                                        <div class="comp-label">SHPE</div>
+                                        <div>Spherical Position Enc</div>
+                                    </div>
+                                    <div class="model-component innovation">
+                                        <div class="comp-icon">🔄</div>
+                                        <div class="comp-label">RG-Attn</div>
+                                        <div>Recursive Self-Attn</div>
+                                    </div>
+                                </div>
+                                <div class="model-component" style="margin-top:5px;">
+                                    <div class="comp-icon">⚡</div>
+                                    <div class="comp-label">MSRN</div>
+                                    <div>Multi-Scale Residual Net</div>
+                                </div>
+                            </div>
+                            <div class="stack-arrow">⬇</div>
+                            <div class="model-layer output-layer">
+                                <strong>Output:</strong> Future SST Forecast (T+k)
+                            </div>
+                            <div class="validation-strip">
+                                Validation: 200/500 Epochs (Jan-May 2025)
+                            </div>
+                        </div>
+                        <div class="tech-section">
+                            <div class="tech-title">Technical Specifications</div>
+                            <div class="tech-narrative">
+                                <strong>Model Architecture:</strong> Features a novel <strong>Recursive Generalization Self-Attention</strong> mechanism enhanced with <span class="keyword">Spherical Harmonic Position Encoding (SHPE)</span> to account for the Earth's curvature. The system integrates a <strong>Multi-Scale Residual Network (MSRN)</strong> to capture thermal dynamics at varying depths, optimized via a custom weighted loss function.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phase 3 -->
+                <div class="phase-box">
+                    <div class="phase-header">
+                        <div class="phase-title-group">
+                            <svg class="phase-icon" viewBox="0 0 24 24">
+                                <path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/>
+                            </svg>
+                            <span class="phase-title">Phase III</span>
+                        </div>
+                        <span class="phase-subtitle">3D Inversion</span>
+                    </div>
+                    <div class="phase-content">
+                        <!-- UNet-3D Architecture Stack -->
+                        <div class="model-stack-container">
+                            <div class="model-layer input-layer">
+                                <strong>Input:</strong> 2D Surface Data (SST)
+                            </div>
+                            <div class="stack-arrow">⬇</div>
+                            <div class="model-core-box blue-theme">
+                                <div class="core-title">UNet-3D Inversion</div>
+                                <div class="component-row">
+                                    <div class="model-component blue-highlight">
+                                        <div class="comp-icon">📉</div>
+                                        <div class="comp-label">Encoder</div>
+                                        <div>3D Convolution Down</div>
+                                    </div>
+                                    <div class="model-component blue-highlight">
+                                        <div class="comp-icon">📈</div>
+                                        <div class="comp-label">Decoder</div>
+                                        <div>Upsampling Restore</div>
+                                    </div>
+                                </div>
+                                <div class="model-component" style="margin-top:5px;">
+                                    <div class="comp-icon">🔗</div>
+                                    <div class="comp-label">Skip Connection</div>
+                                    <div>Feature Fusion Path</div>
+                                </div>
+                            </div>
+                            <div class="stack-arrow">⬇</div>
+                            <div class="model-layer output-layer">
+                                <strong>Output:</strong> 3D Temp Field (Volumetric)
+                            </div>
+                            <div class="validation-strip">
+                                Baseline: Random Forest vs UNet-3D
+                            </div>
+                        </div>
+                        <div class="tech-section">
+                            <div class="tech-title">Technical Specifications</div>
+                            <div class="tech-narrative">
+                                <strong>Inversion Logic:</strong> Utilizes a symmetric <strong>Encoder-Decoder</strong> architecture with <span class="keyword">3D Convolutions</span> to reconstruct volumetric temperature fields. <strong>Skip Connections</strong> preserve high-resolution spatial features, while training employs <span class="keyword">Xavier Initialization</span> and the <strong>AdamW Optimizer</strong> to minimize reconstruction error across complex ocean topographies.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 4: Evaluation Layer (Bottom) -->
+            <div class="phase-box layer-bottom">
+                <div class="phase-header">
+                    <div class="phase-title-group">
+                        <svg class="phase-icon" viewBox="0 0 24 24">
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                        </svg>
+                        <span class="phase-title">Phase IV</span>
+                    </div>
+                    <span class="phase-subtitle">Comprehensive Evaluation & Optimization</span>
+                </div>
+                <div class="phase-content">
+                    
+                    <!-- NEW: Evaluation Grid -->
+                    <div class="eval-grid-container">
+                        <!-- Card 1: Metrics -->
+                        <div class="eval-card">
+                            <div class="eval-icon-box">📏</div>
+                            <div class="eval-title">Accuracy Metrics</div>
+                            <div class="eval-metrics">
+                                <span class="metric-tag">RMSE</span>
+                                <span class="metric-tag">MAE</span>
+                                <span class="metric-tag">R²</span>
+                            </div>
+                            <div style="font-size:13px; color:#546e7a; margin-top:5px; font-weight:500;">Quantified Error Analysis</div>
+                        </div>
+
+                        <!-- Card 2: Ablation -->
+                        <div class="eval-card">
+                            <div class="eval-icon-box">🔬</div>
+                            <div class="eval-title">Ablation Study</div>
+                            <div class="eval-metrics">
+                                <span class="ablation-tag">w/o SHPE</span>
+                                <span class="ablation-tag">w/o Attn</span>
+                            </div>
+                            <div style="font-size:13px; color:#546e7a; margin-top:5px; font-weight:500;">Component Validity Check</div>
+                        </div>
+
+                        <!-- Card 3: Regional -->
+                        <div class="eval-card">
+                            <div class="eval-icon-box">🌍</div>
+                            <div class="eval-title">Regional Eval</div>
+                            <div class="eval-metrics">
+                                <div style="margin-bottom:2px;">Tropical / Temperate / Polar</div>
+                            </div>
+                            <div style="font-size:13px; color:#546e7a; margin-top:5px; font-weight:500;">Geographic Robustness</div>
+                        </div>
+
+                        <!-- Card 4: Optimization -->
+                        <div class="eval-card">
+                            <div class="eval-icon-box">🚀</div>
+                            <div class="eval-title">Optimization</div>
+                            <div class="eval-metrics">
+                                <div>Hyperparam Tuning</div>
+                                <div>Loss Convergence</div>
+                            </div>
+                            <div style="font-size:13px; color:#546e7a; margin-top:5px; font-weight:500;">Model Fine-tuning</div>
+                        </div>
+                    </div>
+
+                    <div class="tech-section">
+                        <div class="tech-title">Technical Specifications</div>
+                        <div class="tech-narrative">
+                            <strong>Validation Strategy:</strong> Rigorous statistical evaluation comparing 2024.9-2025.4 forecast results against ground truth. <strong>Ablation Studies</strong> specifically isolate the efficacy of the RG-Transformer's self-attention modules. Performance is further stratified by <strong>Geographic Region</strong> (tropical vs. polar) to ensure model robustness globally.
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            </div>
+        </div>
+
+        <!-- Chinese Content -->
+        <div id="content-zh" style="display: none;">
+            <div class="roadmap-diagram">
+            
+            <!-- Phase 1: Data Layer (Top) -->
+            <div class="phase-box layer-top">
+                <div class="phase-header">
+                    <div class="phase-title-group">
+                        <svg class="phase-icon" viewBox="0 0 24 24">
+                            <path d="M12 2C6.48 2 2 4.01 2 6.5S6.48 11 12 11s10-2.01 10-4.5S17.52 2 12 2zm0 2c3.33 0 6.26.74 7.94 1.88-.65.46-1.47.82-2.44 1.09C15.96 5.59 14.08 4.5 12 4.5s-3.96 1.09-5.5 2.47c-.97-.27-1.79-.63-2.44-1.09C5.74 4.74 8.67 4 12 4zm0 16c-5.52 0-10-2.01-10-4.5V14c0 2.49 4.48 4.5 10 4.5s10-2.01 10-4.5v1.5c0 2.49-4.48 4.5-10 4.5zm0-5c-5.52 0-10-2.01-10-4.5V9c0 2.49 4.48 4.5 10 4.5s10-2.01 10-4.5v1.5c0 2.49-4.48 4.5-10 4.5zm0-5c-5.52 0-10-2.01-10-4.5V9c0 2.49 4.48 4.5 10 4.5s10-2.01 10-4.5v1.5c0 2.49-4.48 4.5-10 4.5z"/>
+                        </svg>
+                        <span class="phase-title">第一阶段</span>
+                    </div>
+                    <span class="phase-subtitle">数据预处理与融合</span>
+                </div>
+                <div class="phase-content">
+                    <div class="pipeline-container">
+                        <!-- Step 1: Input -->
+                        <div class="pipeline-step source">
+                            <div class="step-icon">📥</div>
+                            <div class="step-header">多源数据输入</div>
+                            <div class="step-list">
+                                <div class="mini-item"><strong>ERA5</strong> 再分析数据</div>
+                                <div class="mini-item"><strong>Argo</strong> 现场观测</div>
+                                <div class="mini-item" style="background:none; border:none; color:#333; font-style: italic;">(2004-2024)</div>
+                            </div>
+                        </div>
+                        <div class="pipeline-arrow">➔</div>
+                        <!-- Step 2: Processing -->
+                        <div class="pipeline-step process">
+                            <div class="step-icon">⚙️</div>
+                            <div class="step-header">数据预处理</div>
+                            <div class="step-list">
+                                <div class="mini-item">NaN 掩膜处理</div>
+                                <div class="mini-item">标准差分解</div>
+                                <div class="mini-item">空间对齐校正</div>
+                            </div>
+                        </div>
+                        <div class="pipeline-arrow">➔</div>
+                        <!-- Step 3: Output -->
+                        <div class="pipeline-step output">
+                            <div class="step-icon">📊</div>
+                            <div class="step-header">标准化网格</div>
+                            <div class="step-list">
+                                <div class="mini-item">重采样 (0.25° - 2°)</div>
+                                <div class="mini-item">归一化张量</div>
+                                <div class="mini-item">时空对齐</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="tech-section">
+                        <div class="tech-title">技术规格</div>
+                        <div class="tech-narrative">
+                            <strong>流程逻辑：</strong> 首先摄入来自卫星 (ERA5) 和浮标 (Argo) 的异构数据。通过<span class="keyword">清洗与掩膜</span>过滤器处理缺失值，随后进行<span class="keyword">周期信号分解</span>以分离季节性趋势。最后，将数据投影到统一的<strong>经纬度网格</strong>上，生成多种分辨率以供模型输入。
+                        </div>
+                    </div>
+                </div>
+                <!-- Connectors -->
+                <div class="connector-line line-stem-top"></div>
+                <div class="connector-line line-cross-top"></div>
+                <div class="connector-line line-drop-left"><div class="arrow-head" style="top: 20px;"></div></div>
+                <div class="connector-line line-drop-right"><div class="arrow-head" style="top: 20px;"></div></div>
+            </div>
+
+            <!-- Middle Layer: Parallel Models -->
+            <div class="layer-middle">
+                <div class="connector-line line-stem-mid-left"></div>
+                <div class="connector-line line-stem-mid-right"></div>
+                <div class="connector-line line-cross-bottom"></div>
+                <div class="connector-line line-stem-final"><div class="arrow-head" style="top: 20px;"></div></div>
+
+                <!-- Phase 2 -->
+                <div class="phase-box">
+                    <div class="phase-header">
+                        <div class="phase-title-group">
+                            <svg class="phase-icon" viewBox="0 0 24 24">
+                                <path d="M16 6l2.29 2.29-4.88 4.88-4-4L2 16.59 3.41 18l6-6 4 4 6.3-6.29L22 12V6z"/>
+                            </svg>
+                            <span class="phase-title">第二阶段</span>
+                        </div>
+                        <span class="phase-subtitle">海温预测</span>
+                    </div>
+                    <div class="phase-content">
+                        <!-- Model Architecture Stack -->
+                        <div class="model-stack-container">
+                            <div class="model-layer input-layer">
+                                <strong>输入：</strong> 历史海温序列 (T-n)
+                            </div>
+                            <div class="stack-arrow">⬇</div>
+                            <div class="model-core-box">
+                                <div class="core-title">RG-Transformer 核心</div>
+                                <div class="component-row">
+                                    <div class="model-component innovation">
+                                        <div class="comp-icon">🌐</div>
+                                        <div class="comp-label">SHPE</div>
+                                        <div>球面位置编码</div>
+                                    </div>
+                                    <div class="model-component innovation">
+                                        <div class="comp-icon">🔄</div>
+                                        <div class="comp-label">RG-Attn</div>
+                                        <div>递归自注意力</div>
+                                    </div>
+                                </div>
+                                <div class="model-component" style="margin-top:5px;">
+                                    <div class="comp-icon">⚡</div>
+                                    <div class="comp-label">MSRN</div>
+                                    <div>多尺度残差网络</div>
+                                </div>
+                            </div>
+                            <div class="stack-arrow">⬇</div>
+                            <div class="model-layer output-layer">
+                                <strong>输出：</strong> 未来海温预测 (T+k)
+                            </div>
+                            <div class="validation-strip">
+                                验证：200/500 Epochs (2025年1月-5月)
+                            </div>
+                        </div>
+                        <div class="tech-section">
+                            <div class="tech-title">技术规格</div>
+                            <div class="tech-narrative">
+                                <strong>模型架构：</strong> 采用新型<strong>递归泛化自注意力</strong>机制，增强了<span class="keyword">球面谐波位置编码(SHPE)</span>以适应地球曲率。系统集成了<strong>多尺度残差网络 (MSRN)</strong>来捕捉不同深度的热动力学特征，并通过自定义加权损失函数进行优化。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Phase 3 -->
+                <div class="phase-box">
+                    <div class="phase-header">
+                        <div class="phase-title-group">
+                            <svg class="phase-icon" viewBox="0 0 24 24">
+                                <path d="M11.99 18.54l-7.37-5.73L3 14.07l9 7 9-7-1.63-1.27-7.38 5.74zM12 16l7.36-5.73L21 9l-9-7-9 7 1.63 1.27L12 16z"/>
+                            </svg>
+                            <span class="phase-title">第三阶段</span>
+                        </div>
+                        <span class="phase-subtitle">三维反演</span>
+                    </div>
+                    <div class="phase-content">
+                        <!-- UNet-3D Architecture Stack -->
+                        <div class="model-stack-container">
+                            <div class="model-layer input-layer">
+                                <strong>输入：</strong> 二维表面数据 (SST)
+                            </div>
+                            <div class="stack-arrow">⬇</div>
+                            <div class="model-core-box blue-theme">
+                                <div class="core-title">UNet-3D 反演模型</div>
+                                <div class="component-row">
+                                    <div class="model-component blue-highlight">
+                                        <div class="comp-icon">📉</div>
+                                        <div class="comp-label">编码器</div>
+                                        <div>3D 卷积下采样</div>
+                                    </div>
+                                    <div class="model-component blue-highlight">
+                                        <div class="comp-icon">📈</div>
+                                        <div class="comp-label">解码器</div>
+                                        <div>上采样恢复</div>
+                                    </div>
+                                </div>
+                                <div class="model-component" style="margin-top:5px;">
+                                    <div class="comp-icon">🔗</div>
+                                    <div class="comp-label">跳跃连接</div>
+                                    <div>特征融合路径</div>
+                                </div>
+                            </div>
+                            <div class="stack-arrow">⬇</div>
+                            <div class="model-layer output-layer">
+                                <strong>输出：</strong> 三维温度场 (体数据)
+                            </div>
+                            <div class="validation-strip">
+                                基准对比：随机森林 vs UNet-3D
+                            </div>
+                        </div>
+                        <div class="tech-section">
+                            <div class="tech-title">技术规格</div>
+                            <div class="tech-narrative">
+                                <strong>反演逻辑：</strong> 利用对称的<strong>编码器-解码器</strong>架构和<span class="keyword">3D 卷积</span>重建体积温度场。<strong>跳跃连接</strong>保留了高分辨率的空间特征，训练过程采用<span class="keyword">Xavier 初始化</span>和<strong>AdamW 优化器</strong>，以最小化复杂海洋地形下的重建误差。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Phase 4: Evaluation Layer (Bottom) -->
+            <div class="phase-box layer-bottom">
+                <div class="phase-header">
+                    <div class="phase-title-group">
+                        <svg class="phase-icon" viewBox="0 0 24 24">
+                            <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/>
+                        </svg>
+                        <span class="phase-title">第四阶段</span>
+                    </div>
+                    <span class="phase-subtitle">综合评估与优化</span>
+                </div>
+                <div class="phase-content">
+                    
+                    <!-- NEW: Evaluation Grid -->
+                    <div class="eval-grid-container">
+                        <!-- Card 1: Metrics -->
+                        <div class="eval-card">
+                            <div class="eval-icon-box">📏</div>
+                            <div class="eval-title">精度指标</div>
+                            <div class="eval-metrics">
+                                <span class="metric-tag">RMSE</span>
+                                <span class="metric-tag">MAE</span>
+                                <span class="metric-tag">R²</span>
+                            </div>
+                            <div style="font-size:13px; color:#546e7a; margin-top:5px; font-weight:500;">量化误差分析</div>
+                        </div>
+
+                        <!-- Card 2: Ablation -->
+                        <div class="eval-card">
+                            <div class="eval-icon-box">🔬</div>
+                            <div class="eval-title">消融实验</div>
+                            <div class="eval-metrics">
+                                <span class="ablation-tag">无 SHPE</span>
+                                <span class="ablation-tag">无 Attention</span>
+                            </div>
+                            <div style="font-size:13px; color:#546e7a; margin-top:5px; font-weight:500;">组件有效性检验</div>
+                        </div>
+
+                        <!-- Card 3: Regional -->
+                        <div class="eval-card">
+                            <div class="eval-icon-box">🌍</div>
+                            <div class="eval-title">区域评估</div>
+                            <div class="eval-metrics">
+                                <div style="margin-bottom:2px;">热带 / 温带 / 极地</div>
+                            </div>
+                            <div style="font-size:13px; color:#546e7a; margin-top:5px; font-weight:500;">地理鲁棒性测试</div>
+                        </div>
+
+                        <!-- Card 4: Optimization -->
+                        <div class="eval-card">
+                            <div class="eval-icon-box">🚀</div>
+                            <div class="eval-title">优化</div>
+                            <div class="eval-metrics">
+                                <div>超参数调优</div>
+                                <div>损失收敛</div>
+                            </div>
+                            <div style="font-size:13px; color:#546e7a; margin-top:5px; font-weight:500;">模型微调</div>
+                        </div>
+                    </div>
+
+                    <div class="tech-section">
+                        <div class="tech-title">技术规格</div>
+                        <div class="tech-narrative">
+                            <strong>验证策略：</strong> 对 2024.9-2025.4 的预测结果与真实值进行严格的统计评估。<strong>消融实验</strong>专门分离 RG-Transformer 自注意力模块的功效。性能进一步按<strong>地理区域</strong>（热带与极地）进行分层，以确保模型的全球鲁棒性。
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentLang = 'en';
+
+        function toggleLanguage() {
+            const enContent = document.getElementById('content-en');
+            const zhContent = document.getElementById('content-zh');
+            const btn = document.getElementById('lang-btn');
+
+            if (currentLang === 'en') {
+                enContent.style.display = 'none';
+                zhContent.style.display = 'block';
+                currentLang = 'zh';
+                btn.innerText = '切换为英文';
+            } else {
+                enContent.style.display = 'block';
+                zhContent.style.display = 'none';
+                currentLang = 'en';
+                btn.innerText = 'Switch to Chinese';
+            }
+        }
+
+        function exportImage() {
+            // Capture whichever content is currently visible
+            const element = document.getElementById(currentLang === 'en' ? 'content-en' : 'content-zh');
+            // We need to capture the whole container to keep background styles if they are on container
+            // But wait, container has the background gradient.
+            // Let's actually capture the parent container but we need to hide the buttons.
+            
+            const container = document.getElementById('capture-target');
+            const btnExport = document.getElementById('export-btn');
+            const btnLang = document.getElementById('lang-btn');
+            
+            // Hide buttons
+            btnExport.style.display = 'none';
+            btnLang.style.display = 'none';
+            
+            // Use html2canvas
+            html2canvas(container, {
+                scale: 3, 
+                useCORS: true,
+                backgroundColor: null, 
+                logging: false
+            }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = `technical-roadmap-${currentLang}.png`;
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+                
+                // Show buttons again
+                btnExport.style.display = 'block';
+                btnLang.style.display = 'block';
+            }).catch(err => {
+                console.error('Export failed:', err);
+                alert('Export failed, please try again.');
+                btnExport.style.display = 'block';
+                btnLang.style.display = 'block';
+            });
+        }
+    </script>
+</body>
+</html>
