@@ -93,12 +93,14 @@ class UNet3D(LightningModule):
                  n_depth=10,
                  base_channels=64,
                  bilinear=False,
-                 learning_rate=1e-4):
+                 learning_rate=1e-4,
+                 max_epochs=100):
         super().__init__()
         
         self.n_channels = n_channels
         self.n_depth = n_depth
         self.learning_rate = learning_rate
+        self.max_epochs = max_epochs
         
         # 编码器（下采样）
         self.inc = DoubleConv(n_channels, base_channels)
@@ -260,7 +262,7 @@ class UNet3D(LightningModule):
         
         scheduler = optim.lr_scheduler.CosineAnnealingLR(
             optimizer,
-            T_max=100,
+            T_max=self.max_epochs,
             eta_min=1e-6
         )
         
