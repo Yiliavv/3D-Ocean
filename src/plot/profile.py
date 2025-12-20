@@ -38,8 +38,8 @@ def create_3d_error_colormap():
 
 COLOR_MAP_3D_ERROR = create_3d_error_colormap()
 
-def plot_3d_temperature(temp, lon, lat, depth, step=1, cmap=None, label='temperature [°C]',
-                        interpolate=False, interp_interval=5.0, interp_method='pchip'):
+def plot_3d_temperature(temp, lon, lat, depth, step=1, cmap='jet', label='temperature [°C]',
+                        interpolate=False, interp_interval=5.0, interp_method='pchip', ax=None, colorbar=True):
     """
     绘制三维海温分布图
     
@@ -53,6 +53,8 @@ def plot_3d_temperature(temp, lon, lat, depth, step=1, cmap=None, label='tempera
     :param interpolate: 是否进行深度插值（默认False）
     :param interp_interval: 插值间隔（米），默认5米
     :param interp_method: 插值方法 'linear', 'pchip', 'cubic'
+    :param ax: 现有的3D坐标轴对象（可选）
+    :param colorbar: 是否显示色标（默认True）
     :return: 返回3D图像对象
     """
     # 记录原始数据形状用于调试
@@ -91,22 +93,23 @@ def plot_3d_temperature(temp, lon, lat, depth, step=1, cmap=None, label='tempera
         
         Log.i(f"已应用深度插值: {len(depth)} 层，间隔 {interp_interval}m")
     
-    ax = create_3d_ax()
+    if ax is None:
+        ax = create_3d_ax()
     
     # 生成网格点
     # meshgrid 第一个参数对应 X 轴（经度），第二个参数对应 Y 轴（纬度）
     lon_grid, lat_grid = meshgrid(_range(lon, step), _range(lat, step))
     
-    # 计算色标范围
-    vmin = nanmin(temp)
-    vmax = nanmax(temp)
+    # 使用与 plot_sst 完全一致的 levels 设置
+    levels = arange(0, 31, 1)
     
     # 检查是否所有值都是 NaN
-    if np.isnan(vmin) or np.isnan(vmax):
+    if np.all(np.isnan(temp)):
         Log.w("警告：温度数据全部为 NaN，无法绘制")
         return None
     
     # 绘制每一层的等温面
+    contour_set = None
     for i, d in enumerate(depth):
         # temp 的形状是 (lon, lat, depth) = (180, 80, depth)
         # temp[:, :, i] 是 (lon, lat) = (180, 80)
@@ -126,11 +129,13 @@ def plot_3d_temperature(temp, lon, lat, depth, step=1, cmap=None, label='tempera
             # 如果当前层全是 masked/NaN，跳过绘制
             continue
         
-        kw = {'zdir': 'z', 'offset': -d, 'vmin': vmin, 'vmax': vmax}
-        if cmap is not None:
-            kw['cmap'] = cmap
-            
-        _ = ax.contourf(lon_grid, lat_grid, temp_layer_masked, **kw)
+        # 与 plot_sst 完全一致的参数
+        contour_set = ax.contourf(lon_grid, lat_grid, temp_layer_masked,
+                       zdir='z', offset=-d,
+                       levels=levels,
+                       vmin=0, vmax=30,
+                       extend='both',
+                       cmap=cmap)
     
     # 设置坐标轴范围，确保与数据范围一致
     ax.set_xlim(lon[0], lon[1])
@@ -144,11 +149,12 @@ def plot_3d_temperature(temp, lon, lat, depth, step=1, cmap=None, label='tempera
     ax.tick_params(axis='both', labelsize=7)
     
     # 添加色标
-    plt.colorbar(_, ax=ax,
-                orientation='vertical',
-                pad=0.1,
-                fraction=0.02,
-                label=label)
+    if colorbar and contour_set:
+        plt.colorbar(contour_set, ax=ax,
+                    orientation='vertical',
+                    pad=0.1,
+                    fraction=0.02,
+                    label=label)
     
     return ax
 

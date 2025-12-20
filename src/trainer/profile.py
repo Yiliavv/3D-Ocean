@@ -331,6 +331,17 @@ class ProfileTrainer:
                 predictions.append(pred)
         
         predictions = np.array(predictions)
+        
+        # 恢复 NaN 掩码 (将陆地区域设为 NaN)
+        # sst_test 的形状是 (N, H, W)，NaN 表示陆地
+        mask = np.isnan(self.sst_test)
+        
+        # 将 mask 扩展到深度维度 (N, H, W, 1)
+        mask_expanded = np.expand_dims(mask, axis=-1)
+        
+        # 将 mask 广播到 (N, H, W, D) 并应用
+        predictions[np.broadcast_to(mask_expanded, predictions.shape)] = np.nan
+        
         unet_n_depth = predictions.shape[-1]
         
         # 计算 RMSE
@@ -356,7 +367,7 @@ class ProfileTrainer:
         print(f'   ✅ UNet3D 总体 RMSE ({unet_n_depth}层, 0-{self.target_depths[unet_n_depth-1]}m): {overall_rmse:.3f}°C')
         return model
     
-    def train_random_forest(self, n_estimators=400, max_depth=20):
+    def train_random_forest(self, n_estimators=50, max_depth=20):
         """训练 Random Forest 模型"""
         self.load_data()
         
@@ -585,4 +596,106 @@ class ProfileTrainer:
             if name in self.results:
                 print(f"{self.results[name]['overall_rmse']:<15.3f}", end='')
         print()
+    
+    def plot_3d_predictions(self, sample_idx=0, save_path=None):
+        """
+        绘制三个模型的三维温度预测图（在一个画布上）
+        
+        参数：
+            sample_idx: 测试样本索引
+            save_path: 保存路径（目录）
+        """
+        if not self.results:
+            print('⚠️ 请先训练模型')
+            return
+        
+        from src.plot.profile import plot_3d_temperature
+        from src.plot.base import create_3d_axes
+        
+        # 准备参数
+        depths = list(self.target_depths)
+        lon = self.lon_range
+        lat = self.lat_range
+        step = self.resolution
+        
+        if save_path is None:
+            save_path = MODEL_SAVE_PATH
+        
+        # 创建 2x2 子图
+        axes = create_3d_axes(row=2, col=2)
+        # axes可能是(2,2)的数组，展平以便索引
+        if isinstance(axes, np.ndarray):
+            axes = axes.flatten()
+        else:
+            # 如果只有一个子图（虽然这里是2x2，但为了健壮性）
+            axes = [axes]
+        
+        # 1. 绘制真值 (Argo)
+        print('🎨 绘制 Argo')
+        temp_true = self.profile_test[sample_idx]
+        # 数据形状: (lat, lon, depth) -> 需要转置为 (lon, lat, depth)
+        temp_true_transposed = np.transpose(temp_true, (1, 0, 2))
+        plot_3d_temperature(temp_true_transposed, lon, lat, depths, step=step,
+                           label='Temperature (°C)', ax=axes[0], colorbar=False)
+        axes[0].set_title('Argo (Ground Truth)', fontsize=6, fontweight='bold', pad=10)
+        
+        # 2. 绘制各模型预测
+        model_info = {
+            'thermocline': 'Thermocline',
+            'unet3d': 'UNet3D',
+            'rf': 'Random Forest'
+        }
+        
+        # 定义绘制顺序
+        model_names = ['thermocline', 'unet3d', 'rf']
+        
+        # 依次绘制模型预测
+        plot_idx = 1
+        for name in model_names:
+            if name in self.results and plot_idx < 4:
+                print(f'🎨 绘制 {model_info[name]} 预测...')
+                pred = self.results[name]['predictions'][sample_idx]
+                pred_transposed = np.transpose(pred, (1, 0, 2))
+                
+                rmse = self.results[name]['overall_rmse']
+                
+                plot_3d_temperature(pred_transposed, lon, lat, 
+                                   list(self.results[name]['depths']), 
+                                   step=step, label='Temperature (°C)', ax=axes[plot_idx], colorbar=False)
+                axes[plot_idx].set_title(f'{model_info[name]} (RMSE: {rmse:.3f}°C)', 
+                         fontsize=6, fontweight='bold', pad=10)
+                plot_idx += 1
+        
+        # 隐藏多余的子图
+        while plot_idx < 4:
+            axes[plot_idx].axis('off')
+            plot_idx += 1
+            
+        # 添加公共色标
+        import matplotlib
+        
+        # 调整布局，为底部色标留出空间
+        # 增加子图间距(wspace, hspace)和底部边距(bottom)防止重叠
+        plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.15, wspace=0.4, hspace=0.6)
+        
+        # 创建一个对应的 ScalarMappable
+        # 注意：这里需要与 plot_3d_temperature 中的设置保持一致 (vmin=0, vmax=30, cmap='jet')
+        cmap = plt.get_cmap('jet')
+        norm = matplotlib.colors.Normalize(vmin=0, vmax=30)
+        sm = matplotlib.cm.ScalarMappable(norm=norm, cmap=cmap)
+        sm.set_array([])
+        
+        # 在底部添加色标 [left, bottom, width, height]
+        # 使用 figure坐标系，位置稍微下移，避开子图坐标轴
+        # 居中且变短：width=0.4, left=(1-0.4)/2=0.3
+        cbar_ax = plt.gcf().add_axes([0.3, 0.03, 0.4, 0.02]) 
+        cb = plt.colorbar(sm, cax=cbar_ax, orientation='horizontal', label='Temperature (°C)')
+        cb.ax.tick_params(labelsize=6)
+        cb.set_label('Temperature (°C)', fontsize=7)
+        
+        output_file = f'{save_path}/three_models_3d_prediction.png'
+        plt.savefig(output_file, dpi=300, bbox_inches='tight')
+        plt.show()
+        
+        print(f'\n✅ 所有三维温度图已保存至 {output_file}')
 

@@ -147,7 +147,7 @@ def create_3d_axes(row=1, col=1):
     :return: 返回一个包含所有3D子图的列表
     """
     
-    _, axes = plt.subplots(row, col, dpi = 2400, projection='3d')
+    _, axes = plt.subplots(row, col, dpi = 2400, subplot_kw={'projection': '3d'})
 
     return axes
 
