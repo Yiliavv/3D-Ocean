@@ -676,7 +676,7 @@ class ProfileTrainer:
         
         # 调整布局，为底部色标留出空间
         # 增加子图间距(wspace, hspace)和底部边距(bottom)防止重叠
-        plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.15, wspace=0.4, hspace=0.6)
+        plt.subplots_adjust(left=0.05, right=0.95, top=0.95, bottom=0.15, wspace=0.0, hspace=0.4)
         
         # 创建一个对应的 ScalarMappable
         # 注意：这里需要与 plot_3d_temperature 中的设置保持一致 (vmin=0, vmax=30, cmap='jet')
