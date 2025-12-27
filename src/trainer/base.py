@@ -339,7 +339,10 @@ class BaseTrainer:
             print(f"  • tensor_cores: {matmul_precision} precision")
             print(f"    ✅ Tensor Cores 优化已启用 (RTX GPU)")
         
-        print(f"  • batch_size: {self.trainer_params.get('batch_size', 20)}")
+        # 梯度检查点
+        if self.trainer_params.get('gradient_checkpointing', False):
+            print(f"\n🧠 梯度检查点:")
+            print(f"  • 已启用 (用计算换显存，约节省 30-50% 显存)")
         
         # 模型编译
         if self.trainer_params.get('compile_model', False):
