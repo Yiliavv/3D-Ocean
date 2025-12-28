@@ -33,7 +33,8 @@ from src.models.SST.PE.SphericalHarmonicEncoding import (
     SpatialSphericalHarmonicEncoding,
 )
 from src.models.SST.Attention.RGAttention import EfficientRGAttention
-from src.models.SST.ConvStem import ConvStem
+from src.models.SST.ConvStem import ConvStem, MultiScaleConvStem
+from src.models.SST.MultiScaleDecoder import MultiScaleDecoder
 
 
 class ChannelFeedForward(nn.Module):
@@ -86,6 +87,10 @@ class RGTransformer(LightningModule):
         patch_size: int = 4,
         use_compile: bool = False,
         compile_mode: str = "reduce-overhead",
+        # 多尺度特征增强参数
+        use_multiscale: bool = False,
+        num_skip_connections: int = 2,
+        skip_fusion: str = "add",
         **kwargs
     ):
         """
@@ -105,6 +110,9 @@ class RGTransformer(LightningModule):
             patch_size: Patch大小（分块大小），默认4x4
             use_compile: 是否启用 torch.compile
             compile_mode: torch.compile 模式
+            use_multiscale: 是否启用多尺度特征增强（跳跃连接）
+            num_skip_connections: 跳跃连接数量（1 或 2）
+            skip_fusion: 跳跃连接融合方式 "add" 或 "concat"
         """
         super().__init__()
         
@@ -116,6 +124,11 @@ class RGTransformer(LightningModule):
         self.val_loss = []
         self.use_compile = use_compile
         self.compile_mode = compile_mode
+        
+        # 多尺度特征增强配置
+        self.use_multiscale = use_multiscale
+        self.num_skip_connections = num_skip_connections
+        self.skip_fusion = skip_fusion
         
         if not (width and height):
             raise ValueError("Must specify width and height")
@@ -139,23 +152,50 @@ class RGTransformer(LightningModule):
         )
         self.spatial_enc_scale = nn.Parameter(torch.tensor(0.5))
         
-        # ======= ConvStem 模块（替代 Patch Embedding）=======
-        # 将 [1, H, W] -> [d_model, H/p, W/p]
-        self.conv_stem = ConvStem(
-            in_channels=1,
-            embed_dim=d_model,
-            target_reduction=patch_size,
-            use_bn=True
-        )
+        # ======= ConvStem 模块 =======
+        if use_multiscale:
+            # 多尺度 ConvStem，支持跳跃连接
+            self.conv_stem = MultiScaleConvStem(
+                in_channels=1,
+                embed_dim=d_model,
+                num_skip_outputs=num_skip_connections,
+                use_bn=True
+            )
+            # 获取跳跃连接通道数
+            self._skip_channels = self.conv_stem.get_skip_channels()
+        else:
+            # 原始 ConvStem
+            self.conv_stem = ConvStem(
+                in_channels=1,
+                embed_dim=d_model,
+                target_reduction=patch_size,
+                use_bn=True
+            )
+            self._skip_channels = []
         
-        # ======= Patch Recovery 模块 =======
-        # 将 [d_model, H/p, W/p] -> [1, H, W]
-        self.patch_recovery = nn.ConvTranspose2d(
-            in_channels=d_model,
-            out_channels=1,
-            kernel_size=patch_size,
-            stride=patch_size
-        )
+        # ======= Decoder 模块 =======
+        if use_multiscale:
+            # 多尺度解码器，支持跳跃连接融合
+            # 跳跃连接通道需要反转顺序（从深到浅）
+            skip_channels_reversed = list(reversed(self._skip_channels))
+            self.decoder = MultiScaleDecoder(
+                in_channels=d_model,
+                out_channels=1,
+                skip_channels=skip_channels_reversed,
+                num_stages=num_skip_connections,
+                fusion=skip_fusion
+            )
+            # 用于向后兼容的 patch_recovery（实际不使用）
+            self.patch_recovery = None
+        else:
+            # 原始 Patch Recovery
+            self.patch_recovery = nn.ConvTranspose2d(
+                in_channels=d_model,
+                out_channels=1,
+                kernel_size=patch_size,
+                stride=patch_size
+            )
+            self.decoder = None
     
         # ======= Transformer 组件 =======
         
@@ -241,8 +281,15 @@ class RGTransformer(LightningModule):
         # [B, S, W, H] -> [B*S, 1, W, H]
         x_flat = rearrange(x, 'b s w h -> (b s) 1 w h')
         
-        # [B*S, d_model, W', H']
-        x_embed = self.conv_stem(x_flat)
+        # 根据是否使用多尺度模式选择不同的处理路径
+        if self.use_multiscale:
+            # 多尺度模式: 获取主特征和跳跃连接特征
+            # [B*S, d_model, W', H'], List[[B*S, C_i, H_i, W_i]]
+            x_embed, skip_features = self.conv_stem(x_flat, return_skip_features=True)
+        else:
+            # 原始模式
+            x_embed = self.conv_stem(x_flat)
+            skip_features = None
         
         _, d_model, w_feat, h_feat = x_embed.shape
         
@@ -286,10 +333,35 @@ class RGTransformer(LightningModule):
             h=h_feat
         )
         
-        # Upsample: [B, D, W', H'] -> [B, 1, W, H]
-        output_map = self.patch_recovery(output_tokens)
+        # 7. Decoder
+        if self.use_multiscale and skip_features is not None:
+            # 多尺度解码器
+            # 跳跃特征需要在时序维度上聚合（取最后一帧）
+            # skip_features: List[[B*S, C_i, H_i, W_i]]
+            aggregated_skips = []
+            for skip in skip_features:
+                # 重塑为 [B, S, C, H, W] 然后取最后一帧 [B, C, H, W]
+                _, c, h, w = skip.shape
+                skip_reshaped = rearrange(
+                    skip, 
+                    '(b s) c h w -> b s c h w', 
+                    b=batch_size, 
+                    s=seq_len_minus_1
+                )
+                # 使用加权平均聚合时序维度
+                skip_aggregated = (skip_reshaped * normalized_weights.view(1, -1, 1, 1, 1)).sum(dim=1)
+                aggregated_skips.append(skip_aggregated)
+            
+            # 反转跳跃特征顺序（从浅到深 -> 从深到浅）
+            aggregated_skips_reversed = list(reversed(aggregated_skips))
+            
+            # 多尺度解码
+            output_map = self.decoder(output_tokens, aggregated_skips_reversed)
+        else:
+            # 原始模式: 单次上采样
+            output_map = self.patch_recovery(output_tokens)
         
-        # Remove channel dim: [B, W, H]
+        # Remove channel dim: [B, 1, W, H] -> [B, W, H]
         output = output_map.squeeze(1)
         
         # 保存可视化数据

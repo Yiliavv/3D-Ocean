@@ -3,6 +3,8 @@
 Auto-generated from all feature plans. Last updated: 2025-12-28
 
 ## Active Technologies
+- Python 3.11 + PyTorch 2.x, PyTorch Lightning 2.x, einops (002-rgtransformer-multiscale)
+- N/A (模型增强，不涉及存储变更) (002-rgtransformer-multiscale)
 
 - Python 3.11+ + PyTorch 2.0+, PyTorch Lightning, NumPy (001-rgtransformer-efficiency)
 
@@ -22,6 +24,7 @@ cd src; pytest; ruff check .
 Python 3.11+: Follow standard conventions
 
 ## Recent Changes
+- 002-rgtransformer-multiscale: Added Python 3.11 + PyTorch 2.x, PyTorch Lightning 2.x, einops
 
 - 001-rgtransformer-efficiency: Added Python 3.11+ + PyTorch 2.0+, PyTorch Lightning, NumPy
 

@@ -6,14 +6,19 @@
 2. 自然的平移等变性
 3. 避免 patch 边界硬切割
 
+新增 MultiScaleConvStem:
+- 多尺度特征提取
+- 支持跳跃连接输出
+
 参考：
 - LeViT (ICCV 2021): Conv Stem 的有效性
 - ConvNeXt (CVPR 2022): 现代卷积网络设计
+- UNet (MICCAI 2015): 跳跃连接架构
 """
 
 import torch
 import torch.nn as nn
-from typing import Optional, Tuple
+from typing import Optional, Tuple, List
 
 
 class ConvStem(nn.Module):
@@ -230,4 +235,154 @@ class ResidualBlock(nn.Module):
         out = self.gelu(out)
         
         return out
+
+
+class MultiScaleConvStem(nn.Module):
+    """
+    多尺度卷积前处理模块
+    
+    在降采样过程中输出多个尺度的特征图，供跳跃连接使用。
+    
+    结构:
+        Stage 1: Conv3x3(s=2) + BN + GELU -> [B, 64, H/2, W/2]  (skip_1)
+        Stage 2: Conv3x3(s=2) + BN + GELU -> [B, 128, H/4, W/4] (skip_2)
+        Stage 3: Conv1x1 -> [B, 256, H/4, W/4] (main output)
+    
+    Args:
+        in_channels: 输入通道数 (默认 1，SST 数据)
+        embed_dim: 最终嵌入维度 (默认 256)
+        num_skip_outputs: 跳跃连接输出数量 (默认 2)
+        use_bn: 是否使用 BatchNorm
+    
+    Input:
+        x: [batch, channels, height, width]
+    
+    Output:
+        main_feature: [batch, embed_dim, H/4, W/4]
+        skip_features: List[[batch, C_i, H_i, W_i]] 各尺度的跳跃特征
+                       顺序: [skip_1, skip_2]（从浅到深）
+    """
+    
+    def __init__(
+        self,
+        in_channels: int = 1,
+        embed_dim: int = 256,
+        num_skip_outputs: int = 2,
+        use_bn: bool = True
+    ):
+        super().__init__()
+        
+        self.in_channels = in_channels
+        self.embed_dim = embed_dim
+        self.num_skip_outputs = num_skip_outputs
+        
+        # 中间通道数
+        mid_channels_1 = embed_dim // 4  # 64
+        mid_channels_2 = embed_dim // 2  # 128
+        
+        # Stage 1: [B, 1, H, W] -> [B, 64, H/2, W/2]
+        stage1_layers = [
+            nn.Conv2d(in_channels, mid_channels_1, kernel_size=3, stride=2, padding=1)
+        ]
+        if use_bn:
+            stage1_layers.append(nn.BatchNorm2d(mid_channels_1))
+        stage1_layers.append(nn.GELU())
+        self.stage1 = nn.Sequential(*stage1_layers)
+        
+        # Stage 2: [B, 64, H/2, W/2] -> [B, 128, H/4, W/4]
+        stage2_layers = [
+            nn.Conv2d(mid_channels_1, mid_channels_2, kernel_size=3, stride=2, padding=1)
+        ]
+        if use_bn:
+            stage2_layers.append(nn.BatchNorm2d(mid_channels_2))
+        stage2_layers.append(nn.GELU())
+        self.stage2 = nn.Sequential(*stage2_layers)
+        
+        # Stage 3: [B, 128, H/4, W/4] -> [B, 256, H/4, W/4]
+        self.stage3 = nn.Conv2d(mid_channels_2, embed_dim, kernel_size=1)
+        
+        # 跳跃连接通道数列表
+        self.skip_channels = [mid_channels_1, mid_channels_2]  # [64, 128]
+        
+        # 初始化权重
+        self._init_weights()
+    
+    def _init_weights(self):
+        """初始化权重"""
+        for m in self.modules():
+            if isinstance(m, nn.Conv2d):
+                nn.init.kaiming_normal_(m.weight, mode='fan_out', nonlinearity='relu')
+                if m.bias is not None:
+                    nn.init.zeros_(m.bias)
+            elif isinstance(m, nn.BatchNorm2d):
+                nn.init.ones_(m.weight)
+                nn.init.zeros_(m.bias)
+    
+    def forward(
+        self, 
+        x: torch.Tensor,
+        return_skip_features: bool = True
+    ) -> Tuple[torch.Tensor, Optional[List[torch.Tensor]]]:
+        """
+        前向传播
+        
+        Args:
+            x: [batch, channels, height, width]
+            return_skip_features: 是否返回跳跃连接特征
+        
+        Returns:
+            main_feature: [batch, embed_dim, H/4, W/4]
+            skip_features: List[[batch, C_i, H_i, W_i]] 或 None
+                          顺序: [skip_1, skip_2]（从浅到深）
+        """
+        # Stage 1
+        x1 = self.stage1(x)  # [B, 64, H/2, W/2]
+        
+        # Stage 2
+        x2 = self.stage2(x1)  # [B, 128, H/4, W/4]
+        
+        # Stage 3
+        main = self.stage3(x2)  # [B, 256, H/4, W/4]
+        
+        if return_skip_features:
+            skip_features = [x1, x2][:self.num_skip_outputs]
+            return main, skip_features
+        else:
+            return main, None
+    
+    def get_output_size(self, input_size: Tuple[int, int]) -> Tuple[int, int]:
+        """
+        计算输出尺寸
+        
+        Args:
+            input_size: (height, width)
+        
+        Returns:
+            (output_height, output_width)
+        """
+        h, w = input_size
+        return h // 4, w // 4
+    
+    def get_skip_channels(self) -> List[int]:
+        """
+        获取跳跃连接通道数列表
+        
+        Returns:
+            [64, 128] 对应 [skip_1, skip_2]
+        """
+        return self.skip_channels[:self.num_skip_outputs]
+    
+    def get_num_parameters(self, trainable_only: bool = True) -> int:
+        """
+        获取参数量
+        
+        Args:
+            trainable_only: 是否只统计可训练参数
+        
+        Returns:
+            参数总数
+        """
+        if trainable_only:
+            return sum(p.numel() for p in self.parameters() if p.requires_grad)
+        return sum(p.numel() for p in self.parameters())
 
