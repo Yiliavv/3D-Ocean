@@ -44,7 +44,7 @@ model_params = {
     "dim_feedforward": 256,
     "dropout": 0.1,
     "num_attn_layers": 2,  # V2: 替代 recursion_depth
-    "learning_rate": 1e-4,
+    "learning_rate": 1e-3,
 }
 
 # ============================================================
