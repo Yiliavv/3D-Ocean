@@ -139,11 +139,7 @@ class BaseTrainer:
         val_set = Subset(dataset, val_indices)
         
         # 优化的DataLoader配置
-        # Windows系统上多进程DataLoader可能有问题，默认使用单进程
-        is_windows = platform.system() == 'Windows'
-        default_workers = 0 if is_windows else 8
-        
-        num_workers = self.trainer_params.get('num_workers', default_workers)
+        num_workers = self.trainer_params.get('num_workers', 8)
         pin_memory = self.trainer_params.get('pin_memory', True)
         prefetch_factor = self.trainer_params.get('prefetch_factor', 2)
         
@@ -187,7 +183,7 @@ class BaseTrainer:
             verbose=False,
         )
         
-        print(f"\n💾 Checkpoint: {CHECKPOINT_SAVE_PATH}/{self.trainer_uid}/{f'{self.model_class.__name__}'}\n")
+        print(f"\n[Save] Checkpoint: {CHECKPOINT_SAVE_PATH}/{self.trainer_uid}/{f'{self.model_class.__name__}'}\n")
         
         return checkpoint_callback
     
@@ -220,7 +216,7 @@ class BaseTrainer:
         if self.trainer_params.get('compile_model', False):
             if hasattr(torch, 'compile'):
                 compile_mode = self.trainer_params.get('compile_mode', 'default')
-                print(f"🚀 编译模型 (模式: {compile_mode})...")
+                print(f"[Info] 编译模型 (模式: {compile_mode})...")
                 self.model = torch.compile(self.model, mode=compile_mode)
             else:
                 print("⚠️  PyTorch版本 < 2.0, 模型编译不可用")
@@ -271,10 +267,10 @@ class BaseTrainer:
         
         # 训练（PyTorch Lightning 自动处理 checkpoint 恢复）
         if os.path.exists(ckpt_path):
-            print(f"\n🔄 使用 checkpoint: {ckpt_path}\n")
+            print(f"\n[Load] 使用 checkpoint: {ckpt_path}\n")
             trainer.fit(self.model, train_loader, val_loader, ckpt_path=ckpt_path)
         else:
-            print(f"\n🔄 从头开始训练\n")
+            print(f"\n[Load] 从头开始训练\n")
             trainer.fit(self.model, train_loader, val_loader)
         
         train_time = time.time() - train_start
@@ -299,60 +295,55 @@ class BaseTrainer:
     
     def _print_optimization_summary(self):
         """打印优化配置摘要"""
-        is_windows = platform.system() == 'Windows'
-        
         print("\n" + "="*60)
-        print("🚀 训练优化配置")
+        print("[Info] 训练优化配置")
         print("="*60)
         
         # 系统信息
-        if is_windows:
-            print(f"\n💻 系统: Windows (多进程数据加载已禁用)")
+        print(f"\n[System] 系统: {platform.system()}")
         
         # Checkpoint 信息
         if self.use_checkpoint:
-            print(f"\n💾 Checkpoint:")
-            print(f"  • 启用: True")
-            print(f"  • 监控指标: {self.trainer_params.get('monitor', 'val_loss')}")
-            print(f"  • 保存最优: Top-{self.trainer_params.get('save_top_k', 3)}")
+            print(f"\n[Save] Checkpoint:")
+            print(f"  - 启用: True")
+            print(f"  - 监控指标: {self.trainer_params.get('monitor', 'val_loss')}")
+            print(f"  - 保存最优: Top-{self.trainer_params.get('save_top_k', 3)}")
         
         # 数据加载优化
-        print("\n📦 数据加载:")
-        num_workers = self.trainer_params.get('num_workers', 0 if is_windows else 8)
-        print(f"  • num_workers: {num_workers}")
-        if is_windows and num_workers == 0:
-            print(f"    ⚠️  Windows系统默认禁用多进程，避免兼容性问题")
-        print(f"  • pin_memory: {self.trainer_params.get('pin_memory', True)}")
+        print("\n[Data] 数据加载:")
+        num_workers = self.trainer_params.get('num_workers', 8)
+        print(f"  - num_workers: {num_workers}")
+        print(f"  - pin_memory: {self.trainer_params.get('pin_memory', True)}")
         if num_workers > 0:
-            print(f"  • persistent_workers: {self.trainer_params.get('persistent_workers', True)}")
-        print(f"  • prefetch_factor: {self.trainer_params.get('prefetch_factor', 2 if num_workers > 0 else 'N/A')}")
+            print(f"  - persistent_workers: {self.trainer_params.get('persistent_workers', True)}")
+        print(f"  - prefetch_factor: {self.trainer_params.get('prefetch_factor', 2 if num_workers > 0 else 'N/A')}")
         
         # 训练优化
-        print("\n⚡ 训练配置:")
+        print("\n[Train] 训练配置:")
         precision = self.trainer_params.get('precision', '16-mixed')
-        print(f"  • precision: {precision}")
+        print(f"  - precision: {precision}")
         if precision == '16-mixed':
-            print(f"    ✅ 混合精度训练已启用 (FP16+FP32)")
+            print(f"    [OK] 混合精度训练已启用 (FP16+FP32)")
         
         if torch.cuda.is_available():
             matmul_precision = self.trainer_params.get('matmul_precision', 'high')
-            print(f"  • tensor_cores: {matmul_precision} precision")
-            print(f"    ✅ Tensor Cores 优化已启用 (RTX GPU)")
+            print(f"  - tensor_cores: {matmul_precision} precision")
+            print(f"    [OK] Tensor Cores 优化已启用 (RTX GPU)")
         
         # 梯度检查点
         if self.trainer_params.get('gradient_checkpointing', False):
             print(f"\n🧠 梯度检查点:")
-            print(f"  • 已启用 (用计算换显存，约节省 30-50% 显存)")
+            print(f"  - 已启用 (用计算换显存，约节省 30-50% 显存)")
         
         # 模型编译
         if self.trainer_params.get('compile_model', False):
-            print(f"\n🔧 模型编译:")
-            print(f"  • 已启用: {self.trainer_params.get('compile_mode', 'default')} 模式")
+            print(f"\n[Config] 模型编译:")
+            print(f"  - 已启用: {self.trainer_params.get('compile_mode', 'default')} 模式")
         
         # Wandb 信息
         if self.wandb:
-            print(f"\n📊 Wandb:")
-            print(f"  • 已启用")
+            print(f"\n[Stats] Wandb:")
+            print(f"  - 已启用")
         
         print("="*60 + "\n")
 
@@ -448,11 +439,11 @@ class BasePrediction:
         """
         from src.config.params import WANDB_PROJECT, WANDB_ENTITY, PROJECT_PATH
         
-        print(f"📦 从 wandb 加载模型...")
-        print(f"  • Run ID: {run_id}")
-        print(f"  • Version: {version}")
-        print(f"  • Project: {WANDB_PROJECT}")
-        print(f"  • Entity: {WANDB_ENTITY}")
+        print(f"[Data] 从 wandb 加载模型...")
+        print(f"  - Run ID: {run_id}")
+        print(f"  - Version: {version}")
+        print(f"  - Project: {WANDB_PROJECT}")
+        print(f"  - Entity: {WANDB_ENTITY}")
         
         # 使用 wandb API（官方方法）
         api = wandb.Api()
@@ -469,10 +460,10 @@ class BasePrediction:
         checkpoint_file = cache_dir + f'/{self.model_class.__name__}.ckpt'
         
         if os.path.exists(checkpoint_file):
-            print(f"  • 使用本地缓存: {checkpoint_file}")
+            print(f"  - 使用本地缓存: {checkpoint_file}")
         else:
             # 目录不存在，需要从 wandb 下载
-            print(f"  • 查找 Artifact: {artifact_full_path}")
+            print(f"  - 查找 Artifact: {artifact_full_path}")
             artifact = api.artifact(artifact_full_path)
             
             # 确保缓存目录存在
@@ -491,7 +482,7 @@ class BasePrediction:
             downloaded_ckpt = os.path.join(cache_dir, ckpt_files[0])
 
             if downloaded_ckpt != checkpoint_file:
-                print(f"  • 重命名文件: {ckpt_files[0]} -> {self.model_class.__name__}")
+                print(f"  - 重命名文件: {ckpt_files[0]} -> {self.model_class.__name__}")
                 os.rename(downloaded_ckpt, checkpoint_file)
         
         # 先创建模型实例（不加载权重），用于初始化延迟初始化的层
@@ -509,7 +500,7 @@ class BasePrediction:
             dummy_input = torch.zeros(1, seq_len - 1, width, height)
             try:
                 _ = temp_model.attention(dummy_input)
-                print(f"  • 已初始化延迟投影层")
+                print(f"  - 已初始化延迟投影层")
             except:
                 pass  # 如果初始化失败，继续尝试加载
         
@@ -602,7 +593,7 @@ class BasePrediction:
         # temporal_weights = self.model.viz['temporal_weights'].detach().cpu().numpy()
 
         # print(f"--------------------------------")
-        # print(f" 📊 Model: {self.model_class.__name__} Prediction Position Encoding:")
+        # print(f" [Stats] Model: {self.model_class.__name__} Prediction Position Encoding:")
         # print(f"position_encoding: {position_encoding.shape}")
         # print(f"attention_out: {attention_out.shape}")
         # print(f"ffn_out: {ffn_out.shape}")
@@ -614,7 +605,7 @@ class BasePrediction:
         # 其他参数
         spatial_enc_scale = self.model.spatial_enc_scale.detach().cpu().numpy()
 
-        print(f" 📊 Model: {self.model_class.__name__} Prediction Other Parameters:")
+        print(f" [Stats] Model: {self.model_class.__name__} Prediction Other Parameters:")
         print(f"spatial_enc_scale: {spatial_enc_scale}")
         print(f"--------------------------------")
         

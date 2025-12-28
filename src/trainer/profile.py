@@ -196,7 +196,7 @@ class ProfileTrainer:
             'fit_results': fit_results
         }
         
-        print(f'   ✅ Thermocline 总体 RMSE: {overall_rmse:.3f}°C')
+        print(f'   [OK] Thermocline 总体 RMSE: {overall_rmse:.3f}°C')
         return model
     
     def train_unet3d(self, checkpoint_path=None, n_depth=None, 
@@ -313,7 +313,7 @@ class ProfileTrainer:
                     n_depth=n_depth,
                     base_channels=base_channels
                 )
-                print(f'   ✅ 最佳模型保存至: {best_ckpt}')
+                print(f'   [OK] 最佳模型保存至: {best_ckpt}')
         
         model = model.to(device)
         model.eval()
@@ -364,7 +364,7 @@ class ProfileTrainer:
             'n_depth': unet_n_depth
         }
         
-        print(f'   ✅ UNet3D 总体 RMSE ({unet_n_depth}层, 0-{self.target_depths[unet_n_depth-1]}m): {overall_rmse:.3f}°C')
+        print(f'   [OK] UNet3D 总体 RMSE ({unet_n_depth}层, 0-{self.target_depths[unet_n_depth-1]}m): {overall_rmse:.3f}°C')
         return model
     
     def train_random_forest(self, n_estimators=50, max_depth=20):
@@ -424,7 +424,7 @@ class ProfileTrainer:
             'overall_rmse': overall_rmse
         }
         
-        print(f'   ✅ Random Forest 总体 RMSE: {overall_rmse:.3f}°C')
+        print(f'   [OK] Random Forest 总体 RMSE: {overall_rmse:.3f}°C')
         return model
     
     def train_all(self, unet_checkpoint=None):
@@ -552,7 +552,7 @@ class ProfileTrainer:
         plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor='white')
         plt.show()
         
-        print(f'✅ 保存: {save_path}')
+        print(f'[OK] 保存: {save_path}')
         return fig
     
     def print_summary(self):
@@ -562,7 +562,7 @@ class ProfileTrainer:
             return
         
         print('\n' + '=' * 70)
-        print('📊 三模型 RMSE 对比')
+        print('[Stats] 三模型 RMSE 对比')
         print('=' * 70)
         
         # 表头
@@ -697,5 +697,5 @@ class ProfileTrainer:
         plt.savefig(output_file, dpi=300, bbox_inches='tight')
         plt.show()
         
-        print(f'\n✅ 所有三维温度图已保存至 {output_file}')
+        print(f'\n[OK] 所有三维温度图已保存至 {output_file}')
 

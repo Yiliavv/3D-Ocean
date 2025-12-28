@@ -9,3 +9,4 @@ doc
 out/
 wandb_logs/
 src/wandb/
+wandb/

@@ -96,7 +96,7 @@ class AttentionVisualizer:
                 self.logger.experiment.log(log_dict)
             
         except Exception as e:
-            print(f"⚠️  记录注意力权重到 wandb 失败: {str(e)}")
+            print(f"[WARN]  记录注意力权重到 wandb 失败: {str(e)}")
             import traceback
             traceback.print_exc()
     
@@ -121,7 +121,7 @@ class AttentionVisualizer:
         
         # 确保注意力权重是 2D
         if len(attn_np.shape) != 2:
-            print(f"⚠️  注意力权重形状不正确: {attn_np.shape}")
+            print(f"[WARN]  注意力权重形状不正确: {attn_np.shape}")
             return None
         
         return attn_np
@@ -349,14 +349,14 @@ class Wandb:
             # 更新注意力可视化器的 logger
             self.attention_visualizer.logger = self.logger
             
-            print(f"\n📊 Wandb 已启用")
+            print(f"\n[Stats] Wandb 已启用")
             print(f"  • Project: {WANDB_PROJECT}")
             print(f"  • Run ID: {self.uid}")
             print(f"  • Run URL: {self.logger.experiment.url}")
             print(f"  • 模型监控: 已开启（梯度监控）\n")
             
         except Exception as e:
-            print(f"\n⚠️  Wandb 初始化失败: {str(e)}")
+            print(f"\n[WARN]  Wandb 初始化失败: {str(e)}")
             print(f"  训练将继续，但不记录到 wandb\n")
             self.enabled = False
             self.logger = None
@@ -407,12 +407,12 @@ class Wandb:
             # 更新注意力可视化器的 logger
             self.attention_visualizer.logger = self.logger
             
-            print(f"✅ Wandb 已重新初始化用于记录预测结果")
+            print(f"[OK] Wandb 已重新初始化用于记录预测结果")
             print(f"  • Run ID: {self.uid}")
             print(f"  • Run URL: {self.logger.experiment.url}")
             
         except Exception as e:
-            print(f"⚠️  重新初始化 wandb 失败: {str(e)}")
+            print(f"[WARN]  重新初始化 wandb 失败: {str(e)}")
             self.logger = None
     
     def finish(self, train_time: float, checkpoint_callback, close_run: bool = False) -> None:
@@ -447,7 +447,7 @@ class Wandb:
                 print(f"📝 Wandb run 保持活跃，预测时可继续记录（Run ID: {self.uid}）")
             
         except Exception as e:
-            print(f"\n⚠️  训练结束时 wandb 操作失败: {str(e)}")
+            print(f"\n[WARN]  训练结束时 wandb 操作失败: {str(e)}")
     
     def get_lightning_logger(self):
         """返回 WandbLogger 实例（供 PyTorch Lightning 使用）"""
@@ -507,7 +507,7 @@ class Wandb:
                 PILImage.MAX_IMAGE_PIXELS = original_max_pixels
             
         except Exception as e:
-            print(f"⚠️  记录预测图像到 wandb 失败: {str(e)}")
+            print(f"[WARN]  记录预测图像到 wandb 失败: {str(e)}")
             import traceback
             traceback.print_exc()
     
@@ -620,6 +620,6 @@ class Wandb:
             run.log_artifact(artifact)
 
         except Exception as e:
-            print(f"⚠️  保存checkpoint到 wandb 失败: {str(e)}")
+            print(f"[WARN]  保存checkpoint到 wandb 失败: {str(e)}")
             import traceback
             traceback.print_exc()

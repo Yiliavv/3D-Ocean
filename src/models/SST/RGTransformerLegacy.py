@@ -1,39 +1,27 @@
 """
-RG-Transformer V2: 优化版递归泛化注意力 Transformer 模型
+RG-Transformer: 递归泛化注意力 Transformer 模型
 专为海表温度时空序列预测任务设计
 
-相比 V1 的改进：
-1. ConvStem 替代 Patch Embedding - 更好的局部特征提取，解决边界效应
-2. EfficientRGAttention 替代 RGAttention - 参数减少 33%，移除冗余计算
-3. einops 简化张量操作 - 代码更清晰，潜在性能优化
-4. torch.compile 支持 - 利用 PyTorch 2.0+ 编译优化
-
-预期性能提升：
-- 训练速度提升 ≥20%
-- 显存占用减少 ≥15%
-- 推理速度提升 ≥15%
-- 参数量减少约 11%
+架构设计：
+- 采用 Patch Embedding 方案解决分辨率锁定问题
+- 注意力机制：使用 RGAttentionWithGlobalQuery（递归泛化自注意力 + 全局查询注意力）
+- 空间处理：使用 Patch Embedding 将空间网格转换为特征向量，实现分辨率无关
+- 时序处理：对每个 Patch 位置独立进行时序建模，但在全空间共享权重
+- 全局查询：通过可学习的全局查询向量引入历史上下文信息
 """
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from typing import Optional, List
 
 from lightning import LightningModule
 from torch import optim
 
-try:
-    from einops import rearrange
-except ImportError:
-    raise ImportError("Please install einops: pip install einops")
-
-# 导入优化后的模块
+# 导入注意力模块
 from src.models.SST.PE.SphericalHarmonicEncoding import (
     SpatialSphericalHarmonicEncoding,
 )
-from src.models.SST.Attention.RGAttention import EfficientRGAttention
-from src.models.SST.ConvStem import ConvStem
+from src.models.SST.Attention.RGAttentionLegacy import RGAttention
 
 
 class ChannelFeedForward(nn.Module):
@@ -43,7 +31,7 @@ class ChannelFeedForward(nn.Module):
     结构: Linear(d_model) -> GELU -> Dropout -> Linear(d_model) -> Dropout
     作用于特征维度，对空间位置共享权重
     """
-    def __init__(self, d_model: int, dim_feedforward: int, dropout: float = 0.1):
+    def __init__(self, d_model, dim_feedforward, dropout=0.1):
         super().__init__()
         self.net = nn.Sequential(
             nn.Linear(d_model, dim_feedforward),
@@ -53,41 +41,26 @@ class ChannelFeedForward(nn.Module):
             nn.Dropout(dropout)
         )
 
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x):
         # x: [..., d_model]
         return self.net(x)
-
-
+        
 class RGTransformer(LightningModule):
-    """
-    RG-Transformer 海表温度预测模型（优化版）
+    """递归泛化注意力 Transformer - 海表温度预测模型"""
     
-    主要优化:
-    1. ConvStem 替代 Patch Embedding - 多层卷积，更好的特征提取
-    2. EfficientRGAttention 替代 RGAttention - 轻量门控，无 Global Token
-    3. einops.rearrange 简化张量操作
-    4. torch.compile 兼容设计
-    """
-    
-    def __init__(
-        self, 
-        width: int, 
-        height: int, 
-        seq_len: int,
-        d_model: int = 256, 
-        num_heads: int = 8, 
-        dim_feedforward: int = 1024,
-        dropout: float = 0.1,
-        num_attn_layers: int = 1,
-        learning_rate: float = 1e-4,
-        lat_range: Optional[List[float]] = None,
-        lon_range: Optional[List[float]] = None,
-        resolution: float = 1.0,
-        patch_size: int = 4,
-        use_compile: bool = False,
-        compile_mode: str = "reduce-overhead",
-        **kwargs
-    ):
+    def __init__(self, 
+                 width, height, seq_len,
+                 d_model=256, 
+                 num_heads=8, 
+                 dim_feedforward=1024,
+                 dropout=0.1,
+                 recursion_depth=2,
+                 learning_rate=1e-4,
+                 lat_range=None,
+                 lon_range=None,
+                 resolution=1.0,
+                 patch_size=4,
+                 **kwargs):
         """
         Args:
             width: 海表温度图像宽度
@@ -97,25 +70,20 @@ class RGTransformer(LightningModule):
             num_heads: 注意力头数
             dim_feedforward: 前馈网络维度
             dropout: Dropout比例
-            num_attn_layers: 注意力层数（替代 recursion_depth）
+            recursion_depth: RG注意力的递归深度
             learning_rate: 学习率
             lat_range: [lat_min, lat_max] 纬度范围
             lon_range: [lon_min, lon_max] 经度范围
             resolution: 空间分辨率
             patch_size: Patch大小（分块大小），默认4x4
-            use_compile: 是否启用 torch.compile
-            compile_mode: torch.compile 模式
+            global_context_size: 全局查询向量数量
+            use_global_query: 是否启用全局查询
         """
         super().__init__()
-        
-        # 保存超参数
-        self.save_hyperparameters()
         
         self.learning_rate = learning_rate
         self.train_loss = []
         self.val_loss = []
-        self.use_compile = use_compile
-        self.compile_mode = compile_mode
         
         if not (width and height):
             raise ValueError("Must specify width and height")
@@ -126,11 +94,7 @@ class RGTransformer(LightningModule):
         self.d_model = d_model
         self.patch_size = patch_size
         
-        # 计算 patch 后的特征图尺寸
-        self.w_feat = width // patch_size
-        self.h_feat = height // patch_size
-        
-        # ======= 空间位置编码 =======
+        # 空间位置编码（在原始分辨率上计算）
         self.spatial_pos_encoding = SpatialSphericalHarmonicEncoding(
             lat_range=lat_range,
             lon_range=lon_range,
@@ -139,13 +103,13 @@ class RGTransformer(LightningModule):
         )
         self.spatial_enc_scale = nn.Parameter(torch.tensor(0.5))
         
-        # ======= ConvStem 模块（替代 Patch Embedding）=======
+        # ======= Patch Embedding 模块 =======
         # 将 [1, H, W] -> [d_model, H/p, W/p]
-        self.conv_stem = ConvStem(
-            in_channels=1,
-            embed_dim=d_model,
-            target_reduction=patch_size,
-            use_bn=True
+        self.patch_embed = nn.Conv2d(
+            in_channels=1, 
+            out_channels=d_model,
+            kernel_size=patch_size,
+            stride=patch_size
         )
         
         # ======= Patch Recovery 模块 =======
@@ -159,13 +123,13 @@ class RGTransformer(LightningModule):
     
         # ======= Transformer 组件 =======
         
-        # 高效版 RG 注意力模块（时序注意力）
-        self.attention = EfficientRGAttention(
+        # RG递归注意力模块（时序注意力）
+        self.attention = RGAttention(
             d_model=d_model,
             num_heads=num_heads,
+            recursion_depth=recursion_depth,
             dropout=dropout,
-            num_layers=num_attn_layers,
-            use_gate=True
+            use_global_token=True # 启用轻量级 Global Token
         )
         
         # Channel-Mixing FFN
@@ -173,118 +137,90 @@ class RGTransformer(LightningModule):
         
         self.dropout = nn.Dropout(dropout)
         
-        # LayerNorm
+        # LayerNorm 现在作用于 d_model 维度
         self.layer_norm = nn.LayerNorm(d_model)
+        self.norm1 = nn.LayerNorm(d_model)
         self.norm2 = nn.LayerNorm(d_model)
         
         # 可学习的时序权重向量
         self.temporal_weights = nn.Parameter(torch.ones(seq_len - 1) / (seq_len - 1))
 
-        # 可视化数据
         self.viz = {}
-        
-        # torch.compile 在训练开始时应用
-        self._compiled = False
     
-    def _maybe_compile(self):
-        """在首次前向传播时应用 torch.compile"""
-        if self.use_compile and not self._compiled and hasattr(torch, 'compile'):
-            try:
-                # 编译核心前向传播部分
-                self._forward_impl = torch.compile(
-                    self._forward_impl, 
-                    mode=self.compile_mode
-                )
-                self._compiled = True
-            except Exception as e:
-                print(f"Warning: torch.compile failed: {e}")
-                self._compiled = True  # 标记为已尝试，避免重复
-    
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
+    def forward(self, x):
         """
-        前向传播
-        
         Args:
             x: [batch, seq_len-1, width, height]
-        
         Returns:
             output: [batch, width, height]
-        """
-        self._maybe_compile()
-        return self._forward_impl(x)
-    
-    def _forward_impl(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        实际的前向传播实现（可被 torch.compile 编译）
-        
-        Args:
-            x: [batch, seq_len-1, width, height]
-        
-        Returns:
-            output: [batch, width, height]
-        """
+        """        
         batch_size, seq_len_minus_1, width, height = x.shape
         
         # 1. 输入归一化和位置编码
+        # 这一步在原始分辨率进行，利用球谐编码的物理特性
         x = self._normalize_sst(x)
         
         # 生成空间位置编码
         # SpatialSphericalHarmonicEncoding 返回 [height, width]（lat, lon）
         # 输入 x 的形状是 [batch, seq, height, width]（lat, lon），无需转置
         spatial_enc = self.spatial_pos_encoding()  # [height, width]
+        spatial_weight = self.spatial_enc_scale
         
-        # 添加位置编码到输入数据中
-        x = x + spatial_enc * self.spatial_enc_scale
+        # 添加位置编码到输入数据中（广播加法）
+        # [batch, seq, H, W] + [H, W]
+        x = x + spatial_enc * spatial_weight
         
-        # 2. ConvStem（替代 Patch Embedding）
-        # 使用 einops 简化张量操作
-        # [B, S, W, H] -> [B*S, 1, W, H]
-        x_flat = rearrange(x, 'b s w h -> (b s) 1 w h')
+        # 2. Patch Embedding
+        # reshape to combine batch and seq for Conv2d: [B*S, 1, W, H]
+        x_flat = x.view(-1, 1, width, height)
         
         # [B*S, d_model, W', H']
-        x_embed = self.conv_stem(x_flat)
+        x_embed = self.patch_embed(x_flat)
         
         _, d_model, w_feat, h_feat = x_embed.shape
         
         # 3. 准备 Transformer 输入
-        # [B*S, D, W', H'] -> [B, S, D, W', H'] -> [B*W'*H', S, D]
-        x_embed = rearrange(
-            x_embed, 
-            '(b s) d w h -> (b w h) s d', 
-            b=batch_size, 
-            s=seq_len_minus_1
-        )
+        # 我们需要在时序维度上进行 Attention，对每个空间位置独立处理
+        # Reshape: [B, S, D, W', H']
+        x_embed = x_embed.view(batch_size, seq_len_minus_1, d_model, w_feat, h_feat)
+        
+        # Permute to [B, W', H', S, D] -> Flatten spatial: [B*W'*H', S, D]
+        # 这样每个 (batch_idx, spatial_loc) 都有一个独立的时间序列
+        x_tokens = x_embed.permute(0, 3, 4, 1, 2).contiguous()
+        x_tokens = x_tokens.view(-1, seq_len_minus_1, d_model)
         
         # 4. Transformer Block
         
         # LayerNorm & Dropout
-        x_tokens = self.layer_norm(x_embed)
+        x_tokens = self.layer_norm(x_tokens)
         x_tokens = self.dropout(x_tokens)
         
-        # Attention Block (EfficientRGAttention 内部已包含残差连接)
-        x_tokens = self.attention(x_tokens)
+        # Attention Block
+        # [N, S, D]
+        attn_out = self.attention(self.norm1(x_tokens))
+        x_tokens = x_tokens + attn_out  # Residual
         
         # FFN Block
         ffn_out = self.ffn(self.norm2(x_tokens))
-        x_tokens = x_tokens + ffn_out  # Residual
+        x_tokens = x_tokens + ffn_out   # Residual
         
         # 5. 时序聚合
         # [N, S, D] -> [N, D] (Weighted Sum)
+        
         normalized_weights = F.softmax(self.temporal_weights, dim=0)
+        # weights: [S, 1]
         weights = normalized_weights.view(-1, 1)
         
         # [N, S, D] * [S, 1] -> sum(dim=1) -> [N, D]
+        # x_tokens: [batch*w'*h', seq, d_model]
         output_tokens = (x_tokens * weights).sum(dim=1)
         
         # 6. 恢复空间结构和分辨率
-        # [B*W'*H', D] -> [B, W', H', D] -> [B, D, W', H']
-        output_tokens = rearrange(
-            output_tokens, 
-            '(b w h) d -> b d w h', 
-            b=batch_size, 
-            w=w_feat, 
-            h=h_feat
-        )
+        # [B*W'*H', D] -> [B, W', H', D]
+        output_tokens = output_tokens.view(batch_size, w_feat, h_feat, d_model)
+        
+        # [B, D, W', H'] for ConvTranspose2d
+        output_tokens = output_tokens.permute(0, 3, 1, 2).contiguous()
         
         # Upsample: [B, D, W', H'] -> [B, 1, W, H]
         output_map = self.patch_recovery(output_tokens)
@@ -292,35 +228,28 @@ class RGTransformer(LightningModule):
         # Remove channel dim: [B, W, H]
         output = output_map.squeeze(1)
         
-        # 保存可视化数据
+        # 保存一些可视化数据 (取第一个样本的均值等，避免数据量过大)
         if batch_size > 0:
             self.viz['temporal_weights'] = normalized_weights
         
         return output
     
-    def _normalize_sst(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        海表温度数据归一化
-        
-        将 NaN 值（陆地区域）替换为 0
-        """
+    def _normalize_sst(self, x):
+        """海表温度数据归一化"""
         x_mask = torch.isnan(x)
         x_processed = x.clone()
         x_processed[x_mask] = 0.0
         return x_processed
 
-    def custom_mse_loss(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+    def custom_mse_loss(self, y_pred, y_true):
         """
-        处理 NaN 值的 MSE 损失函数
+        处理NaN值的MSE损失函数
         
         Args:
-            y_pred: [batch, width, height] 预测值
-            y_true: [batch, width, height] 真实值
-        
-        Returns:
-            loss: 标量损失值
+            y_pred: [batch, width, height]
+            y_true: [batch, width, height]
         """
-        # 创建有效值掩码（排除 NaN 区域）
+        # 创建有效值掩码
         y_true_mask = torch.isnan(y_true)
         y_pred_mask = torch.isnan(y_pred)
         valid_mask = ~(y_true_mask | y_pred_mask)
@@ -333,7 +262,6 @@ class RGTransformer(LightningModule):
             loss = F.mse_loss(y_pred_valid, y_true_valid, reduction='mean')
             return loss
         else:
-            # 返回零损失（但保持计算图）
             return y_pred.sum() * 0.0
     
     def training_step(self, batch, batch_idx):
@@ -358,23 +286,3 @@ class RGTransformer(LightningModule):
             lr=self.learning_rate,
         )
         return optimizer
-    
-    def get_num_parameters(self, trainable_only: bool = True) -> int:
-        """
-        获取模型参数量
-        
-        Args:
-            trainable_only: 是否只统计可训练参数
-        
-        Returns:
-            参数总数
-        """
-        if trainable_only:
-            return sum(p.numel() for p in self.parameters() if p.requires_grad)
-        return sum(p.numel() for p in self.parameters())
-
-
-# 兼容别名（向后兼容旧代码引用）
-RGTransformerV2 = RGTransformer
-RGTransformerOptimized = RGTransformer
-

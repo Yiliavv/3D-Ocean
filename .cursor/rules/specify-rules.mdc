@@ -1,0 +1,29 @@
+﻿# 3D-Ocean Development Guidelines
+
+Auto-generated from all feature plans. Last updated: 2025-12-28
+
+## Active Technologies
+
+- Python 3.11+ + PyTorch 2.0+, PyTorch Lightning, NumPy (001-rgtransformer-efficiency)
+
+## Project Structure
+
+```text
+src/
+tests/
+```
+
+## Commands
+
+cd src; pytest; ruff check .
+
+## Code Style
+
+Python 3.11+: Follow standard conventions
+
+## Recent Changes
+
+- 001-rgtransformer-efficiency: Added Python 3.11+ + PyTorch 2.0+, PyTorch Lightning, NumPy
+
+<!-- MANUAL ADDITIONS START -->
+<!-- MANUAL ADDITIONS END -->

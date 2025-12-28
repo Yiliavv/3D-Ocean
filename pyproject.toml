@@ -1,7 +1,7 @@
 [project]
-name = "tensorflow"
+name = "3d-ocean"
 version = "0.1.0"
-description = "Add your description here"
+description = "3D Ocean Temperature Field Prediction"
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
@@ -27,4 +27,16 @@ dependencies = [
     "torch>=2.9.0",
     "torchvision>=0.24.0",
     "wandb>=0.22.2",
+    "einops>=0.8.0",
+    "pytest>=9.0.2",
 ]
+
+# 配置 PyTorch CUDA 12.8 源
+[[tool.uv.index]]
+name = "pytorch-cu128"
+url = "https://download.pytorch.org/whl/cu128"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu128" }
+torchvision = { index = "pytorch-cu128" }
