@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>研究工作总结</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <style>
+        * { box-sizing: border-box; }
+        
+        body {
+            font-family: "Times New Roman", serif;
+            background: #fff;
+            margin: 0;
+            padding: 40px;
+        }
+
+        .container {
+            max-width: 950px;
+            margin: 0 auto;
+            position: relative;
+        }
+
+        #export-btn {
+            position: absolute;
+            top: 0;
+            right: 0;
+            padding: 8px 16px;
+            background: #005b80;
+            color: white;
+            border: none;
+            cursor: pointer;
+            font-size: 14px;
+            border-radius: 3px;
+        }
+
+        h1 {
+            text-align: center;
+            font-size: 24px;
+            color: #003366;
+            margin: 0 0 40px 0;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+        }
+
+        .flowchart {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        /* 通用框 */
+        .phase {
+            border: 2px solid #000;
+            background: #fff;
+        }
+
+        .phase-head {
+            background: #f0f0f0;
+            padding: 10px 24px;
+            font-family: Arial, sans-serif;
+            font-weight: bold;
+            font-size: 16px;
+            color: #003366;
+            border-bottom: 2px solid #000;
+            text-align: center;
+        }
+
+        .phase-body {
+            padding: 16px 24px;
+        }
+
+        /* 数据框 */
+        .data-phase {
+            width: 520px;
+        }
+
+        .data-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+
+        .data-item {
+            flex: 1;
+            text-align: center;
+            padding: 12px;
+            background: #fafafa;
+            border: 1px solid #ddd;
+        }
+
+        .data-item-title {
+            font-weight: bold;
+            font-size: 13px;
+            color: #003366;
+            margin-bottom: 8px;
+            padding-bottom: 6px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .data-item-content {
+            font-size: 13px;
+            line-height: 1.6;
+            color: #333;
+        }
+
+        /* 箭头 */
+        .arrow-down {
+            width: 2px;
+            height: 30px;
+            background: #000;
+            position: relative;
+            margin: 0 auto;
+        }
+
+        .arrow-down::after {
+            content: '';
+            position: absolute;
+            bottom: -8px;
+            left: -5px;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 10px solid #000;
+        }
+
+        .arrow-wrapper {
+            height: 45px;
+            display: flex;
+            justify-content: center;
+        }
+
+        /* 分叉箭头 */
+        .split-arrow {
+            width: 850px;
+            height: 50px;
+            position: relative;
+        }
+
+        .split-arrow .stem {
+            position: absolute;
+            left: calc(50% - 1px);
+            top: 0;
+            width: 2px;
+            height: 15px;
+            background: #000;
+        }
+
+        .split-arrow .bar {
+            position: absolute;
+            top: 15px;
+            left: calc(23.5% - 1px);
+            right: calc(23.5% - 1px);
+            height: 2px;
+            background: #000;
+        }
+
+        .split-arrow .left-drop, .split-arrow .right-drop {
+            position: absolute;
+            top: 15px;
+            width: 2px;
+            height: 25px;
+            background: #000;
+        }
+
+        .split-arrow .left-drop { left: calc(23.5% - 1px); }
+        .split-arrow .right-drop { right: calc(23.5% - 1px); }
+
+        .split-arrow .head {
+            position: absolute;
+            bottom: -8px;
+            border-left: 6px solid transparent;
+            border-right: 6px solid transparent;
+            border-top: 10px solid #000;
+        }
+
+        .split-arrow .left-drop .head { left: -5px; }
+        .split-arrow .right-drop .head { right: -5px; left: auto; }
+
+        /* 并排框 */
+        .parallel {
+            display: flex;
+            gap: 50px;
+        }
+
+        .model-phase {
+            width: 400px;
+        }
+
+        .model-content {
+            font-size: 14px;
+            line-height: 1.7;
+        }
+
+        .model-section {
+            margin-bottom: 14px;
+        }
+
+        .model-section:last-child {
+            margin-bottom: 0;
+        }
+
+        .model-label {
+            font-weight: bold;
+            color: #003366;
+            font-size: 13px;
+            margin-bottom: 4px;
+        }
+
+        .model-text {
+            color: #333;
+            padding-left: 8px;
+        }
+
+        .model-text b {
+            color: #000;
+        }
+
+    </style>
+</head>
+<body>
+
+<div class="container" id="capture-target">
+    <button id="export-btn" onclick="exportImage()">导出图片</button>
+    
+    <h1>全球海洋温度预测系统</h1>
+
+    <div class="flowchart">
+
+        <!-- 数据预处理 -->
+        <div class="phase data-phase">
+            <div class="phase-head">数据预处理</div>
+            <div class="phase-body">
+                <div class="data-row">
+                    <div class="data-item">
+                        <div class="data-item-title">数据来源</div>
+                        <div class="data-item-content">
+                            ERA5 再分析数据<br>
+                            Argo 浮标观测<br>
+                            <span style="color:#666;">(2004-2024)</span>
+                        </div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-item-title">处理流程</div>
+                        <div class="data-item-content">
+                            NaN 掩膜处理<br>
+                            时空对齐校正<br>
+                            多分辨率重采样
+                        </div>
+                    </div>
+                    <div class="data-item">
+                        <div class="data-item-title">输出格式</div>
+                        <div class="data-item-content">
+                            统一网格 (0.25°-2°)<br>
+                            归一化张量<br>
+                            训练/验证集
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 分叉 -->
+        <div class="split-arrow">
+            <div class="stem"></div>
+            <div class="bar"></div>
+            <div class="left-drop"><div class="head"></div></div>
+            <div class="right-drop"><div class="head"></div></div>
+        </div>
+
+        <!-- 两个预测任务 -->
+        <div class="parallel">
+            
+            <div class="phase model-phase">
+                <div class="phase-head">海表温度预测 (SST)</div>
+                <div class="phase-body">
+                    <div class="model-content">
+                        <div class="model-section">
+                            <div class="model-label">对比模型</div>
+                            <div class="model-text">LSTM / ConvLSTM / Transformer / <b>RG-Transformer</b></div>
+                        </div>
+                        <div class="model-section">
+                            <div class="model-label">核心创新</div>
+                            <div class="model-text">
+                                <b>SHPE</b>: 球面谐波位置编码<br>
+                                <b>RG-Attn</b>: 递归泛化自注意力机制<br>
+                                多尺度残差网络 (MSRN)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="phase model-phase">
+                <div class="phase-head">三维温度场反演 (3D)</div>
+                <div class="phase-body">
+                    <div class="model-content">
+                        <div class="model-section">
+                            <div class="model-label">对比模型</div>
+                            <div class="model-text">温度参数模型 / Random Forest / <b>UNet-3D</b></div>
+                        </div>
+                        <div class="model-section">
+                            <div class="model-label">核心创新</div>
+                            <div class="model-text">
+                                3D 卷积编码-解码架构<br>
+                                跳跃连接特征融合<br>
+                                深度维度重建 (0-2000m)
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    function exportImage() {
+        const container = document.getElementById('capture-target');
+        const btn = document.getElementById('export-btn');
+        btn.style.display = 'none';
+        
+        html2canvas(container, { scale: 3, backgroundColor: '#ffffff' }).then(canvas => {
+            const link = document.createElement('a');
+            link.download = 'research_summary.png';
+            link.href = canvas.toDataURL('image/png');
+            link.click();
+            btn.style.display = 'block';
+        });
+    }
+</script>
+</body>
+</html>

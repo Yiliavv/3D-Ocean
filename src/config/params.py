@@ -1,6 +1,6 @@
 # Config for researches.
 
-WORKSPACE_PATH = "/home/morisi/Workspace"
+WORKSPACE_PATH = "X:/Workspace"
 PROJECT_PATH = f"{WORKSPACE_PATH}/3D-Ocean"
 
 # 数据基础路径

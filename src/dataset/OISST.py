@@ -95,13 +95,13 @@ class OISSTMonthlyDataset(Dataset):
         注意：OISST 原始经度范围是 [0, 360]，这里转换为 [-180, 180] 以与 ERA5 保持一致
         """
         try:
-            self._nc_file = nc.Dataset(self.nc_file_path, 'r', format='NETCDF4')
-            
-            # 读取原始数据
-            sst_data = self._nc_file.variables['sst'][:]  # [time, lat, lon]
-            lon_data = self._nc_file.variables['lon'][:]
-            self._lat_data = self._nc_file.variables['lat'][:]
-            self._time_data = self._nc_file.variables['time'][:]
+            # 使用 with 语句确保文件正确关闭，避免 Windows 多进程 pickle 问题
+            with nc.Dataset(self.nc_file_path, 'r', format='NETCDF4') as nc_file:
+                # 读取原始数据
+                sst_data = nc_file.variables['sst'][:]  # [time, lat, lon]
+                lon_data = nc_file.variables['lon'][:]
+                self._lat_data = nc_file.variables['lat'][:]
+                self._time_data = nc_file.variables['time'][:]
             
             # 转换经度：[0, 360] -> [-180, 180]
             # 1. 将经度值转换
@@ -113,6 +113,9 @@ class OISSTMonthlyDataset(Dataset):
             
             # 3. 相应地重新排序SST数据（只在经度维度上）
             self._sst_data = sst_data[:, :, lon_sort_indices]
+            
+            # 设置 _nc_file 为 None，表示文件已关闭
+            self._nc_file = None
             
             print(f'成功加载OISST数据: {self._sst_data.shape}')
             print(f'时间步数: {len(self._time_data)}')
@@ -270,13 +273,10 @@ class OISSTMonthlyDataset(Dataset):
     
     def __del__(self):
         """
-        析构函数：关闭NC文件
+        析构函数：清理资源
+        注意：NC文件在 __load_data__ 中已使用 with 语句关闭
         """
-        if self._nc_file is not None:
-            try:
-                self._nc_file.close()
-            except:
-                pass
+        pass
 
 
 # 基于OISST日数据聚合的月平均数据集
