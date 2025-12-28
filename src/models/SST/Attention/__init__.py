@@ -8,15 +8,8 @@
 
 from .RGAttention import EfficientRGAttention, RGAttention
 
-# 可选导入 Legacy 版本
-try:
-    from .RGAttentionLegacy import RGAttention as RGAttentionLegacy
-except ImportError:
-    RGAttentionLegacy = None
-
 __all__ = [
     'EfficientRGAttention',
     'RGAttention',
-    'RGAttentionLegacy',
 ]
 

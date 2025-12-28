@@ -51,8 +51,8 @@ model_params = {
 # 训练器参数
 # ============================================================
 trainer_params = {
-    "epochs": 100,
-    "batch_size": 16,
+    "epochs": 300,
+    "batch_size": 24,
     "num_workers": 4,
     "use_wandb": True,
     "use_checkpoint": True,

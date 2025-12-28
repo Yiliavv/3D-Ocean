@@ -183,7 +183,7 @@ class BaseTrainer:
             verbose=False,
         )
         
-        print(f"\n[Save] Checkpoint: {CHECKPOINT_SAVE_PATH}/{self.trainer_uid}/{f'{self.model_class.__name__}'}\n")
+        print(f"\n💾 Checkpoint: {CHECKPOINT_SAVE_PATH}/{self.trainer_uid}/{f'{self.model_class.__name__}'}\n")
         
         return checkpoint_callback
     
@@ -216,7 +216,7 @@ class BaseTrainer:
         if self.trainer_params.get('compile_model', False):
             if hasattr(torch, 'compile'):
                 compile_mode = self.trainer_params.get('compile_mode', 'default')
-                print(f"[Info] 编译模型 (模式: {compile_mode})...")
+                print(f"🚀 编译模型 (模式: {compile_mode})...")
                 self.model = torch.compile(self.model, mode=compile_mode)
             else:
                 print("⚠️  PyTorch版本 < 2.0, 模型编译不可用")
@@ -267,10 +267,10 @@ class BaseTrainer:
         
         # 训练（PyTorch Lightning 自动处理 checkpoint 恢复）
         if os.path.exists(ckpt_path):
-            print(f"\n[Load] 使用 checkpoint: {ckpt_path}\n")
+            print(f"\n🔄 使用 checkpoint: {ckpt_path}\n")
             trainer.fit(self.model, train_loader, val_loader, ckpt_path=ckpt_path)
         else:
-            print(f"\n[Load] 从头开始训练\n")
+            print(f"\n🔄 从头开始训练\n")
             trainer.fit(self.model, train_loader, val_loader)
         
         train_time = time.time() - train_start
@@ -296,54 +296,54 @@ class BaseTrainer:
     def _print_optimization_summary(self):
         """打印优化配置摘要"""
         print("\n" + "="*60)
-        print("[Info] 训练优化配置")
+        print("🚀 训练优化配置")
         print("="*60)
         
         # 系统信息
-        print(f"\n[System] 系统: {platform.system()}")
+        print(f"\n💻 系统: {platform.system()}")
         
         # Checkpoint 信息
         if self.use_checkpoint:
-            print(f"\n[Save] Checkpoint:")
-            print(f"  - 启用: True")
-            print(f"  - 监控指标: {self.trainer_params.get('monitor', 'val_loss')}")
-            print(f"  - 保存最优: Top-{self.trainer_params.get('save_top_k', 3)}")
+            print(f"\n💾 Checkpoint:")
+            print(f"  • 启用: True")
+            print(f"  • 监控指标: {self.trainer_params.get('monitor', 'val_loss')}")
+            print(f"  • 保存最优: Top-{self.trainer_params.get('save_top_k', 3)}")
         
         # 数据加载优化
-        print("\n[Data] 数据加载:")
+        print("\n📦 数据加载:")
         num_workers = self.trainer_params.get('num_workers', 8)
-        print(f"  - num_workers: {num_workers}")
-        print(f"  - pin_memory: {self.trainer_params.get('pin_memory', True)}")
+        print(f"  • num_workers: {num_workers}")
+        print(f"  • pin_memory: {self.trainer_params.get('pin_memory', True)}")
         if num_workers > 0:
-            print(f"  - persistent_workers: {self.trainer_params.get('persistent_workers', True)}")
-        print(f"  - prefetch_factor: {self.trainer_params.get('prefetch_factor', 2 if num_workers > 0 else 'N/A')}")
+            print(f"  • persistent_workers: {self.trainer_params.get('persistent_workers', True)}")
+        print(f"  • prefetch_factor: {self.trainer_params.get('prefetch_factor', 2 if num_workers > 0 else 'N/A')}")
         
         # 训练优化
-        print("\n[Train] 训练配置:")
+        print("\n⚡ 训练配置:")
         precision = self.trainer_params.get('precision', '16-mixed')
-        print(f"  - precision: {precision}")
+        print(f"  • precision: {precision}")
         if precision == '16-mixed':
-            print(f"    [OK] 混合精度训练已启用 (FP16+FP32)")
+            print(f"    ✅ 混合精度训练已启用 (FP16+FP32)")
         
         if torch.cuda.is_available():
             matmul_precision = self.trainer_params.get('matmul_precision', 'high')
-            print(f"  - tensor_cores: {matmul_precision} precision")
-            print(f"    [OK] Tensor Cores 优化已启用 (RTX GPU)")
+            print(f"  • tensor_cores: {matmul_precision} precision")
+            print(f"    ✅ Tensor Cores 优化已启用 (RTX GPU)")
         
         # 梯度检查点
         if self.trainer_params.get('gradient_checkpointing', False):
             print(f"\n🧠 梯度检查点:")
-            print(f"  - 已启用 (用计算换显存，约节省 30-50% 显存)")
+            print(f"  • 已启用 (用计算换显存，约节省 30-50% 显存)")
         
         # 模型编译
         if self.trainer_params.get('compile_model', False):
-            print(f"\n[Config] 模型编译:")
-            print(f"  - 已启用: {self.trainer_params.get('compile_mode', 'default')} 模式")
+            print(f"\n🔧 模型编译:")
+            print(f"  • 已启用: {self.trainer_params.get('compile_mode', 'default')} 模式")
         
         # Wandb 信息
         if self.wandb:
-            print(f"\n[Stats] Wandb:")
-            print(f"  - 已启用")
+            print(f"\n📊 Wandb:")
+            print(f"  • 已启用")
         
         print("="*60 + "\n")
 
@@ -352,38 +352,40 @@ class BasePrediction:
     """
     预测器基类 - 独立于训练器的预测功能
     
-    支持从本地 checkpoint 或 wandb artifacts 加载模型进行预测
+    优先从本地 checkpoint 加载模型，如果本地不存在则尝试从 wandb artifacts 加载
     
     参数:
         area: Area, 区域
         model_class: LightningModule, 模型类
         dataset_class: Dataset, 数据集类
-        wandb_run_id: str, wandb run ID（可选，用于从 wandb 加载）
+        run_id: str, checkpoint 的 run ID（用于定位本地 checkpoint 或 wandb artifact）
         wandb_version: str, wandb artifact version（可选，如 "latest" 或 "v0"）
         dataset_params: dict, 数据集参数
         model_params: dict, 模型参数
         use_wandb: bool, 是否使用 wandb 日志（默认: False）
         
     使用示例:
-        # 从本地 checkpoint 加载
+        # 从本地 checkpoint 加载（优先）
         predictor = BasePrediction(
             area=area,
             model_class=RGTransformer,
             dataset_class=OISSTMonthlyDataset,
+            run_id='2025-01-15-10-30',  # out/checkpoints/2025-01-15-10-30/
             dataset_params={'seq_len': 2, 'resolution': 1},
             model_params={'width': 360, 'height': 160, ...}
         )
         result = predictor.predict(offset=520, plot=True)
         
-        # 从 wandb 加载
+        # 如果本地不存在，会自动尝试从 wandb 加载
         predictor = BasePrediction(
             area=area,
             model_class=RGTransformer,
             dataset_class=OISSTMonthlyDataset,
-            wandb_run_id='2025-01-15-10-30',
+            run_id='2025-01-15-10-30',
             wandb_version='latest',  # 或 'v0', 'v1' 等
             dataset_params={'seq_len': 2, 'resolution': 1},
-            model_params={'width': 360, 'height': 160, ...}
+            model_params={'width': 360, 'height': 160, ...},
+            use_wandb=True
         )
         result = predictor.predict(offset=520, plot=True)
     """
@@ -392,7 +394,7 @@ class BasePrediction:
                  area: Area,
                  model_class=None,
                  dataset_class=None,
-                 wandb_run_id: str = None,
+                 run_id: str = None,
                  wandb_version: str = 'latest',
                  dataset_params: dict = {},
                  model_params: dict = {},
@@ -401,7 +403,7 @@ class BasePrediction:
         self.area = area
         self.model_class = model_class
         self.dataset_class = dataset_class
-        self.wandb_run_id = wandb_run_id
+        self.run_id = run_id
         self.wandb_version = wandb_version
         self.dataset_params = dataset_params
         self.model_params = model_params
@@ -411,12 +413,9 @@ class BasePrediction:
         
         # Wandb 配置（用于记录预测结果）
         if use_wandb:
-            # 如果提供了 wandb_run_id，使用原来的 run ID（在原来的 run 上更新）
+            # 如果提供了 run_id，使用该 ID（在原来的 run 上更新）
             # 否则创建新的 run
-            if wandb_run_id:
-                uid = wandb_run_id
-            else:
-                uid = arrow.now().format('YYYY-MM-DD-HH-mm')
+            uid = run_id if run_id else arrow.now().format('YYYY-MM-DD-HH-mm')
             
             self.wandb = Wandb(
                 uid=uid,
@@ -431,78 +430,40 @@ class BasePrediction:
         else:
             self.wandb = None
     
-    def _load_model_from_wandb(self, run_id: str, version: str = 'latest'):
+    def _load_model_from_local(self, run_id: str) -> bool:
         """
-        从 wandb artifacts 加载模型（使用官方 API 方法）
+        从本地 checkpoint 加载模型
         
-        参考: https://docs.wandb.ai/ref/python/api/run#logged_artifacts
+        参数:
+            run_id: checkpoint 的 run ID
+            
+        返回:
+            bool: 是否加载成功
         """
-        from src.config.params import WANDB_PROJECT, WANDB_ENTITY, PROJECT_PATH
+        checkpoint_file = f"{CHECKPOINT_SAVE_PATH}/{run_id}/{self.model_class.__name__}.ckpt"
         
-        print(f"[Data] 从 wandb 加载模型...")
-        print(f"  - Run ID: {run_id}")
-        print(f"  - Version: {version}")
-        print(f"  - Project: {WANDB_PROJECT}")
-        print(f"  - Entity: {WANDB_ENTITY}")
+        if not os.path.exists(checkpoint_file):
+            return False
         
-        # 使用 wandb API（官方方法）
-        api = wandb.Api()
-
-        # 构建完整的 artifact 路径：entity/project/artifact_name:version
-        # 使用传入的 run_id（而不是 self.wandb_run_id），确保与上传时使用的 run_id 一致
-        artifact_base_name = f"{self.model_class.__name__}_{run_id}"
-        artifact_full_path = f"{WANDB_ENTITY}/{WANDB_PROJECT}/{artifact_base_name}:{version}"
-
-        # 构建本地缓存目录（使用项目目录下的 artifacts 文件夹）
-        cache_dir = os.path.join(CHECKPOINT_SAVE_PATH, run_id)
-        
-        # 检查本地缓存目录是否存在且包含 checkpoint 文件
-        checkpoint_file = cache_dir + f'/{self.model_class.__name__}.ckpt'
-        
-        if os.path.exists(checkpoint_file):
-            print(f"  - 使用本地缓存: {checkpoint_file}")
-        else:
-            # 目录不存在，需要从 wandb 下载
-            print(f"  - 查找 Artifact: {artifact_full_path}")
-            artifact = api.artifact(artifact_full_path)
-            
-            # 确保缓存目录存在
-            os.makedirs(cache_dir, exist_ok=True)
-            
-            # 下载 artifact 到缓存目录
-            artifact.download(root=cache_dir)
-            
-            # 查找下载的 .ckpt 文件（可能名称不同）
-            ckpt_files = [f for f in os.listdir(cache_dir) if f.endswith('.ckpt')]
-            
-            if not ckpt_files:
-                raise FileNotFoundError(f"在下载的 artifact 中未找到 .ckpt 文件: {cache_dir}")
-            
-            # 如果下载的文件名不是期望的名称，重命名它
-            downloaded_ckpt = os.path.join(cache_dir, ckpt_files[0])
-
-            if downloaded_ckpt != checkpoint_file:
-                print(f"  - 重命名文件: {ckpt_files[0]} -> {self.model_class.__name__}")
-                os.rename(downloaded_ckpt, checkpoint_file)
+        print(f"📦 从本地 checkpoint 加载模型...")
+        print(f"  • Run ID: {run_id}")
+        print(f"  • 路径: {checkpoint_file}")
         
         # 先创建模型实例（不加载权重），用于初始化延迟初始化的层
         temp_model = self.model_class(**self.model_params)
         
         # 如果模型有 RGAttention，需要先初始化投影层
-        # 创建一个虚拟输入来触发投影层的初始化
         if hasattr(temp_model, 'attention') and hasattr(temp_model.attention, '_init_projections'):
-            # 获取模型的输入维度
             width = self.model_params.get('width', 360)
             height = self.model_params.get('height', 160)
             seq_len = self.model_params.get('seq_len', 2)
             
-            # 创建虚拟输入来触发投影层初始化
             dummy_input = torch.zeros(1, seq_len - 1, width, height)
             try:
                 _ = temp_model.attention(dummy_input)
-                print(f"  - 已初始化延迟投影层")
+                print(f"  • 已初始化延迟投影层")
             except:
-                pass  # 如果初始化失败，继续尝试加载
+                pass
         
         # 加载 checkpoint
         self.model = self.model_class.load_from_checkpoint(
@@ -515,17 +476,112 @@ class BasePrediction:
         self.model = self.model.to(device)
         self.model.eval()
         self.model_loaded = True
+        
+        print(f"  ✅ 本地 checkpoint 加载成功")
+        return True
+    
+    def _load_model_from_wandb(self, run_id: str, version: str = 'latest'):
+        """
+        从 wandb artifacts 加载模型（使用官方 API 方法）
+        
+        参考: https://docs.wandb.ai/ref/python/api/run#logged_artifacts
+        """
+        from src.config.params import WANDB_PROJECT, WANDB_ENTITY
+        
+        print(f"📦 从 wandb 加载模型...")
+        print(f"  • Run ID: {run_id}")
+        print(f"  • Version: {version}")
+        print(f"  • Project: {WANDB_PROJECT}")
+        print(f"  • Entity: {WANDB_ENTITY}")
+        
+        # 使用 wandb API（官方方法）
+        api = wandb.Api()
+
+        # 构建完整的 artifact 路径：entity/project/artifact_name:version
+        artifact_base_name = f"{self.model_class.__name__}_{run_id}"
+        artifact_full_path = f"{WANDB_ENTITY}/{WANDB_PROJECT}/{artifact_base_name}:{version}"
+
+        # 构建本地缓存目录
+        cache_dir = os.path.join(CHECKPOINT_SAVE_PATH, run_id)
+        checkpoint_file = f"{cache_dir}/{self.model_class.__name__}.ckpt"
+        
+        if os.path.exists(checkpoint_file):
+            print(f"  • 使用本地缓存: {checkpoint_file}")
+        else:
+            print(f"  • 查找 Artifact: {artifact_full_path}")
+            artifact = api.artifact(artifact_full_path)
+            
+            os.makedirs(cache_dir, exist_ok=True)
+            artifact.download(root=cache_dir)
+            
+            ckpt_files = [f for f in os.listdir(cache_dir) if f.endswith('.ckpt')]
+            
+            if not ckpt_files:
+                raise FileNotFoundError(f"在下载的 artifact 中未找到 .ckpt 文件: {cache_dir}")
+            
+            downloaded_ckpt = os.path.join(cache_dir, ckpt_files[0])
+
+            if downloaded_ckpt != checkpoint_file:
+                print(f"  • 重命名文件: {ckpt_files[0]} -> {self.model_class.__name__}.ckpt")
+                os.rename(downloaded_ckpt, checkpoint_file)
+        
+        # 先创建模型实例（不加载权重），用于初始化延迟初始化的层
+        temp_model = self.model_class(**self.model_params)
+        
+        # 如果模型有 RGAttention，需要先初始化投影层
+        if hasattr(temp_model, 'attention') and hasattr(temp_model.attention, '_init_projections'):
+            width = self.model_params.get('width', 360)
+            height = self.model_params.get('height', 160)
+            seq_len = self.model_params.get('seq_len', 2)
+            
+            dummy_input = torch.zeros(1, seq_len - 1, width, height)
+            try:
+                _ = temp_model.attention(dummy_input)
+                print(f"  • 已初始化延迟投影层")
+            except:
+                pass
+        
+        # 加载 checkpoint
+        self.model = self.model_class.load_from_checkpoint(
+            checkpoint_file, 
+            strict=False,
+            **self.model_params
+        )
+        
+        device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+        self.model = self.model.to(device)
+        self.model.eval()
+        self.model_loaded = True
+        
+        print(f"  ✅ wandb artifact 加载成功")
     
     def _ensure_model_loaded(self):
-        """确保模型已加载"""
+        """
+        确保模型已加载
+        
+        加载优先级：
+        1. 本地 checkpoint (out/checkpoints/{run_id}/)
+        2. wandb artifacts (如果 use_wandb=True)
+        """
         if self.model_loaded and self.model is not None:
             return
         
-        # 优先使用 wandb 加载
-        if self.wandb_run_id:
-            self._load_model_from_wandb(self.wandb_run_id, self.wandb_version)
+        if not self.run_id:
+            raise ValueError("必须提供 run_id 来加载模型")
+        
+        # 优先从本地加载
+        if self._load_model_from_local(self.run_id):
+            return
+        
+        # 本地不存在，尝试从 wandb 加载
+        if self.wandb:
+            print(f"  ⚠️ 本地 checkpoint 不存在，尝试从 wandb 加载...")
+            self._load_model_from_wandb(self.run_id, self.wandb_version)
         else:
-            raise ValueError("必须提供 wandb_run_id 来加载模型")
+            raise FileNotFoundError(
+                f"本地 checkpoint 不存在: {CHECKPOINT_SAVE_PATH}/{self.run_id}/{self.model_class.__name__}.ckpt\n"
+                f"如需从 wandb 加载，请设置 use_wandb=True"
+            )
         
     def predict(self, offset: int, plot: bool = False) -> tuple:
         """
@@ -593,7 +649,7 @@ class BasePrediction:
         # temporal_weights = self.model.viz['temporal_weights'].detach().cpu().numpy()
 
         # print(f"--------------------------------")
-        # print(f" [Stats] Model: {self.model_class.__name__} Prediction Position Encoding:")
+        # print(f" 📊 Model: {self.model_class.__name__} Prediction Position Encoding:")
         # print(f"position_encoding: {position_encoding.shape}")
         # print(f"attention_out: {attention_out.shape}")
         # print(f"ffn_out: {ffn_out.shape}")
@@ -605,7 +661,7 @@ class BasePrediction:
         # 其他参数
         spatial_enc_scale = self.model.spatial_enc_scale.detach().cpu().numpy()
 
-        print(f" [Stats] Model: {self.model_class.__name__} Prediction Other Parameters:")
+        print(f" 📊 Model: {self.model_class.__name__} Prediction Other Parameters:")
         print(f"spatial_enc_scale: {spatial_enc_scale}")
         print(f"--------------------------------")
         

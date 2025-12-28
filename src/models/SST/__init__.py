@@ -8,16 +8,9 @@ SST (Sea Surface Temperature) 模型模块
 
 from .RGTransformer import RGTransformer, RGTransformerV2, RGTransformerOptimized
 
-# 可选导入 Legacy 版本
-try:
-    from .RGTransformerLegacy import RGTransformer as RGTransformerLegacy
-except ImportError:
-    RGTransformerLegacy = None
-
 __all__ = [
     'RGTransformer',
     'RGTransformerV2',
     'RGTransformerOptimized',
-    'RGTransformerLegacy',
 ]
 

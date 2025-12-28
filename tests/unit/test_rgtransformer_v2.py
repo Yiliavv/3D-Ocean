@@ -204,40 +204,6 @@ class TestRGTransformerV2:
 class TestAPICompatibility:
     """API 兼容性测试"""
     
-    def test_same_input_output_interface(self):
-        """测试输入输出接口一致"""
-        from src.models.SST.RGTransformer import RGTransformer
-        
-        # 注意：width=64 (lon), height=32 (lat) 对应 resolution=5.625
-        config = {
-            'width': 64,
-            'height': 32,  # 180° / 5.625° = 32
-            'seq_len': 4,
-            'd_model': 128,
-            'num_heads': 4,
-            'dim_feedforward': 256,
-            'dropout': 0.1,
-            'lat_range': [-90, 90],
-            'lon_range': [0, 360],
-            'resolution': 5.625,
-            'patch_size': 4,
-        }
-        
-        from src.models.SST.RGTransformerLegacy import RGTransformer as RGTransformerLegacy
-        v1 = RGTransformerLegacy(**config, recursion_depth=2)
-        v2 = RGTransformerV2(**config, num_attn_layers=1, use_compile=False)
-        
-        x = torch.randn(2, 3, 32, 64)  # [B, S, height, width] (lat, lon)
-        
-        v1.eval()
-        v2.eval()
-        
-        with torch.no_grad():
-            out_v1 = v1(x)
-            out_v2 = v2(x)
-        
-        assert out_v1.shape == out_v2.shape, "输出形状不一致"
-    
     def test_lightning_module_interface(self):
         """测试 LightningModule 接口"""
         from lightning import LightningModule
