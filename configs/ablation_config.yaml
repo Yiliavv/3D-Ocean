@@ -1,0 +1,88 @@
+# 消融实验配置文件
+# RGTransformer Ablation Study Configuration
+
+experiment:
+  name: "RGTransformer_Ablation_Study"
+  runs_per_variant: 3
+  seed: 42
+  output_dir: "out/ablation"
+
+# 训练参数（所有变体共享）
+training:
+  epochs: 100
+  batch_size: 24
+  learning_rate: 0.001
+  num_workers: 0        # Windows 上设为 0 避免多进程开销
+  early_stopping_patience: 10
+  precision: "16-mixed" # 混合精度训练
+  matmul_precision: "high"  # Tensor Cores 优化
+
+# 模型基础参数
+model:
+  d_model: 512
+  num_heads: 8
+  dim_feedforward: 256
+  num_attn_layers: 2
+  patch_size: 4
+  dropout: 0.1
+
+# 数据集参数
+dataset:
+  seq_len: 2
+  resolution: 1
+  lat_range: [-90, 90]
+  lon_range: [-180, 180]
+
+# 消融变体定义
+variants:
+  baseline:
+    display_name: "Baseline"
+    description: "完整 RGTransformer 模型"
+    
+  wo_convstem:
+    display_name: "w/o ConvStem"
+    description: "使用 PatchEmbedding 替代 ConvStem"
+    use_conv_stem: false
+    
+  wo_attention:
+    display_name: "w/o EfficientRGA"
+    description: "使用标准 MultiheadAttention 替代"
+    use_efficient_attention: false
+    
+  wo_shpe:
+    display_name: "w/o SHPE"
+    description: "移除球谐波位置编码"
+    use_spherical_encoding: false
+    
+  wo_multiscale:
+    display_name: "w/o MultiScale"
+    description: "使用单层反卷积替代多尺度解码器"
+    use_multiscale_decoder: false
+    
+  wo_gate:
+    display_name: "w/o Gate"
+    description: "移除门控残差连接"
+    use_gated_residual: false
+
+# 可视化设置
+visualization:
+  style: "agu"  # agu, ieee, nature
+  save_formats: ["pdf", "png"]
+  dpi: 300
+  
+  # 颜色方案（色盲友好）
+  colors:
+    - "#0072B2"  # Blue
+    - "#D55E00"  # Vermillion
+    - "#009E73"  # Green
+    - "#CC79A7"  # Pink
+    - "#F0E442"  # Yellow
+    - "#56B4E9"  # Sky Blue
+
+# 超参数敏感性分析
+sensitivity:
+  d_model: [128, 256, 512]
+  num_heads: [4, 8, 16]
+  num_attn_layers: [1, 2, 4]
+  patch_size: [2, 4, 8]
+

@@ -5,6 +5,8 @@ Auto-generated from all feature plans. Last updated: 2025-12-28
 ## Active Technologies
 - Python 3.11 + PyTorch 2.x, PyTorch Lightning 2.x, einops (002-rgtransformer-multiscale)
 - N/A (模型增强，不涉及存储变更) (002-rgtransformer-multiscale)
+- Python 3.13+ + PyTorch 2.9+, Lightning 2.5+, matplotlib 3.10+, seaborn 0.13+, scipy 1.16+, pandas 2.3+ (003-rgtransformer-ablation)
+- CSV (实验结果), YAML (配置), .ckpt (模型权重) (003-rgtransformer-ablation)
 
 - Python 3.11+ + PyTorch 2.0+, PyTorch Lightning, NumPy (001-rgtransformer-efficiency)
 
@@ -24,6 +26,7 @@ cd src; pytest; ruff check .
 Python 3.11+: Follow standard conventions
 
 ## Recent Changes
+- 003-rgtransformer-ablation: Added Python 3.13+ + PyTorch 2.9+, Lightning 2.5+, matplotlib 3.10+, seaborn 0.13+, scipy 1.16+, pandas 2.3+
 - 002-rgtransformer-multiscale: Added Python 3.11 + PyTorch 2.x, PyTorch Lightning 2.x, einops
 
 - 001-rgtransformer-efficiency: Added Python 3.11+ + PyTorch 2.0+, PyTorch Lightning, NumPy

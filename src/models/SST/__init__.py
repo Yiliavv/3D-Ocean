@@ -8,14 +8,12 @@ SST (Sea Surface Temperature) 模型模块
 - MultiScaleDecoder: 多尺度解码器（支持跳跃连接融合）
 """
 
-from .RGTransformer import RGTransformer, RGTransformerV2, RGTransformerOptimized
+from .RGTransformer import RGTransformer
 from .ConvStem import ConvStem, ConvStemV2, MultiScaleConvStem
 from .MultiScaleDecoder import DecoderStage, MultiScaleDecoder
 
 __all__ = [
     'RGTransformer',
-    'RGTransformerV2',
-    'RGTransformerOptimized',
     'ConvStem',
     'ConvStemV2',
     'MultiScaleConvStem',

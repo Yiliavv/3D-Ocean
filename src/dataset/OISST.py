@@ -6,11 +6,12 @@ import netCDF4 as nc
 from glob import glob
 from datetime import datetime, timedelta
 from collections import defaultdict
-
 from torch import tensor, unsqueeze, float32
 from torch.utils.data import Dataset
 
 from src.config.params import BASE_OISST_DATA_PATH, BASE_OISST_DAILY_DATA_PATH
+
+
 
 # OISST 海表温度月平均数据集
 class OISSTMonthlyDataset(Dataset):
@@ -21,6 +22,7 @@ class OISSTMonthlyDataset(Dataset):
     支持多种分辨率: 0.25°, 0.5°, 1°, 2°
     
     数据时间范围: 1981-09-01 至 2025-09-01
+    样本数量: ~530 个月
     
     :arg seq_len: 序列长度（包含输入和输出）
     :arg offset: 时间偏移（数据批次的偏移）
@@ -29,7 +31,15 @@ class OISSTMonthlyDataset(Dataset):
     :arg resolution: 空间分辨率（度），支持 0.25, 0.5, 1, 2
     """
     
-    def __init__(self, seq_len=2, offset=0, lon=None, lat=None, resolution=1):
+    def __init__(
+        self, 
+        seq_len=2, 
+        offset=0, 
+        lon=None, 
+        lat=None, 
+        resolution=1,
+        **kwargs  # 忽略其他参数
+    ):
         super().__init__()
         
         if lat is None:
@@ -130,8 +140,7 @@ class OISSTMonthlyDataset(Dataset):
         返回数据集长度
         """
         total_months = len(self._time_data)
-        length = total_months - self.seq_len
-        return length - self.offset
+        return total_months - self.seq_len - self.offset
     
     def __getitem__(self, index):
         """
@@ -139,11 +148,10 @@ class OISSTMonthlyDataset(Dataset):
         
         :param index: 样本索引
         :return: (fore_, last_)
-                 fore_: [seq_len-1, 1, height, width] 输入序列
-                 last_: [1, height, width] 预测目标
+                 fore_: [seq_len-1, height, width] 输入序列
+                 last_: [height, width] 预测目标
         """
         start_index = index + self.offset
-        end_index = start_index + self.seq_len
         
         # 支持读取单个月份数据
         if self.seq_len == 1:
@@ -157,7 +165,7 @@ class OISSTMonthlyDataset(Dataset):
         for i in range(1, self.seq_len):
             sst_time_series[i] = self.__read_sst__(start_index + i)
         
-        # 转换为tensor
+        # 转换为 tensor
         sst_time_series = tensor(sst_time_series, dtype=float32)
         
         fore_ = sst_time_series[:self.seq_len - 1, ...]

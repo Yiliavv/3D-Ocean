@@ -25,14 +25,14 @@ from cmocean import cm
 from src.plot.base import create_carto_ax
 
 
-# 定义关键海洋区域
+# 定义关键海洋区域 (Nature 学术配色方案 - 8种高区分度颜色)
 OCEAN_REGIONS = {
     'nino34': {
         'name': 'NINO 3.4',
         'name_cn': '厄尔尼诺监测区',
         'lon': [-170, -120],
         'lat': [-5, 5],
-        'color': '#E53935',  # 红色
+        'color': '#E64B35',  # Nature红 - 鲜明的砖红色
         'description': '厄尔尼诺/拉尼娜现象的核心监测区域，海表温度异常直接反映ENSO状态'
     },
     'nino3': {
@@ -40,7 +40,7 @@ OCEAN_REGIONS = {
         'name_cn': '东太平洋暖池',
         'lon': [-150, -90],
         'lat': [-5, 5],
-        'color': '#FF7043',  # 橙红色
+        'color': '#4DBBD5',  # Nature青 - 清澈的青蓝色
         'description': '赤道东太平洋冷舌区域，温度变化幅度大，对ENSO响应敏感'
     },
     'warm_pool': {
@@ -48,7 +48,7 @@ OCEAN_REGIONS = {
         'name_cn': '赤道太平洋暖池',
         'lon': [120, 180],
         'lat': [-5, 5],
-        'color': '#FFA726',  # 橙色
+        'color': '#F39B7F',  # Nature橙 - 柔和的珊瑚橙
         'description': '全球海表温度最高区域(>28°C)，是大气对流和降水的主要热源'
     },
     'gulf_stream': {
@@ -56,7 +56,7 @@ OCEAN_REGIONS = {
         'name_cn': '墨西哥湾暖流',
         'lon': [-80, -40],
         'lat': [25, 45],
-        'color': '#42A5F5',  # 蓝色
+        'color': '#00A087',  # Nature绿 - 深邃的翡翠绿
         'description': '北大西洋最强暖流，每秒输送约3000万立方米温暖海水向北，对欧洲气候有重要影响'
     },
     'kuroshio': {
@@ -64,7 +64,7 @@ OCEAN_REGIONS = {
         'name_cn': '黑潮区域',
         'lon': [125, 170],
         'lat': [25, 40],
-        'color': '#7E57C2',  # 紫色
+        'color': '#3C5488',  # Nature蓝 - 稳重的藏青色
         'description': '西北太平洋边界流，与墨西哥湾暖流齐名的全球最强暖流之一'
     },
     'acc': {
@@ -72,7 +72,7 @@ OCEAN_REGIONS = {
         'name_cn': '南大洋西风漂流',
         'lon': [-180, 180],
         'lat': [-60, -40],
-        'color': '#26A69A',  # 青色
+        'color': '#8491B4',  # Nature灰蓝 - 优雅的灰紫蓝
         'description': '全球唯一环绕地球的洋流，连接三大洋，温度变化相对平缓'
     },
     'north_indian': {
@@ -80,7 +80,7 @@ OCEAN_REGIONS = {
         'name_cn': '北印度洋',
         'lon': [50, 100],
         'lat': [0, 25],
-        'color': '#66BB6A',  # 绿色
+        'color': '#91D1C2',  # Nature薄荷 - 清新的薄荷绿
         'description': '季风影响显著区域，夏季西南季风带来强烈上升流'
     },
     'north_atlantic_subpolar': {
@@ -88,7 +88,7 @@ OCEAN_REGIONS = {
         'name_cn': '北大西洋副极地',
         'lon': [-60, -10],
         'lat': [45, 65],
-        'color': '#5C6BC0',  # 靛蓝色
+        'color': '#B09C85',  # Nature棕 - 温暖的大地棕
         'description': '北大西洋深层水形成区域，对全球热盐环流至关重要'
     }
 }
@@ -361,23 +361,23 @@ class RegionalAnalysis:
         # 按 RMSE 排序
         sort_idx = np.argsort(rmse_values)
         
-        # ============ Nature 风格设置 ============
+        # ============ Nature 风格设置（增大字体以提高可读性） ============
         plt.rcParams.update({
             'font.family': 'sans-serif',
             'font.sans-serif': ['DejaVu Sans', 'Helvetica', 'Arial'],
-            'font.size': 9,
-            'axes.linewidth': 0.8,
-            'axes.labelsize': 10,
-            'axes.titlesize': 11,
-            'xtick.labelsize': 9,
-            'ytick.labelsize': 9,
-            'legend.fontsize': 8,
+            'font.size': 12,
+            'axes.linewidth': 1.0,
+            'axes.labelsize': 14,
+            'axes.titlesize': 16,
+            'xtick.labelsize': 12,
+            'ytick.labelsize': 12,
+            'legend.fontsize': 11,
             'figure.dpi': 300,
         })
         
-        # 创建图像 - 上下布局
+        # 创建图像 - 上下布局（优化间距）
         fig = plt.figure(figsize=figsize, facecolor='white')
-        gs = GridSpec(2, 1, figure=fig, height_ratios=[1.4, 1], hspace=0.25)
+        gs = GridSpec(2, 1, figure=fig, height_ratios=[1.3, 1], hspace=0.35)
         
         # ============ (a) 上方：地图展示区域性能 ============
         ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
@@ -394,8 +394,8 @@ class RegionalAnalysis:
                              alpha=0.5, linestyle='-')
         gl.top_labels = False
         gl.right_labels = False
-        gl.xlabel_style = {'size': 8}
-        gl.ylabel_style = {'size': 8}
+        gl.xlabel_style = {'size': 11}
+        gl.ylabel_style = {'size': 11}
         
         # 绘制误差分布背景
         lon_grid, lat_grid = np.meshgrid(self.lon_array, self.lat_array)
@@ -448,24 +448,24 @@ class RegionalAnalysis:
             center_lon = lon_start + width / 2
             center_lat = lat[0] + height / 2
             
-            # 使用圆圈大小表示 RMSE，颜色表示 R²
-            size = 80 + rmse * 150
-            ax_map.scatter(center_lon, center_lat, s=size, c=[r2], cmap='RdYlGn',
-                          vmin=0, vmax=1, edgecolor='black', linewidth=0.8,
+            # 使用圆圈大小表示 RMSE，每个区域使用独立的颜色
+            size = 120 + rmse * 180
+            ax_map.scatter(center_lon, center_lat, s=size, color=color,
+                          edgecolor='white', linewidth=1.5,
                           transform=ccrs.PlateCarree(), zorder=11)
             
             ax_map.text(center_lon, center_lat, short_names.get(region_key, ''),
-                       ha='center', va='center', fontsize=7, fontweight='bold',
+                       ha='center', va='center', fontsize=10, fontweight='bold',
                        color='white', transform=ccrs.PlateCarree(), zorder=12)
         
-        # 添加误差色标（地图右侧）
-        cbar_ax = fig.add_axes([0.92, 0.52, 0.015, 0.35])
+        # 添加误差色标（地图右侧，位置优化）
+        cbar_ax = fig.add_axes([0.88, 0.55, 0.015, 0.32])
         cbar = fig.colorbar(cf, cax=cbar_ax, orientation='vertical')
-        cbar.set_label('Prediction Error (°C)', fontsize=9)
-        cbar.ax.tick_params(labelsize=8)
+        cbar.set_label('Prediction Error (°C)', fontsize=11, labelpad=8)
+        cbar.ax.tick_params(labelsize=9)
         
         ax_map.set_title('(a) Regional prediction performance overview', 
-                        fontsize=11, fontweight='bold', loc='left', pad=8)
+                        fontsize=13, fontweight='bold', loc='left', pad=8)
         
         # ============ (b) 下方：水平统计图 ============
         ax_stats = fig.add_subplot(gs[1])
@@ -491,29 +491,28 @@ class RegionalAnalysis:
             ax_stats.vlines(x=i, ymin=0, ymax=rmse_val, color=color, 
                            linewidth=3, alpha=0.85)
             
-            # 圆点 - 颜色编码 R²
-            marker_size = 180
+            # 圆点 - 使用各区域独立颜色
+            marker_size = 220
             ax_stats.scatter(i, rmse_val, s=marker_size, 
-                           c=[r2_val], cmap='RdYlGn', vmin=0, vmax=1,
-                           edgecolor='#333333', linewidth=1.5, zorder=5)
+                           color=color, edgecolor='white', linewidth=1.8, zorder=5)
             
             # 在圆点上方显示 R² 值
             ax_stats.text(i, rmse_val + 0.08, f'{r2_val:.2f}', ha='center', va='bottom',
-                         fontsize=8, fontweight='bold', color='#333333')
+                         fontsize=11, fontweight='bold', color='#333333')
         
         # 添加全球平均参考线
         ax_stats.axhline(y=global_rmse, color='#D32F2F', linestyle='--', 
-                        linewidth=1.5, alpha=0.8, zorder=1)
+                        linewidth=2.0, alpha=0.8, zorder=1)
         ax_stats.text(n_regions - 0.5, global_rmse + 0.03, f'Global: {global_rmse:.3f}°C', 
-                     ha='right', va='bottom', fontsize=8, color='#D32F2F', 
+                     ha='right', va='bottom', fontsize=11, color='#D32F2F', 
                      fontweight='bold')
         
         # 设置 X 轴
         ax_stats.set_xticks(x_pos)
-        ax_stats.set_xticklabels(sorted_names, fontsize=9, rotation=25, ha='right')
-        ax_stats.set_ylabel('RMSE (°C)', fontsize=10)
+        ax_stats.set_xticklabels(sorted_names, fontsize=10, rotation=30, ha='right')
+        ax_stats.set_ylabel('RMSE (°C)', fontsize=12)
         ax_stats.set_xlim(-0.5, n_regions - 0.5)
-        ax_stats.set_ylim(0, max(sorted_rmse) * 1.25)
+        ax_stats.set_ylim(-0.15, max(sorted_rmse) * 1.2)
         
         # 美化轴线
         ax_stats.spines['top'].set_visible(False)
@@ -522,56 +521,25 @@ class RegionalAnalysis:
         ax_stats.spines['bottom'].set_linewidth(0.5)
         
         # 添加网格线
-        ax_stats.yaxis.grid(True, linestyle='-', alpha=0.2, zorder=0)
+        ax_stats.yaxis.grid(True, linestyle='-', alpha=0.15, zorder=0)
         ax_stats.set_axisbelow(True)
         
-        # 在底部添加 Bias 迷你条（垂直向下）
-        ax_bias = ax_stats.twiny()
-        ax_bias.set_xlim(ax_stats.get_xlim())
-        ax_bias.set_xticks([])
-        ax_bias.spines['top'].set_visible(False)
-        
-        # 绘制 Bias 指示条（在 X 轴下方）
-        bias_max = max(abs(sorted_bias.min()), abs(sorted_bias.max()))
-        
+        # 在 X 轴下方添加 Bias 数值（简洁显示）
         for i, bias_val in enumerate(sorted_bias):
-            bar_color = '#E57373' if bias_val > 0 else '#64B5F6'
-            bar_height = abs(bias_val) / bias_max * 0.15 if bias_max > 0 else 0
-            
-            # 在柱子底部绘制 Bias 条
-            ax_stats.bar(i, bar_height, bottom=-0.02, width=0.5,
-                        color=bar_color, alpha=0.8, edgecolor='none', zorder=3)
-            
-            # 添加 Bias 数值
-            ax_stats.text(i, -0.22, f'{bias_val:+.2f}', ha='center', va='top',
-                         fontsize=7, color='#555555')
+            bias_color = '#C62828' if bias_val > 0 else '#1565C0'
+            ax_stats.text(i, -0.08, f'{bias_val:+.2f}', ha='center', va='top',
+                         fontsize=9, color=bias_color, fontweight='medium')
         
         ax_stats.set_title('(b) Regional prediction performance ranking (sorted by RMSE)', 
-                          fontsize=10, fontweight='bold', loc='left', pad=10)
+                          fontsize=13, fontweight='bold', loc='left', pad=8)
         
-        # R² 色标
-        sm = plt.cm.ScalarMappable(cmap='RdYlGn', norm=plt.Normalize(vmin=0, vmax=1))
-        sm.set_array([])
-        cbar_ax2 = fig.add_axes([0.92, 0.12, 0.015, 0.25])
-        cbar2 = fig.colorbar(sm, cax=cbar_ax2)
-        cbar2.set_label('R²', fontsize=9)
-        cbar2.ax.tick_params(labelsize=7)
-        
-        # 添加 Bias 图例
-        legend_elements = [
-            mpatches.Patch(facecolor='#E57373', edgecolor='none', label='Bias > 0 (warm)'),
-            mpatches.Patch(facecolor='#64B5F6', edgecolor='none', label='Bias < 0 (cold)'),
-        ]
-        ax_stats.legend(handles=legend_elements, loc='upper right', fontsize=8,
-                       framealpha=0.95, edgecolor='gray')
-        
-        # 调整布局
-        plt.subplots_adjust(left=0.08, right=0.90, top=0.95, bottom=0.12)
+        # 调整整体布局
+        plt.subplots_adjust(left=0.06, right=0.86, top=0.95, bottom=0.15, hspace=0.35)
         
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor='white',
                        edgecolor='none', pad_inches=0.1)
-            print(f"✅ 区域对比图已保存: {save_path}")
+            print(f"[OK] Regional comparison plot saved: {save_path}")
         
         plt.show()
         

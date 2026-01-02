@@ -1,18 +1,12 @@
 """
-RG-Transformer V2: 优化版递归泛化注意力 Transformer 模型
-专为海表温度时空序列预测任务设计
+RGTransformer: 海表温度时空序列预测模型
 
-相比 V1 的改进：
-1. ConvStem 替代 Patch Embedding - 更好的局部特征提取，解决边界效应
-2. EfficientRGAttention 替代 RGAttention - 参数减少 33%，移除冗余计算
-3. einops 简化张量操作 - 代码更清晰，潜在性能优化
-4. torch.compile 支持 - 利用 PyTorch 2.0+ 编译优化
-
-预期性能提升：
-- 训练速度提升 ≥20%
-- 显存占用减少 ≥15%
-- 推理速度提升 ≥15%
-- 参数量减少约 11%
+主要特性：
+- ConvStem 局部特征提取
+- 球谐波空间位置编码
+- EfficientRGAttention 时序注意力
+- SwiGLU 激活函数
+- SE 通道注意力
 """
 
 import torch
@@ -23,52 +17,74 @@ from typing import Optional, List
 from lightning import LightningModule
 from torch import optim
 
-try:
-    from einops import rearrange
-except ImportError:
-    raise ImportError("Please install einops: pip install einops")
+from einops import rearrange
 
-# 导入优化后的模块
-from src.models.SST.PE.SphericalHarmonicEncoding import (
-    SpatialSphericalHarmonicEncoding,
-)
+from src.models.SST.PE.SphericalHarmonicEncoding import SpatialSphericalHarmonicEncoding
 from src.models.SST.Attention.RGAttention import EfficientRGAttention
 from src.models.SST.ConvStem import ConvStem, MultiScaleConvStem
 from src.models.SST.MultiScaleDecoder import MultiScaleDecoder
 
 
-class ChannelFeedForward(nn.Module):
-    """
-    基于通道的前馈网络（Channel-Mixing FFN）
-    
-    结构: Linear(d_model) -> GELU -> Dropout -> Linear(d_model) -> Dropout
-    作用于特征维度，对空间位置共享权重
-    """
+class SwiGLU(nn.Module):
+    """SwiGLU 激活函数 (PaLM/LLaMA)"""
     def __init__(self, d_model: int, dim_feedforward: int, dropout: float = 0.1):
         super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(d_model, dim_feedforward),
-            nn.GELU(),
-            nn.Dropout(dropout),
-            nn.Linear(dim_feedforward, d_model),
-            nn.Dropout(dropout)
-        )
+        self.w1 = nn.Linear(d_model, dim_feedforward, bias=False)
+        self.w2 = nn.Linear(dim_feedforward, d_model, bias=False)
+        self.w3 = nn.Linear(d_model, dim_feedforward, bias=False)
+        self.dropout = nn.Dropout(dropout)
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.dropout(self.w2(F.silu(self.w1(x)) * self.w3(x)))
+
+
+class ChannelFeedForward(nn.Module):
+    """FFN: 支持 gelu/swiglu/geglu/mish 激活函数"""
+    def __init__(self, d_model: int, dim_feedforward: int, dropout: float = 0.1, activation: str = 'swiglu'):
+        super().__init__()
+        self.activation_type = activation
+        
+        if activation == 'swiglu':
+            self.net = SwiGLU(d_model, dim_feedforward, dropout)
+        elif activation == 'geglu':
+            self.w_gate = nn.Linear(d_model, dim_feedforward)
+            self.w_up = nn.Linear(d_model, dim_feedforward)
+            self.w_down = nn.Linear(dim_feedforward, d_model)
+            self.dropout = nn.Dropout(dropout)
+        elif activation == 'mish':
+            self.net = nn.Sequential(
+                nn.Linear(d_model, dim_feedforward), nn.Mish(), nn.Dropout(dropout),
+                nn.Linear(dim_feedforward, d_model), nn.Dropout(dropout)
+            )
+        else:
+            self.net = nn.Sequential(
+                nn.Linear(d_model, dim_feedforward), nn.GELU(), nn.Dropout(dropout),
+                nn.Linear(dim_feedforward, d_model), nn.Dropout(dropout)
+            )
 
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # x: [..., d_model]
+        if self.activation_type == 'geglu':
+            return self.dropout(self.w_down(F.gelu(self.w_gate(x)) * self.w_up(x)))
         return self.net(x)
 
 
-class RGTransformer(LightningModule):
-    """
-    RG-Transformer 海表温度预测模型（优化版）
+class SqueezeExcitation(nn.Module):
+    """SE 通道注意力"""
+    def __init__(self, channels: int, reduction: int = 16):
+        super().__init__()
+        reduced = max(channels // reduction, 8)
+        self.se = nn.Sequential(
+            nn.AdaptiveAvgPool2d(1), nn.Flatten(),
+            nn.Linear(channels, reduced), nn.SiLU(),
+            nn.Linear(reduced, channels), nn.Sigmoid()
+        )
     
-    主要优化:
-    1. ConvStem 替代 Patch Embedding - 多层卷积，更好的特征提取
-    2. EfficientRGAttention 替代 RGAttention - 轻量门控，无 Global Token
-    3. einops.rearrange 简化张量操作
-    4. torch.compile 兼容设计
-    """
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x * self.se(x).view(x.size(0), x.size(1), 1, 1)
+
+
+class RGTransformer(LightningModule):
+    """海表温度时空序列预测模型"""
     
     def __init__(
         self, 
@@ -87,366 +103,216 @@ class RGTransformer(LightningModule):
         patch_size: int = 4,
         use_compile: bool = False,
         compile_mode: str = "reduce-overhead",
-        # 多尺度特征增强参数
         use_multiscale: bool = False,
         num_skip_connections: int = 2,
         skip_fusion: str = "add",
+        ffn_activation: str = 'swiglu',
+        use_se_attention: bool = True,
+        use_gradient_checkpointing: bool = False,
+        loss_type: str = 'huber',
+        huber_delta: float = 1.0,
+        use_lr_scheduler: bool = True,
+        warmup_epochs: int = 10,
+        min_lr: float = 1e-6,
+        weight_decay: float = 0.01,
         **kwargs
     ):
-        """
-        Args:
-            width: 海表温度图像宽度
-            height: 海表温度图像高度
-            seq_len: 输入序列长度
-            d_model: 模型维度
-            num_heads: 注意力头数
-            dim_feedforward: 前馈网络维度
-            dropout: Dropout比例
-            num_attn_layers: 注意力层数（替代 recursion_depth）
-            learning_rate: 学习率
-            lat_range: [lat_min, lat_max] 纬度范围
-            lon_range: [lon_min, lon_max] 经度范围
-            resolution: 空间分辨率
-            patch_size: Patch大小（分块大小），默认4x4
-            use_compile: 是否启用 torch.compile
-            compile_mode: torch.compile 模式
-            use_multiscale: 是否启用多尺度特征增强（跳跃连接）
-            num_skip_connections: 跳跃连接数量（1 或 2）
-            skip_fusion: 跳跃连接融合方式 "add" 或 "concat"
-        """
         super().__init__()
-        
-        # 保存超参数
         self.save_hyperparameters()
         
-        self.learning_rate = learning_rate
-        self.train_loss = []
-        self.val_loss = []
-        self.use_compile = use_compile
-        self.compile_mode = compile_mode
-        
-        # 多尺度特征增强配置
-        self.use_multiscale = use_multiscale
-        self.num_skip_connections = num_skip_connections
-        self.skip_fusion = skip_fusion
-        
+        # 基础配置
         if not (width and height):
             raise ValueError("Must specify width and height")
         
-        self.width = width
-        self.height = height
-        self.seq_len = seq_len
-        self.d_model = d_model
-        self.patch_size = patch_size
+        self.width, self.height, self.seq_len = width, height, seq_len
+        self.d_model, self.patch_size = d_model, patch_size
+        self.w_feat, self.h_feat = width // patch_size, height // patch_size
         
-        # 计算 patch 后的特征图尺寸
-        self.w_feat = width // patch_size
-        self.h_feat = height // patch_size
+        # 训练配置
+        self.learning_rate = learning_rate
+        self.weight_decay = weight_decay
+        self.loss_type = loss_type
+        self.huber_delta = huber_delta
+        self.use_lr_scheduler = use_lr_scheduler
+        self.min_lr = min_lr
         
-        # ======= 空间位置编码 =======
+        # 多尺度配置
+        self.use_multiscale = use_multiscale
+        self.use_compile = use_compile
+        self.compile_mode = compile_mode
+        
+        # 记录
+        self.train_loss, self.val_loss = [], []
+        self.viz = {}
+        self._compiled = False
+        
+        # 空间位置编码
         self.spatial_pos_encoding = SpatialSphericalHarmonicEncoding(
-            lat_range=lat_range,
-            lon_range=lon_range,
-            max_degree=2,
-            resolution=resolution
+            lat_range=lat_range, lon_range=lon_range,
+            max_degree=2, resolution=resolution
         )
         self.spatial_enc_scale = nn.Parameter(torch.tensor(0.5))
         
-        # ======= ConvStem 模块 =======
+        # ConvStem
         if use_multiscale:
-            # 多尺度 ConvStem，支持跳跃连接
             self.conv_stem = MultiScaleConvStem(
-                in_channels=1,
-                embed_dim=d_model,
-                num_skip_outputs=num_skip_connections,
-                use_bn=True
+                in_channels=1, embed_dim=d_model,
+                num_skip_outputs=num_skip_connections, use_bn=True
             )
-            # 获取跳跃连接通道数
             self._skip_channels = self.conv_stem.get_skip_channels()
         else:
-            # 原始 ConvStem
             self.conv_stem = ConvStem(
-                in_channels=1,
-                embed_dim=d_model,
-                target_reduction=patch_size,
-                use_bn=True
+                in_channels=1, embed_dim=d_model,
+                target_reduction=patch_size, use_bn=True
             )
             self._skip_channels = []
         
-        # ======= Decoder 模块 =======
+        # SE 通道注意力
+        self.se_attention = SqueezeExcitation(d_model, 16) if use_se_attention else None
+        
+        # Decoder
         if use_multiscale:
-            # 多尺度解码器，支持跳跃连接融合
-            # 跳跃连接通道需要反转顺序（从深到浅）
-            skip_channels_reversed = list(reversed(self._skip_channels))
             self.decoder = MultiScaleDecoder(
-                in_channels=d_model,
-                out_channels=1,
-                skip_channels=skip_channels_reversed,
-                num_stages=num_skip_connections,
-                fusion=skip_fusion
+                in_channels=d_model, out_channels=1,
+                skip_channels=list(reversed(self._skip_channels)),
+                num_stages=num_skip_connections, fusion=skip_fusion
             )
-            # 用于向后兼容的 patch_recovery（实际不使用）
             self.patch_recovery = None
         else:
-            # 原始 Patch Recovery
-            self.patch_recovery = nn.ConvTranspose2d(
-                in_channels=d_model,
-                out_channels=1,
-                kernel_size=patch_size,
-                stride=patch_size
-            )
+            self.patch_recovery = nn.ConvTranspose2d(d_model, 1, patch_size, patch_size)
             self.decoder = None
     
-        # ======= Transformer 组件 =======
-        
-        # 高效版 RG 注意力模块（时序注意力）
+        # Transformer
         self.attention = EfficientRGAttention(
-            d_model=d_model,
-            num_heads=num_heads,
-            dropout=dropout,
-            num_layers=num_attn_layers,
-            use_gate=True
+            d_model=d_model, num_heads=num_heads,
+            dropout=dropout, num_layers=num_attn_layers, use_gate=True
         )
-        
-        # Channel-Mixing FFN
-        self.ffn = ChannelFeedForward(d_model, dim_feedforward, dropout)
-        
+        self.ffn = ChannelFeedForward(d_model, dim_feedforward, dropout, ffn_activation)
         self.dropout = nn.Dropout(dropout)
-        
-        # LayerNorm
         self.layer_norm = nn.LayerNorm(d_model)
         self.norm2 = nn.LayerNorm(d_model)
         
-        # 可学习的时序权重向量
+        # 时序权重
         self.temporal_weights = nn.Parameter(torch.ones(seq_len - 1) / (seq_len - 1))
-
-        # 可视化数据
-        self.viz = {}
-        
-        # torch.compile 在训练开始时应用
-        self._compiled = False
     
     def _maybe_compile(self):
-        """在首次前向传播时应用 torch.compile"""
+        """首次前向传播时应用 torch.compile"""
         if self.use_compile and not self._compiled and hasattr(torch, 'compile'):
             try:
-                # 编译核心前向传播部分
-                self._forward_impl = torch.compile(
-                    self._forward_impl, 
-                    mode=self.compile_mode
-                )
+                self._forward_impl = torch.compile(self._forward_impl, mode=self.compile_mode)
                 self._compiled = True
             except Exception as e:
                 print(f"Warning: torch.compile failed: {e}")
-                self._compiled = True  # 标记为已尝试，避免重复
+                self._compiled = True
     
     def forward(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        前向传播
-        
-        Args:
-            x: [batch, seq_len-1, width, height]
-        
-        Returns:
-            output: [batch, width, height]
-        """
+        """前向传播: [B, S-1, W, H] -> [B, W, H]"""
         self._maybe_compile()
         return self._forward_impl(x)
     
     def _forward_impl(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        实际的前向传播实现（可被 torch.compile 编译）
-        
-        Args:
-            x: [batch, seq_len-1, width, height]
-        
-        Returns:
-            output: [batch, width, height]
-        """
+        """实际前向传播实现"""
         batch_size, seq_len_minus_1, width, height = x.shape
         
-        # 1. 输入归一化和位置编码
+        # 输入归一化 + 位置编码
         x = self._normalize_sst(x)
+        x = x + self.spatial_pos_encoding() * self.spatial_enc_scale
         
-        # 生成空间位置编码
-        # SpatialSphericalHarmonicEncoding 返回 [height, width]（lat, lon）
-        # 输入 x 的形状是 [batch, seq, height, width]（lat, lon），无需转置
-        spatial_enc = self.spatial_pos_encoding()  # [height, width]
-        
-        # 添加位置编码到输入数据中
-        x = x + spatial_enc * self.spatial_enc_scale
-        
-        # 2. ConvStem（替代 Patch Embedding）
-        # 使用 einops 简化张量操作
-        # [B, S, W, H] -> [B*S, 1, W, H]
+        # ConvStem: [B, S, W, H] -> [B*S, 1, W, H] -> [B*S, D, W', H']
         x_flat = rearrange(x, 'b s w h -> (b s) 1 w h')
         
-        # 根据是否使用多尺度模式选择不同的处理路径
         if self.use_multiscale:
-            # 多尺度模式: 获取主特征和跳跃连接特征
-            # [B*S, d_model, W', H'], List[[B*S, C_i, H_i, W_i]]
             x_embed, skip_features = self.conv_stem(x_flat, return_skip_features=True)
         else:
-            # 原始模式
             x_embed = self.conv_stem(x_flat)
             skip_features = None
         
+        if self.se_attention is not None:
+            x_embed = self.se_attention(x_embed)
+        
         _, d_model, w_feat, h_feat = x_embed.shape
         
-        # 3. 准备 Transformer 输入
-        # [B*S, D, W', H'] -> [B, S, D, W', H'] -> [B*W'*H', S, D]
-        x_embed = rearrange(
-            x_embed, 
-            '(b s) d w h -> (b w h) s d', 
-            b=batch_size, 
-            s=seq_len_minus_1
-        )
+        # Transformer: [B*S, D, W', H'] -> [B*W'*H', S, D]
+        x_embed = rearrange(x_embed, '(b s) d w h -> (b w h) s d', b=batch_size, s=seq_len_minus_1)
         
-        # 4. Transformer Block
-        
-        # LayerNorm & Dropout
-        x_tokens = self.layer_norm(x_embed)
-        x_tokens = self.dropout(x_tokens)
-        
-        # Attention Block (EfficientRGAttention 内部已包含残差连接)
+        x_tokens = self.dropout(self.layer_norm(x_embed))
         x_tokens = self.attention(x_tokens)
+        x_tokens = x_tokens + self.ffn(self.norm2(x_tokens))
         
-        # FFN Block
-        ffn_out = self.ffn(self.norm2(x_tokens))
-        x_tokens = x_tokens + ffn_out  # Residual
-        
-        # 5. 时序聚合
-        # [N, S, D] -> [N, D] (Weighted Sum)
+        # 时序聚合: [N, S, D] -> [N, D]
         normalized_weights = F.softmax(self.temporal_weights, dim=0)
-        weights = normalized_weights.view(-1, 1)
+        output_tokens = (x_tokens * normalized_weights.view(-1, 1)).sum(dim=1)
         
-        # [N, S, D] * [S, 1] -> sum(dim=1) -> [N, D]
-        output_tokens = (x_tokens * weights).sum(dim=1)
+        # 恢复空间: [B*W'*H', D] -> [B, D, W', H']
+        output_tokens = rearrange(output_tokens, '(b w h) d -> b d w h', b=batch_size, w=w_feat, h=h_feat)
         
-        # 6. 恢复空间结构和分辨率
-        # [B*W'*H', D] -> [B, W', H', D] -> [B, D, W', H']
-        output_tokens = rearrange(
-            output_tokens, 
-            '(b w h) d -> b d w h', 
-            b=batch_size, 
-            w=w_feat, 
-            h=h_feat
-        )
-        
-        # 7. Decoder
+        # Decoder
         if self.use_multiscale and skip_features is not None:
-            # 多尺度解码器
-            # 跳跃特征需要在时序维度上聚合（取最后一帧）
-            # skip_features: List[[B*S, C_i, H_i, W_i]]
             aggregated_skips = []
             for skip in skip_features:
-                # 重塑为 [B, S, C, H, W] 然后取最后一帧 [B, C, H, W]
-                _, c, h, w = skip.shape
-                skip_reshaped = rearrange(
-                    skip, 
-                    '(b s) c h w -> b s c h w', 
-                    b=batch_size, 
-                    s=seq_len_minus_1
-                )
-                # 使用加权平均聚合时序维度
+                skip_reshaped = rearrange(skip, '(b s) c h w -> b s c h w', b=batch_size, s=seq_len_minus_1)
                 skip_aggregated = (skip_reshaped * normalized_weights.view(1, -1, 1, 1, 1)).sum(dim=1)
                 aggregated_skips.append(skip_aggregated)
-            
-            # 反转跳跃特征顺序（从浅到深 -> 从深到浅）
-            aggregated_skips_reversed = list(reversed(aggregated_skips))
-            
-            # 多尺度解码
-            output_map = self.decoder(output_tokens, aggregated_skips_reversed)
+            output_map = self.decoder(output_tokens, list(reversed(aggregated_skips)))
         else:
-            # 原始模式: 单次上采样
             output_map = self.patch_recovery(output_tokens)
         
-        # Remove channel dim: [B, 1, W, H] -> [B, W, H]
         output = output_map.squeeze(1)
-        
-        # 保存可视化数据
-        if batch_size > 0:
-            self.viz['temporal_weights'] = normalized_weights
-        
+        self.viz['temporal_weights'] = normalized_weights
         return output
     
     def _normalize_sst(self, x: torch.Tensor) -> torch.Tensor:
-        """
-        海表温度数据归一化
-        
-        将 NaN 值（陆地区域）替换为 0
-        """
-        x_mask = torch.isnan(x)
+        """将 NaN 替换为 0"""
         x_processed = x.clone()
-        x_processed[x_mask] = 0.0
+        x_processed[torch.isnan(x)] = 0.0
         return x_processed
 
-    def custom_mse_loss(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
-        """
-        处理 NaN 值的 MSE 损失函数
-        
-        Args:
-            y_pred: [batch, width, height] 预测值
-            y_true: [batch, width, height] 真实值
-        
-        Returns:
-            loss: 标量损失值
-        """
-        # 创建有效值掩码（排除 NaN 区域）
-        y_true_mask = torch.isnan(y_true)
-        y_pred_mask = torch.isnan(y_pred)
-        valid_mask = ~(y_true_mask | y_pred_mask)
-        
-        num_valid = valid_mask.sum()
-        
-        if num_valid > 0:
-            y_pred_valid = y_pred[valid_mask]
-            y_true_valid = y_true[valid_mask]
-            loss = F.mse_loss(y_pred_valid, y_true_valid, reduction='mean')
-            return loss
-        else:
-            # 返回零损失（但保持计算图）
+    def compute_loss(self, y_pred: torch.Tensor, y_true: torch.Tensor) -> torch.Tensor:
+        """计算损失（处理 NaN）"""
+        valid_mask = ~(torch.isnan(y_true) | torch.isnan(y_pred))
+        if valid_mask.sum() == 0:
             return y_pred.sum() * 0.0
+        
+        y_pred_valid = y_pred[valid_mask]
+        y_true_valid = y_true[valid_mask]
+        
+        if self.loss_type == 'huber':
+            return F.huber_loss(y_pred_valid, y_true_valid, reduction='mean', delta=self.huber_delta)
+        elif self.loss_type == 'combined':
+            mse = F.mse_loss(y_pred_valid, y_true_valid, reduction='mean')
+            mae = F.l1_loss(y_pred_valid, y_true_valid, reduction='mean')
+            return 0.7 * mse + 0.3 * mae
+        else:
+            return F.mse_loss(y_pred_valid, y_true_valid, reduction='mean')
     
     def training_step(self, batch, batch_idx):
         x, y = batch
-        y_pred = self(x)
-        loss = self.custom_mse_loss(y_pred, y)
+        loss = self.compute_loss(self(x), y)
         self.train_loss.append(loss.detach().cpu().item())
         self.log('train_loss', loss, prog_bar=True, on_step=True, on_epoch=True)
+        if self.use_lr_scheduler:
+            self.log('lr', self.optimizers().param_groups[0]['lr'], prog_bar=True, on_step=False, on_epoch=True)
         return loss
     
     def validation_step(self, batch, batch_idx):
         x, y = batch
-        y_pred = self(x)
-        val_loss = self.custom_mse_loss(y_pred, y)
+        val_loss = self.compute_loss(self(x), y)
         self.val_loss.append(val_loss.detach().cpu().item())
         self.log('val_loss', val_loss, prog_bar=True, on_step=False, on_epoch=True)
+        self.log('val_rmse', torch.sqrt(val_loss), prog_bar=True, on_step=False, on_epoch=True)
         return val_loss
     
     def configure_optimizers(self):
-        optimizer = optim.AdamW(
-            self.parameters(), 
-            lr=self.learning_rate,
-        )
-        return optimizer
+        """配置 AdamW + CosineAnnealing"""
+        optimizer = optim.AdamW(self.parameters(), lr=self.learning_rate, weight_decay=self.weight_decay)
+        
+        if not self.use_lr_scheduler:
+            return optimizer
+        
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(optimizer, T_max=500, eta_min=self.min_lr)
+        return {"optimizer": optimizer, "lr_scheduler": {"scheduler": scheduler, "interval": "epoch", "monitor": "val_loss"}}
     
     def get_num_parameters(self, trainable_only: bool = True) -> int:
-        """
-        获取模型参数量
-        
-        Args:
-            trainable_only: 是否只统计可训练参数
-        
-        Returns:
-            参数总数
-        """
-        if trainable_only:
-            return sum(p.numel() for p in self.parameters() if p.requires_grad)
-        return sum(p.numel() for p in self.parameters())
-
-
-# 兼容别名（向后兼容旧代码引用）
-RGTransformerV2 = RGTransformer
-RGTransformerOptimized = RGTransformer
+        """获取参数量"""
+        return sum(p.numel() for p in self.parameters() if (not trainable_only or p.requires_grad))
 

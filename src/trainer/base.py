@@ -8,7 +8,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 from lightning import Trainer
-from lightning.pytorch.callbacks import ModelCheckpoint
+from lightning.pytorch.callbacks import ModelCheckpoint, EarlyStopping
 from torch.utils.data import DataLoader, Subset
 
 from src.plot.sst import plot_sst, plot_sst_diff, plot_nino, plot_sequence, plot_attention
@@ -239,10 +239,35 @@ class BaseTrainer:
             'precision': self.trainer_params.get('precision', '16-mixed'),
         }
         
+        # 梯度累积（模拟大批量训练）
+        accumulate_grad_batches = self.trainer_params.get('accumulate_grad_batches', 1)
+        if accumulate_grad_batches > 1:
+            trainer_config['accumulate_grad_batches'] = accumulate_grad_batches
+            effective_batch = self.trainer_params.get('batch_size', 8) * accumulate_grad_batches
+            print(f"📊 梯度累积: {accumulate_grad_batches}x, 有效批量大小: {effective_batch}")
+        
+        # 梯度裁剪（防止梯度爆炸）
+        gradient_clip_val = self.trainer_params.get('gradient_clip_val', 1.0)
+        if gradient_clip_val:
+            trainer_config['gradient_clip_val'] = gradient_clip_val
+        
         # 添加 callbacks
         callbacks = []
         if self.checkpoint_callback:
             callbacks.append(self.checkpoint_callback)
+        
+        # 早停策略
+        early_stopping_patience = self.trainer_params.get('early_stopping_patience', None)
+        if early_stopping_patience:
+            early_stopping = EarlyStopping(
+                monitor=self.trainer_params.get('monitor', 'val_loss'),
+                patience=early_stopping_patience,
+                mode=self.trainer_params.get('mode', 'min'),
+                verbose=True
+            )
+            callbacks.append(early_stopping)
+            print(f"⏱️ 早停策略: {early_stopping_patience} 轮无改善则停止")
+        
         if callbacks:
             trainer_config['callbacks'] = callbacks
         
@@ -296,11 +321,17 @@ class BaseTrainer:
     def _print_optimization_summary(self):
         """打印优化配置摘要"""
         print("\n" + "="*60)
-        print("🚀 训练优化配置")
+        print("🚀 训练优化配置（V3 精度优化版）")
         print("="*60)
         
         # 系统信息
         print(f"\n💻 系统: {platform.system()}")
+        
+        # GPU 信息
+        if torch.cuda.is_available():
+            gpu_name = torch.cuda.get_device_name(0)
+            gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3
+            print(f"🎮 GPU: {gpu_name} ({gpu_memory:.1f} GB)")
         
         # Checkpoint 信息
         if self.use_checkpoint:
@@ -312,11 +343,19 @@ class BaseTrainer:
         # 数据加载优化
         print("\n📦 数据加载:")
         num_workers = self.trainer_params.get('num_workers', 8)
+        batch_size = self.trainer_params.get('batch_size', 8)
+        print(f"  • batch_size: {batch_size}")
         print(f"  • num_workers: {num_workers}")
         print(f"  • pin_memory: {self.trainer_params.get('pin_memory', True)}")
         if num_workers > 0:
             print(f"  • persistent_workers: {self.trainer_params.get('persistent_workers', True)}")
-        print(f"  • prefetch_factor: {self.trainer_params.get('prefetch_factor', 2 if num_workers > 0 else 'N/A')}")
+        
+        # 梯度累积
+        accumulate = self.trainer_params.get('accumulate_grad_batches', 1)
+        if accumulate > 1:
+            print(f"\n📈 梯度累积:")
+            print(f"  • 累积步数: {accumulate}")
+            print(f"  • 有效批量: {batch_size * accumulate}")
         
         # 训练优化
         print("\n⚡ 训练配置:")
@@ -330,10 +369,37 @@ class BaseTrainer:
             print(f"  • tensor_cores: {matmul_precision} precision")
             print(f"    ✅ Tensor Cores 优化已启用 (RTX GPU)")
         
-        # 梯度检查点
-        if self.trainer_params.get('gradient_checkpointing', False):
-            print(f"\n🧠 梯度检查点:")
-            print(f"  • 已启用 (用计算换显存，约节省 30-50% 显存)")
+        # 梯度裁剪
+        grad_clip = self.trainer_params.get('gradient_clip_val', 1.0)
+        if grad_clip:
+            print(f"  • gradient_clip: {grad_clip}")
+        
+        # 模型参数信息
+        if hasattr(self, 'model_params'):
+            print(f"\n🧠 模型配置:")
+            print(f"  • d_model: {self.model_params.get('d_model', 'N/A')}")
+            print(f"  • num_attn_layers: {self.model_params.get('num_attn_layers', 'N/A')}")
+            print(f"  • dim_feedforward: {self.model_params.get('dim_feedforward', 'N/A')}")
+            print(f"  • ffn_activation: {self.model_params.get('ffn_activation', 'gelu')}")
+            print(f"  • use_se_attention: {self.model_params.get('use_se_attention', False)}")
+            print(f"  • loss_type: {self.model_params.get('loss_type', 'mse')}")
+            
+            if self.model_params.get('use_gradient_checkpointing', False):
+                print(f"  • gradient_checkpointing: ✅ 已启用")
+        
+        # 学习率配置
+        print(f"\n📉 学习率配置:")
+        print(f"  • initial_lr: {self.model_params.get('learning_rate', 1e-4)}")
+        if self.model_params.get('use_lr_scheduler', False):
+            print(f"  • scheduler: CosineAnnealingLR")
+            print(f"  • warmup_epochs: {self.model_params.get('warmup_epochs', 10)}")
+            print(f"  • min_lr: {self.model_params.get('min_lr', 1e-6)}")
+        
+        # 早停策略
+        patience = self.trainer_params.get('early_stopping_patience', None)
+        if patience:
+            print(f"\n⏱️ 早停策略:")
+            print(f"  • patience: {patience} epochs")
         
         # 模型编译
         if self.trainer_params.get('compile_model', False):
