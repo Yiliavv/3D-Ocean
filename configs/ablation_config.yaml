@@ -1,5 +1,8 @@
 # 消融实验配置文件
 # RGTransformer Ablation Study Configuration
+# 
+# V3.2 同步版本 - 与 src/trainer/config.py 保持一致
+# 针对小样本（~530样本）优化：简化模型 + 加强正则化
 
 experiment:
   name: "RGTransformer_Ablation_Study"
@@ -8,29 +11,45 @@ experiment:
   output_dir: "out/ablation"
 
 # 训练参数（所有变体共享）
+# 小数据策略：较小batch_size + 更长训练 + 严格早停
 training:
-  epochs: 100
-  batch_size: 24
-  learning_rate: 0.001
-  num_workers: 0        # Windows 上设为 0 避免多进程开销
-  early_stopping_patience: 10
-  precision: "16-mixed" # 混合精度训练
-  matmul_precision: "high"  # Tensor Cores 优化
+  epochs: 1000                    # 小数据需要更多轮次
+  batch_size: 16                  # 适中批量（更好的泛化）
+  learning_rate: 0.0005           # 学习率（5e-4，更稳定）
+  num_workers: 8                  # 数据加载进程数
+  early_stopping_patience: 30     # 30轮无改善则停止
+  precision: "16-mixed"           # 混合精度训练
+  matmul_precision: "high"        # Tensor Cores 优化
+  gradient_clip_val: 1.0          # 梯度裁剪
+  warmup_epochs: 20               # 预热轮数
+  min_lr: 0.000001                # 最小学习率（1e-6）
+  weight_decay: 0.05              # 权重衰减（重要！防过拟合）
 
-# 模型基础参数
+# 模型基础参数（V3.2 小样本优化版）
 model:
-  d_model: 512
-  num_heads: 8
-  dim_feedforward: 256
-  num_attn_layers: 2
+  d_model: 512                    # 模型维度（适中）
+  num_heads: 8                    # 注意力头数
+  dim_feedforward: 1024           # FFN 维度 = d_model * 2
+  num_attn_layers: 1              # 注意力层数（不宜过深）
   patch_size: 4
-  dropout: 0.1
+  dropout: 0.1                    # Dropout（防止过拟合）
+  
+  # 非线性增强
+  ffn_activation: "swiglu"        # FFN 激活函数
+  use_se_attention: true          # SE 通道注意力
+  
+  # 损失函数
+  loss_type: "huber"              # Huber 损失（对异常值鲁棒）
+  huber_delta: 1.0
+  
+  # 学习率调度
+  use_lr_scheduler: true          # 余弦退火
 
 # 数据集参数
 dataset:
   seq_len: 2
   resolution: 1
-  lat_range: [-90, 90]
+  lat_range: [-80, 80]
   lon_range: [-180, 180]
 
 # 消融变体定义
@@ -68,7 +87,7 @@ variants:
 visualization:
   style: "agu"  # agu, ieee, nature
   save_formats: ["pdf", "png"]
-  dpi: 300
+  dpi: 1200
   
   # 颜色方案（色盲友好）
   colors:

@@ -5,7 +5,15 @@ __pycache__
 output/
 lightning_logs/
 train_output/
-doc
+doc/*
+!doc/JGR/
+!doc/Paper/
+doc/JGR/*
+doc/Paper/*
+!doc/JGR/agujournaltemplate.tex
+!doc/JGR/references.bib
+!doc/Paper/paper.tex
+
 out/
 wandb_logs/
 src/wandb/

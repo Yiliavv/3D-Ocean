@@ -56,14 +56,14 @@ class AblationRunner:
     - 训练失败: 记录错误并跳过，继续下一个实验
     """
     
-    # 默认 batch size 降级序列
-    BATCH_SIZE_FALLBACK = [24, 16, 8, 4, 2]
+    # 默认 batch size 降级序列（从 16 开始，适配小样本优化）
+    BATCH_SIZE_FALLBACK = [16, 8, 4, 2]
     
     def __init__(
         self,
         output_dir: str = "out/ablation",
         config_path: Optional[str] = None,
-        runs_per_variant: int = 3,
+        runs_per_variant: int = 1,
         seed: int = 42,
         device: str = "auto",
         auto_reduce_batch: bool = True
@@ -128,7 +128,7 @@ class AblationRunner:
             d.mkdir(parents=True, exist_ok=True)
     
     def _get_default_config(self) -> dict:
-        """获取默认配置"""
+        """获取默认配置（V3.2 小样本优化版）"""
         return {
             'experiment': {
                 'name': 'RGTransformer_Ablation_Study',
@@ -136,17 +136,27 @@ class AblationRunner:
                 'seed': self.base_seed,
             },
             'training': {
-                'epochs': 100,
-                'batch_size': 24,
-                'learning_rate': 0.001,
-                'num_workers': 4,
+                'epochs': 1000,                 # 小数据需要更多轮次
+                'batch_size': 16,               # 适中批量
+                'learning_rate': 5e-4,          # 学习率（更稳定）
+                'num_workers': 8,
+                'early_stopping_patience': 30,
+                'gradient_clip_val': 1.0,
+                'warmup_epochs': 20,
+                'min_lr': 1e-6,
+                'weight_decay': 0.05,
             },
             'model': {
                 'd_model': 512,
                 'num_heads': 8,
-                'dim_feedforward': 256,
-                'num_attn_layers': 2,
+                'dim_feedforward': 1024,        # FFN 维度 = d_model * 2
+                'num_attn_layers': 1,           # 注意力层数（不宜过深）
                 'patch_size': 4,
+                'dropout': 0.1,
+                'ffn_activation': 'swiglu',
+                'use_se_attention': True,
+                'loss_type': 'huber',
+                'huber_delta': 1.0,
             }
         }
     
@@ -328,7 +338,7 @@ class AblationRunner:
             from lightning import LightningDataModule
             
             # 使用指定的 batch size 或默认值
-            bs = batch_size or self.current_batch_size or trainer_params.get('batch_size', 24)
+            bs = batch_size or self.current_batch_size or trainer_params.get('batch_size', 16)
             num_workers = trainer_params.get('num_workers', 8)  # 增加默认 workers
             
             # 如果数据集已缓存且只需要更新 batch_size，直接更新
@@ -419,7 +429,7 @@ class AblationRunner:
         self,
         config: AblationConfig,
         run_id: int,
-        initial_batch_size: int = 24
+        initial_batch_size: int = 16
     ) -> ExperimentResult:
         """
         尝试运行实验，OOM 时自动降低 batch size（复用缓存的数据集）
@@ -561,7 +571,7 @@ class AblationRunner:
                 try:
                     # 如果启用自动降低 batch size，使用包装方法
                     if self.auto_reduce_batch:
-                        initial_bs = self.config.get('training', {}).get('batch_size', 24)
+                        initial_bs = self.config.get('training', {}).get('batch_size', 16)
                         result = self._try_with_reduced_batch(config, run_id, initial_bs)
                     else:
                         result = self.run_single_experiment(

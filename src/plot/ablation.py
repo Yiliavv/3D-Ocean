@@ -870,50 +870,22 @@ class AblationVisualizer:
         sensitivity_df: Optional[pd.DataFrame] = None
     ) -> Dict[str, plt.Figure]:
         """
-        批量生成所有图表
+        生成消融实验图表（仅 Nature 风格整合图）
         
         Args:
             results_df: 实验结果 DataFrame
-            sensitivity_df: 敏感性分析结果（可选）
+            sensitivity_df: 敏感性分析结果（可选，暂不使用）
             
         Returns:
             生成的图表字典
         """
         figures = {}
         
-        # 生成 Nature 风格整合图（主图）
+        # 只生成 Nature 风格整合图（包含所有必要信息的 4 子图）
         logger.info("Generating Nature-style integrated figure...")
         figures['nature_main'] = self.generate_nature_figure(results_df)
         
-        # 性能对比
-        logger.info("Generating performance comparison...")
-        figures['performance_rmse'] = self.plot_performance_comparison(
-            results_df, metric='rmse', figname='performance_comparison_rmse'
-        )
-        figures['performance_mae'] = self.plot_performance_comparison(
-            results_df, metric='mae', figname='performance_comparison_mae'
-        )
-        figures['performance_r2'] = self.plot_performance_comparison(
-            results_df, metric='r2', figname='performance_comparison_r2'
-        )
-        
-        # 组件贡献
-        logger.info("Generating component contribution...")
-        figures['contribution'] = self.plot_component_contribution(results_df)
-        figures['breakdown'] = self.plot_component_breakdown(results_df)
-        
-        # Pareto 曲线
-        logger.info("Generating Pareto curve...")
-        if 'train_time_seconds' in results_df.columns:
-            figures['pareto'] = self.plot_pareto_curve(results_df)
-        
-        # 敏感性分析
-        if sensitivity_df is not None and len(sensitivity_df) > 0:
-            logger.info("Generating sensitivity curves...")
-            param_name = sensitivity_df['param'].iloc[0] if 'param' in sensitivity_df.columns else 'd_model'
-            figures['sensitivity'] = self.plot_sensitivity_curve(sensitivity_df, param_name)
-        
-        logger.info(f"Generated {len(figures)} figures")
+        logger.info(f"Generated {len(figures)} figure")
         
         return figures
 
@@ -1192,12 +1164,11 @@ def main():
     )
     
     if args.all:
-        # 生成所有图表
+        # 生成所有图表（目前只有 Nature 风格整合图）
         visualizer.generate_all_figures(results_df)
     else:
-        # 只生成性能对比图
-        visualizer.plot_performance_comparison(results_df)
-        visualizer.plot_component_contribution(results_df)
+        # 默认只生成 Nature 风格整合图
+        visualizer.generate_nature_figure(results_df)
     
     # 生成表格
     if args.tables:

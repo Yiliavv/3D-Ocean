@@ -1,0 +1,2414 @@
+% Options for packages loaded elsewhere
+\PassOptionsToPackage{unicode}{hyperref}
+\PassOptionsToPackage{hyphens}{url}
+\documentclass[
+  12pt,
+]{article}
+\usepackage{xcolor}
+\usepackage[margin=1in]{geometry}
+\usepackage{amsmath,amssymb}
+\setcounter{secnumdepth}{-\maxdimen} % remove section numbering
+\usepackage{iftex}
+\ifPDFTeX
+  \usepackage[T1]{fontenc}
+  \usepackage[utf8]{inputenc}
+  \usepackage{textcomp} % provide euro and other symbols
+\else % if luatex or xetex
+  \usepackage{unicode-math} % this also loads fontspec
+  \defaultfontfeatures{Scale=MatchLowercase}
+  \defaultfontfeatures[\rmfamily]{Ligatures=TeX,Scale=1}
+\fi
+\usepackage{lmodern}
+\ifPDFTeX\else
+  % xetex/luatex font selection
+  \usepackage{xeCJK}
+  \setCJKmainfont{SimSun}[AutoFakeBold=true, AutoFakeSlant=true]
+  \setCJKsansfont{Microsoft YaHei}[AutoFakeBold=true, AutoFakeSlant=true]
+  \setmainfont{Times New Roman}
+  \setsansfont{Arial}
+\fi
+% Use upquote if available, for straight quotes in verbatim environments
+\IfFileExists{upquote.sty}{\usepackage{upquote}}{}
+\IfFileExists{microtype.sty}{% use microtype if available
+  \usepackage[]{microtype}
+  \UseMicrotypeSet[protrusion]{basicmath} % disable protrusion for tt fonts
+}{}
+\makeatletter
+\@ifundefined{KOMAClassName}{% if non-KOMA class
+  \IfFileExists{parskip.sty}{%
+    \usepackage{parskip}
+  }{% else
+    \setlength{\parindent}{0pt}
+    \setlength{\parskip}{6pt plus 2pt minus 1pt}}
+}{% if KOMA class
+  \KOMAoptions{parskip=half}}
+\makeatother
+\usepackage{longtable,booktabs,array}
+\newcounter{none} % for unnumbered tables
+\usepackage{multirow}
+\usepackage{calc} % for calculating minipage widths
+% Correct order of tables after \paragraph or \subparagraph
+\usepackage{etoolbox}
+\makeatletter
+\patchcmd\longtable{\par}{\if@noskipsec\mbox{}\fi\par}{}{}
+\makeatother
+% Allow footnotes in longtable head/foot
+\IfFileExists{footnotehyper.sty}{\usepackage{footnotehyper}}{\usepackage{footnote}}
+\makesavenoteenv{longtable}
+\usepackage{graphicx}
+\makeatletter
+\newsavebox\pandoc@box
+\newcommand*\pandocbounded[1]{% scales image to fit in text height/width
+  \sbox\pandoc@box{#1}%
+  \Gscale@div\@tempa{\textheight}{\dimexpr\ht\pandoc@box+\dp\pandoc@box\relax}%
+  \Gscale@div\@tempb{\linewidth}{\wd\pandoc@box}%
+  \ifdim\@tempb\p@<\@tempa\p@\let\@tempa\@tempb\fi% select the smaller of both
+  \ifdim\@tempa\p@<\p@\scalebox{\@tempa}{\usebox\pandoc@box}%
+  \else\usebox{\pandoc@box}%
+  \fi%
+}
+% Set default figure placement to htbp
+\def\fps@figure{htbp}
+\makeatother
+\ifLuaTeX
+  \usepackage{luacolor}
+  \usepackage[soul]{lua-ul}
+\else
+  \usepackage{ulem}
+\fi
+\setlength{\emergencystretch}{3em} % prevent overfull lines
+\sloppy % allow more flexible line breaking to reduce overfull boxes
+\providecommand{\tightlist}{%
+  \setlength{\itemsep}{0pt}\setlength{\parskip}{0pt}}
+\usepackage{bookmark}
+\IfFileExists{xurl.sty}{\usepackage{xurl}}{} % add URL line breaks if available
+\urlstyle{same}
+\hypersetup{
+  hidelinks,
+  pdfcreator={LaTeX via pandoc}}
+
+\author{}
+\date{}
+
+\begin{document}
+
+\includegraphics[width=2.66944in,height=0.67708in,alt={浙江海洋大学校徽}]{./images/media/image1.png}\includegraphics[width=0.69653in,height=0.69931in,alt={92e2c96f-2536-49ab-8b22-c7b30b2d467d}]{./images/media/image2.png}
+
+\textbf{硕 士 学 位 论 文}
+
+\textbf{MASTER DISSERTATION}
+
+全球海洋月平均温度人工智能预报方法研究
+
+\begin{quote}
+论文作者 \uline{易珂}
+
+指导教师 \uline{陈鹏 正高级工程师}
+
+合作导师 \uline{王点 讲师}
+
+学位门类 \uline{理学硕士}
+
+专业门类 \uline{海洋科学}
+
+培养学院 \uline{海洋科学与技术学院}
+\end{quote}
+
+二〇二六年五月
+
+\textbf{Dissertation Submitted to Zhejiang Ocean University}
+
+\textbf{for the Degree of Master}
+
+\textbf{Remote sensing inversion of water clarity in Zhoushan sea area
+based on high spatial resolution images}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedleft\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5000}}@{}}
+\toprule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Candidate： & Ke Yi \\
+Supervisor： & Peng Chen \\
+Co-Supervisor： & Wang Dian \\
+Major： & Marine Science \\
+Colleges： & College of Marine Science and Technology \\
+Date Of Submission： & May, 2026 \\
+\end{longtable}
+}
+
+分类号： 学校代码： \uline{10340}
+
+密 级： 学 号：\uline{2023110101022}
+
+全球海洋月平均温度人工智能预报方法研究
+
+\textbf{论文作者：易珂}
+
+\textbf{指导教师：陈鹏、王点}
+
+\textbf{校内评审专家：尹文彬}
+
+\textbf{完成日期：2026年5月}
+
+答辩委员会成员：
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.1313}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.1454}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.3216}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.4017}}@{}}
+\toprule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+郭碧云 & 教授 & 浙江海洋大学（主席） & \\
+纪棋严 & 副教授 & 浙江海洋大学 & \\
+贺双颜 & 副教授 & 浙江大学 & \\
+& & & \\
+\end{longtable}
+}
+
+答辩日期：2026年5月21日
+
+研究生学位论文的独创性声明
+
+本人声明：所呈交的学位论文是我个人在导师指导下独立进行的研究工作及取得的研究成果；论文中的研究数据及结果的获得完全符合学术道德的有关规定,如有违反，一切后果与法律责任均由本人承担。
+
+尽我所知，除了文中特别加以标注和致谢的地方外，论文中不包含其他人已经发表或撰写过的研究成果，也不包含为获得浙江海洋大学或其它教育机构的学位或证书而使用过的材料。与我一同工作的同事对本研究所做的任何贡献均已在论文的致谢中作了明确的说明并表示了谢意。
+
+研究生签名： 时间： 2026 年 05 月 21 日
+
+导师指导研究生学位论文的承诺
+
+本人承诺：我的研究生易珂所呈交的学位论文是在我指导下独立开展研究工作及取得的研究成果，并严格遵守学术道德的有关规定。如有违反，我愿接受按学校有关规定的处罚处理并承担相应导师连带责任。
+
+导师签名： 时间： 2026 年 05 月 21 日
+
+关于研究生学位论文使用授权的说明
+
+本学位论文的知识产权归属浙江海洋大学大学。本人及导师同意学校保存或向国家有关部门或机构送交论文的纸质版和电子版，允许论文被查阅和借阅；同意学校将本学位论文的全部或部分内容授权汇编录入《中国博士/硕士学位论文全文数据库》和《中国学位论文全文数据库》进行出版，并享受相关权益。
+
+本人保证，在毕业离开（或者工作调离）浙江海洋大学后，发表或者使用本学位论文及其相关研究成果时，将以浙江海洋大学为第一署名单位，否则，愿意按《中华人民共和国著作权法》等有关规定接受处理并承担法律责任。
+
+任何收存和保管本论文各种版本的其他单位和个人(包括研究生本人)未经本论文作者的导师同意，不得有对本论文进行复制、修改、发行、出租、改编等侵犯著作权的行为，否则，按违背《中华人民共和国著作权法》等有关规定处理并追究法律责任。
+
+\textbf{（保密的学位论文在保密期限内，不得以任何方式发表、借阅、复印、缩印或扫描复制保存）}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.4460}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 2\tabcolsep) * \real{0.5540}}@{}}
+\toprule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+研究生签名： & 时间：2026年05月21日 \\
+导师签名： & 时间：2026年05月21日 \\
+\end{longtable}
+}
+
+　　　　　　
+
+　　　　　　
+
+\subsection{摘 要}\label{ux6458-ux8981}
+
+海表温度（Sea Surface Temperature,
+SST）预测对于理解全球气候变化和海洋动力过程具有重要意义。传统的温度参数模型存在计算量大、模型不稳定、预测精度低的问题，因此构建高精度的海洋三维温度场是一个技术难题。近年来，随着卫星遥感技术和机器学习的发展，海洋学科研究者对解决三维温度场反演问题有了新的思路和方法。但现有的研究中所体现的反演结果并不理想存在较大的精度上的误差，因此本研究用了结合卫星遥感数据与机器学习随机森林的方法对海洋温度场反演做了更深入的研究，得到了精度提高约50\%的高精度三维温度场，为后续进一步研究三维温度场时空变化问题提供了一个基础。本研究以全球海域为研究区域，结合现场Argo浮标数据和ECMWF卫星数据，构建了三维海洋水温剖面模型，并对所建立的RG-Transformer模型进行了精度对比验证与应用分析。此外，本文还探讨了厄尔尼诺现象对大西洋海域赤道附近气候变化的影响，主要研究结果如下：
+
+（1）本研究提出了一种基于递归泛化自注意力(Recursive-Generalization
+Self-Attention Transformer,
+RG-Transformer)的SST预测模型，通过多头自注意力机制(Multi-Head Attention,
+MHA)、球谐波函数位置编码(Spherical Harmonics Position Encoding,
+SHPE)和多尺度残差网络(multiscale residual network,
+MSRN)实现了对SST时空特征的有效建模。
+
+（2）通过RG-Transformer模型采用ERA5全球SST高精度再分析数据进行训练并验证，本文比较了2024年9月、2024年12月和2025年4月全球海表温度预测的实际结果。结果表明，在空间分辨率为\(\text{1}^{\text{°}}\text{×}\text{1}^{\text{°}}\)时模型表现出稳定的预测性能，使用2025年1\textasciitilde5月的ERA5验证集预测结果均方根误差（Root
+Mean Square Error,RMSE）为0.39℃，相关系数（Coefficient of
+determination,\(\text{R}^{\text{2}}\)）为0.97，与同类型模型预测精度相比提升了22\textasciitilde35\%。实验结果表明，该模型在中长期（时间窗口设定为6个月）以及短期（时间窗口设定为2个月）的时间序列预测任务中均有着出色表现。其中，中长期预测的RMSE低至0.49℃，短期预测的RMSE也仅为0.33℃。
+
+（3）全球海洋SST的预测分布差异主要受到厄尔尼诺（El Niño）与拉尼娜（La
+Niña）现象的显著影响。其中，赤道地区的海温异常在热带海气耦合系统中发挥关键作用。准确地进行全球SST的逐月预测，尤其是对赤道区域海温异常的识别与分析，对于深入理解厄尔尼诺-南方涛动（ENSO）等热带年际气候变率过程具有重要的科学意义。
+
+关键词：全球海洋温度预测；随机森林；RG-Transformer；球谐波函数位置编码
+
+\subsection{ABSTRACT}\label{abstract}
+
+Sea Surface Temperature (SST) prediction is of great significance for
+understanding global climate change and oceanic dynamic processes.
+Constructing a high-precision three-dimensional ocean temperature field
+is a technical challenge. In recent years, with the development of
+satellite remote sensing technology and machine learning, researchers in
+the field of oceanography have gained new insights and methods to solve
+the problem of reconstructing the three-dimensional temperature field.
+However, the inversion results in existing studies are not ideal, with
+considerable precision errors. Therefore, this study delves deeper into
+the use of a method combining satellite remote sensing data and machine
+learning random forests for ocean temperature field reconstruction,
+achieving a high-precision three-dimensional temperature field with an
+accuracy improvement of approximately 50\%. This provides a foundation
+for further studies on the temporal and spatial variations of the
+three-dimensional temperature field.
+
+This study focuses on the global ocean as the research area, integrating
+on-site Argo buoy data and ECMWF satellite data to construct a
+three-dimensional ocean temperature profile model. The proposed
+RG-Transformer model was then subjected to precision comparison,
+validation, and application analysis. Furthermore, this paper explores
+the impact of the El Niño phenomenon on climate changes near the equator
+in the Atlantic region. The main findings of the study are as follows:
+
+\begin{enumerate}
+\def\labelenumi{(\arabic{enumi})}
+\item
+  SST Prediction Model: This study proposes a Sea Surface Temperature
+  (SST) prediction model based on a Recursive-Generalization
+  Self-Attention Transformer (RG-Transformer). The model effectively
+  captures the spatiotemporal characteristics of SST using a multi-head
+  self-attention mechanism (MHA), spherical harmonics position encoding
+  (SHPE), and a multiscale residual network (MSRN).
+\end{enumerate}
+
+(2) Model Training and Validation: The RG-Transformer model was trained
+and validated using the ERA5 global SST high-precision reanalysis data.
+This paper compares the actual SST prediction results for the global
+ocean in September 2024, December 2024, and April 2025. The results show
+that the model exhibits stable prediction performance with a spatial
+resolution of 1°×1°. Using the ERA5 validation set from January to May
+2025, the root mean square error (RMSE) of the model\textquotesingle s
+predictions is 0.39°C, and the coefficient of determination (R²) is
+0.97, showing an improvement of 22-35\% compared to similar models. The
+experimental results demonstrate that the model performs excellently in
+both long-term (time window set to 6 months) and short-term (time window
+set to 2 months) time series prediction tasks. Specifically, the RMSE
+for long-term predictions is as low as 0.49°C, and the RMSE for
+short-term predictions is only 0.33°C.
+
+(3) Impact of El Niño and La Niña: The prediction distribution
+differences of global SST are significantly influenced by the El Niño
+and La Niña phenomena. The temperature anomalies in the equatorial
+region play a key role in the tropical air-sea coupled system.
+Accurately predicting global SST on a monthly basis, especially
+identifying and analyzing temperature anomalies in the equatorial
+region, is crucial for deepening the understanding of tropical
+interannual climate variability processes such as the El Niño-Southern
+Oscillation (ENSO).
+
+\textbf{KEY WORDS:} Global Ocean Temperature Prediction; Random forest;
+RG-Transformer; Spherical Harmonics Position
+Encoding\textbf{\hfill\break
+}
+
+目 录
+
+摘 要 \hyperref[ux6458-ux8981]{I}
+
+ABSTRACT \hyperref[abstract]{III}
+
+第1章 绪论 \hyperref[_Toc1619232084]{3}
+
+1.1 研究背景与意义 \hyperref[_Toc1520861004]{3}
+
+1.2 国内外研究现状 \hyperref[_Toc1760527634]{5}
+
+1.2.1 海表温度预测 \hyperref[_Toc1158256272]{5}
+
+1.2.2 三维海洋温度预测 \hyperref[_Toc2021387096]{6}
+
+1.3 研究内容与技术路线 \hyperref[_Toc261626932]{8}
+
+1.3.1 研究内容 \hyperref[_Toc1264820715]{8}
+
+1.3.2 技术路线 \hyperref[_Toc2048618999]{9}
+
+第2章 研究数据 \hyperref[ux7b2c2ux7ae0-ux7814ux7a76ux6570ux636e]{13}
+
+2.1 数据产品概述 \hyperref[_Toc1882328034]{13}
+
+2.2 卫星遥感数据产品 \hyperref[_Toc1705663481]{13}
+
+2.3 现场观测数据产品 \hyperref[_Toc326921364]{13}
+
+2.4 再分析数据产品 \hyperref[_Toc1304195722]{15}
+
+2.5 模式同化数据产品 \hyperref[_Toc251914725]{17}
+
+2.6 数据产品的归一化处理 \hyperref[_Toc1240514838]{17}
+
+第3章 基于深度学习模型的全球海表月平均温度预报方法研究
+\hyperref[ux7b2c3ux7ae0-ux57faux4e8eux6df1ux5ea6ux5b66ux4e60ux6a21ux578bux7684ux5168ux7403ux6d77ux8868ux6708ux5e73ux5747ux6e29ux5ea6ux9884ux62a5ux65b9ux6cd5ux7814ux7a76]{20}
+
+3.1 基于长短期记忆网络的全球海表温度预报方法
+\hyperref[_Toc2038602343]{20}
+
+3.2 基于Conv-LSTM模型的全球海表温度预报方法
+\hyperref[_Toc1835474563]{23}
+
+3.3 基于Unet-LSTM模型的全球海表温度预报方法 \hyperref[_Toc218391186]{25}
+
+3.4 基于Transformer模型的全球海表温度预报方法
+\hyperref[_Toc451110379]{26}
+
+3.5 基于RG-Transformer模型的全球海表温度预报方法
+\hyperref[_Toc1194865943]{28}
+
+3.5.1 球谐波函数的编码 \hyperref[_Toc992320904]{29}
+
+3.5.2 月平均温度预测结果 \hyperref[_Toc579430926]{30}
+
+3.6 模型对比 \hyperref[_Toc1804717784]{34}
+
+3.7 消融实验 \hyperref[_Toc193900444]{40}
+
+3.8 本章小节 \hyperref[_Toc1152069809]{42}
+
+第4章 全球三维海洋温度预报方法研究
+\hyperref[ux5168ux7403ux4e09ux7ef4ux6d77ux6d0bux6e29ux5ea6ux9884ux62a5ux65b9ux6cd5ux7814ux7a76]{43}
+
+4.1 传统温度参数模型 \hyperref[_Toc992953483]{43}
+
+4.3 UNet-3D模型 \hyperref[_Hlk162229635]{45}
+
+4.2 随机森林模型 \hyperref[_Toc1895955379]{52}
+
+4.4方法比较分析 \hyperref[_Toc959700667]{53}
+
+4.5本章小结 \hyperref[_Toc215191079]{57}
+
+第5章 结论与展望
+\hyperref[ux7b2c5ux7ae0-ux7ed3ux8bbaux4e0eux5c55ux671b]{61}
+
+5.1 主要结论 \hyperref[_Toc1202164245]{61}
+
+5.2 创新点 \hyperref[_Toc1248314739]{62}
+
+5.3 不足与展望
+\hyperref[ux5b9eux4e60ux671fux95f4ux4e3bux8981ux5de5ux4f5cux4efbux52a1ux4e0eux6210ux679cux6c47ux603b]{63}
+
+参考文献 \hyperref[ux53c2ux8003ux6587ux732e]{64}
+
+致 谢 \hyperref[ux81f4-ux8c22]{72}
+
+作者介绍 \hyperref[ux4f5cux8005ux4ecbux7ecd]{73}
+
+附录 \hyperref[ux9644ux5f55]{74}
+
+实习期间主要工作任务与成果汇总
+\hyperref[ux5b9eux4e60ux671fux95f4ux4e3bux8981ux5de5ux4f5cux4efbux52a1ux4e0eux6210ux679cux6c47ux603b]{74}
+
+A.1 CDS协同开发项目系统测试与功能验证
+\hyperref[a.1-cdsux534fux540cux5f00ux53d1ux9879ux76eeux7cfbux7edfux6d4bux8bd5ux4e0eux529fux80fdux9a8cux8bc1]{74}
+
+A.2 自动化测试与接口质量保障
+\hyperref[a.2-ux81eaux52a8ux5316ux6d4bux8bd5ux4e0eux63a5ux53e3ux8d28ux91cfux4fddux969c]{74}
+
+A.3 测试环境搭建、部署与运维支撑
+\hyperref[a.3-ux6d4bux8bd5ux73afux5883ux642dux5efaux90e8ux7f72ux4e0eux8fd0ux7ef4ux652fux6491]{74}
+
+A.4 测试体系标准化与缺陷管理
+\hyperref[a.4-ux6d4bux8bd5ux4f53ux7cfbux6807ux51c6ux5316ux4e0eux7f3aux9677ux7ba1ux7406]{75}
+
+A.5 工业软件SaaS平台的需求测试
+\hyperref[a.5-ux5de5ux4e1aux8f6fux4ef6saasux5e73ux53f0ux7684ux9700ux6c42ux6d4bux8bd5]{75}
+
+\protect\phantomsection\label{_Toc1619232084}{}
+
+\subsection{第1章 绪论}\label{ux7b2c1ux7ae0-ux7eeaux8bba}
+
+\protect\phantomsection\label{_Toc1520861004}{}1.1 研究背景与意义
+
+海洋温度是海洋生态系统的核心物理变量，对海洋渔业的生长、繁殖和空间分布具有重要影响。研究表明，海表温度（sea
+surface
+temperature，SST）的异常变化能够引起鱼类资源的分布变化、渔场分布，甚至导致渔业资源的减少，作为最易监测的温度指标，其异常变化已成为驱动近海及大洋渔业资源格局重构的关键因子\hyperref[_Ref165148613]{\textsuperscript{{[}1{]}}}。尤其在中国近海，中上层小型鱼类的生活史过程与SST变化高度耦合，而全球气候变暖背景下，海洋温度场的变异幅度与频率显著提升，进一步加剧了渔业资源分布的不确定性，对渔场预报与资源可持续管理提出严峻挑战\hyperref[_Ref165148613]{\textsuperscript{{[}2{]}}}。
+
+海洋温度通过调控鱼类代谢速率、激素分泌及酶活性，直接决定其生存、生长与繁殖的适宜性阈值\hyperref[_Ref165148613]{\textsuperscript{{[}3{]}}}。多数中上层鱼类的性腺发育依赖稳定的温度环境，例如中国近海带鱼的最适产卵温度区间为18-22℃，当SST低于16℃时，促性腺激素分泌受到抑制，会导致产卵期延后、产卵量下降；而当SST超过25℃时，鱼卵的胚胎发育酶系活性失衡，孵化率可降低50\%以上，直接影响资源补充量。对于冷水性鱼类（如鳕鱼、南极磷虾）而言，温度升高会显著提升其代谢消耗，当表层水温超过最适阈值时，这类生物会向更深层水域迁移以寻找适宜温度环境，这一过程不仅改变其捕食行为与生长模式，还会导致近海传统渔场的资源量锐减。例如2016年超强厄尔尼诺事件期间，东海SST异常升高1.8℃，带鱼产卵场由北纬28°北移至北纬30°，核心渔获区离岸距离增加50-80km，当年渔获量较常年减少32\%；与之相反，暖水性的竹荚鱼因温度适宜性提升，渔获量较常年增加15\%，清晰呈现不同生态型鱼类对温度变化的差异化响应。随着温度升高，碳酸氢盐分解加速导致海洋酸化，进而对依赖碳酸钙骨架的海洋生物及渔业资源稳定性产生不利影响。总之，随着海洋温度变化的加剧，渔业资源的预测变得愈加复杂和困难。温度的变异性增加了鱼类行为和分布的不可预测性，使得渔业资源的长期预报变得更加具有挑战性。因此，准确的海温预报和对其变化趋势的深入分析对渔业资源的可持续管理和利用具有重要意义。
+
+海洋温度场的三维结构对渔场分布的调控作用远超单一SST指标，是提升渔场预报准确性的核心支撑。表层温度主要决定鱼类的栖息地选择，而次表层温度的垂直梯度，尤其是温跃层的深度与强度，直接影响饵料生物的垂直分布，进而通过食物链间接调控鱼类聚集区。例如南海夏季温跃层深度约50-80m，该水层的温度突变可阻挡饵料生物向上扩散，形成密集的饵料带，而蓝圆鲹等中上层鱼类会聚集于温跃层附近摄食，因此利用高分辨率三维温度场数据识别温跃层位置，可将蓝圆鲹渔场的预报准确率较仅用SST提升27\%。此外，深层温度场的长期变化还会影响冷水性鱼类的越冬场分布，如北大西洋鳕鱼的越冬场深度已由20世纪80年代的200-300m加深至当前的400-500m，这一迁移趋势直接改变了传统渔业的作业范围与捕捞策略。
+
+为获取准确的背景海温信息，本研究开展了相关工作，并采用人工智能方法优化全球海洋温度场的预报精度。传统物理模型受限于计算复杂度高、观测数据稀疏性不足等问题，难以实现对三维海洋温度场的高精度反演。近年来基于卫星遥感与机器学习的模型虽取得一定进展，但普遍面临时空分辨率不足（如网格分辨率常高于1°×1°）、预测误差较大（均方根误差RMSE常\textgreater0.5℃）等技术瓶颈，难以满足渔业管理对月度尺度海温预报的精准需求（如渔场迁移预警、捕捞配额动态调整）。现有ERA5再分析数据虽具备全球覆盖优势，但其月度预测精度偏差常超过0.5℃，无法有效支撑基于CPUE（单位努力量渔获量）反演的渔场分布建模；Argo
+浮标数据虽能提供次表层高精度剖面信息，但空间覆盖稀疏，二者融合可兼顾精度与全局性，为渔业资源动态预测提供可靠基础。此外，ENSO
+等热带年际气候变率过程对赤道海温异常高度敏感，而现有模型对海表温度梯度变化的识别能力不足，限制了气候预测与生态响应机制的深入解析。针对上述研究现状，本研究提出一种基于递归泛化自注意力机制的RG-Transformer模型，通过多源数据融合（ECMWF卫星遥感数据与Argo浮标剖面数据）、创新网络架构设计以及动态时间窗口优化，实现了对三维海洋温度场的高精度预测。
+
+\protect\phantomsection\label{_Toc1760527634}{}1.2 国内外研究现状
+
+\protect\phantomsection\label{_Toc1158256272}{}1.2.1 海表温度预测
+
+现阶段，海表温度数据的获取主要依赖于现场实测、卫星遥感与数据同化三种技术途径。ERA5再分析数据集具有高空间（0.25°×0.25°）和高时间（1小时）分辨率，涵盖了从1950年至今的历史数据。与传统的现场实测或单一卫星遥感数据相比，ERA5数据集已经通过数据同化过程处理过，能够有效融合多源观测全球SST数据，消除了单一数据源的偏差和空缺问题，因此具备较高的准确性和一致性，尤其在缺少高频次现场观测数据的区域，为全球尺度SST预测提供了可靠的支持。
+
+随着数据产品的日益丰富，研究人员开始了对海表温度预测进行一系列研究。传统物理模型和统计学方法如经验正交函数结合回归模型、马尔可夫模型及ARIMA模型，为早期研究提供了基础，而支持向量机、前馈神经网络等机器学习方法进一步实现了非线性关系建模\textsuperscript{\hyperref[_Ref165148613]{{[}19{]}}\hyperref[_Ref165148613]{{[}20{]}}\hyperref[_Ref165148613]{{[}21{]}}}。近年来，这些方法经历了从单一时序的建模逐渐到多模态融合的技术跃迁，其中的技术演进呈现了清晰的迭代路径。早期SST预测主要依赖纯时序模型。深度学习模型凭借其强大的时空特征提取能力，在SST短期预测中表现出显著优势\textsuperscript{\hyperref[_Ref165148613]{{[}22{]}}\hyperref[_Ref165148613]{{[}23{]}}\hyperref[_Ref165148613]{{[}24{]}}}。卷积神经网络（Convolutional
+Neural
+Network，CNN）以其优异的空间特征提取性能，被广泛应用于海表温度分布模式识别与空间场重构\textsuperscript{\hyperref[_Ref165148613]{{[}25{]}}\hyperref[_Ref165148613]{{[}26{]}}}。此外，生成对抗网络GAN与变分自编码器VAE在海洋温度场的超分辨率重建与未来状态预测方面展现出良好潜力\textsuperscript{\hyperref[_Ref165148613]{{[}31{]}}\hyperref[_Ref165148613]{{[}32{]}}}。同时，随着Transformer等新型时序建模框架的应用，SST的单变量与多变量预测精度得到了进一步提升\hyperref[_Ref165148613]{\textsuperscript{{[}33{]}}}。这些模型的综合应用不仅显著提高了海温预测的精度与稳定性，也为海洋热浪监测、气候异常事件预警及海气相互作用研究提供了重要技术支撑\textsuperscript{\hyperref[_Ref165148613]{{[}34{]}}\hyperref[_Ref165148613]{{[}35{]}}}。循环神经网络（Recurrent
+Neural
+Network，RNN）及其变体LSTM、Conv-LSTM、UNet-LSTM则能够有效捕捉温度变化的时间依赖特征，在时序预测任务中表现突出\textsuperscript{\hyperref[_Ref165148613]{{[}27{]}}\hyperref[_Ref165148613]{{[}28{]}}\hyperref[_Ref165148613]{{[}29{]}}\hyperref[_Ref165148613]{{[}30{]}}}。Jia等人针对东海SST构建了预测模型，研究发现随着输入序列长度的增加，预测精度反而降低，揭示了LSTM在建模长期依赖关系时的局限性\hyperref[_Ref165148613]{\textsuperscript{{[}43{]}}}。LSTM模型将循环神经网络的隐藏层神经元替换为输入门、遗忘门和输出门的门控机制来解决长期依赖性问题。为突破该瓶颈，研究者融合了时空特征：Su等提出CNN-LSTM混合模型，通过CNN提取空间特征、LSTM捕捉时间动态，显著提高了区域SST预测精度\hyperref[_Ref165148613]{\textsuperscript{{[}44{]}}}。Shi等研究者提出的Conv-LSTM模型\hyperref[_Ref165148613]{\textsuperscript{{[}45{]}}}，整合了卷积运算与循环机制，在时序数据处理过程中先通过卷积层提取输入数据的空间结构特征，再将所得特征输入长短期记忆网络来捕获时间序列信息。张等人在SST预测中应用该模型并发现其性能优于传统的支持向量机（SVR）和LSTM方法\hyperref[_Ref165148613]{\textsuperscript{{[}46{]}}}。Taylor等人将二维卷积的U-Net架构与LSTM相结合，构建了一个UNet-LSTM时空特征融合模型，用于同时捕获空间与时间信息。首次实现了2°分辨率的全球月度SST预测，预测误差控制在±1℃内，凸显了全局空间结构建模的重要性\hyperref[_Ref165148613]{\textsuperscript{{[}47{]}}}。
+
+随着人工智能算法研究的深入，注意力机制和图神经网络被引入SST预测领域。Ashish
+Vaswani等人在2017提出的多头自注意力机制\hyperref[_Ref165148613]{\textsuperscript{{[}48{]}}}启发了Dong等将图卷积与GRU结合(GC-GRU)用于海区SST预测，取得了良好效果\hyperref[_Ref165148613]{\textsuperscript{{[}49{]}}}。Transformer架构的引入标志着范式转变。Zhang等人在2024基于时序Transformer构建编码器-解码器模型，利用多头注意力和残差连接显著增强了长期预测能力\hyperref[_Ref165148613]{\textsuperscript{{[}50{]}}}；Fu等人在2024年提出了融合LSTM的时序记忆和Transformer的并行优势，在跨海域SST预测中实现了精度突破。Transformer模型的优势在于能够并行化计算并捕捉序列的长期依赖，但其原始设计忽视了球面位置信息，传统位置编码在经纬度网格上难以区分赤道与极地的热力学差异\hyperref[_Ref165148613]{\textsuperscript{{[}51{]}}}。尽管上述模型不断进步，但中长期预测稳定性仍不理想（如Conv-LSTM在6个月以上预测中误差大幅上升），同时球面数据的经纬度编码问题依然存在。为了解决这些问题，Chen等人在2024年提出了递归泛化自注意力（Recursive-Generalization
+Self-Attention ,
+RG-SA）机制，通过递归方式对输入序列进行多层次的多头注意力建模，以捕捉长时间依赖关系\hyperref[_Ref165148613]{\textsuperscript{{[}52{]}}}。
+
+尽管现有的深度学习方法在SST预测中展现了较大的潜力，但仍存在诸多挑战，特别是在长期预测精度、计算资源消耗及时空分辨率等方面。目前，大多数模型仅在特定区域进行训练和验证，缺乏较强的迁移能力，难以满足全球尺度高精度SST预测的需求。此外，现有模型在应对复杂的时空特征时，精度仍有待提高，尤其是在中长期的预测稳定性方面，诸如Conv-LSTM模型在6个月以上的预测中误差较大。与此同时，传统的回归分析和统计方法在捕捉非线性特性和时序依赖方面存在一定的局限，导致精度和效率无法进一步提升{[}{]}。
+
+随着人工智能算法，特别是深度学习技术的快速发展，模型在短期预测精度和效率上得到了显著提高，但要实现更高的全球尺度预测精度，仍需要在模型架构的稳定性、适应性及其时空分辨率方面进行进一步优化\hyperref[_Ref165148613]{\textsuperscript{{[}53{]}}}。为此，本研究提出了一种基于递归泛化自注意力（Recursive-Generalization
+Self-Attention Transformer,
+RG-Transformer）的新型方法。该方法通过引入多层递归注意力机制，深入挖掘数据特征并有效捕捉复杂的长期依赖关系，相较于传统模型中手动设定权重的方式，具有更强的自适应性与特征提取能力。此外，针对全球SST数据中的空间效率问题，引入了高效的球谐波编码函数，并采用相应的策略处理空值，有效的提高了模型预测的效率与精度。
+
+\protect\phantomsection\label{_Toc2021387096}{}1.2.2 三维海洋温度预测
+
+海表温度预报在气候预测中占据重要地位，扩展至三维海洋温度场的预报仍面临极大的挑战。近年来，随着卫星遥感、Argo剖面数据以及ERA5再分析等多源海洋观测数据的积累与完善，全球海洋温度场预测逐渐成为海洋科学领域的研究热点。特别是自20世纪80年代末以来，海表温度信息反演至海洋内部的研究逐步展开，提出了多种反演方法，如动力学方法、变分法与统计学方法等，其中均涉及遥感海表温度数据的结合应用\hyperref[_Ref165148613]{\textsuperscript{{[}54{]}}}。变分法以三维变分（Three-dimensional
+variational assimilation，3D-VAR）和四维变分（Four-dimensional
+variational
+assimilation，4D-VAR）为代表，并衍生出多种改进形式；统计学方法则涵盖传统回归分析与机器学习方法，其中线性回归和多项式回归为常用的基础模型\hyperref[_Ref165148613]{\textsuperscript{{[}55{]}}}。基于统计估计理论的最优插值法（Optimal
+Interpolation，OI）在海洋模式最优初始场构建中应用广泛，其通过综合最小方差估计与观测误差相关性确定权重函数，以反映误差间的相互影响\hyperref[_Ref165148613]{\textsuperscript{{[}56{]}}}。除此之外，逐步订正法与反向距离加权法等方法亦在一定程度上应用于海洋温度场重建，但总体上仍存在输入参数有限、信息利用率不足及模型精度偏低等局限性\hyperref[_Ref165148613]{\textsuperscript{{[}57{]}}}。
+
+进入21世纪后，温盐剖面反演技术得到了进一步发展。1997年，Chu等提出了包括海表温度等十个参数的温度参数结构模型，并通过迭代法反演次表层温度结构\hyperref[_Ref165148613]{\textsuperscript{{[}58{]}}}。2002年，Fujii和Kamachi结合垂向耦合温度-盐度经验正交函数（Empirical
+Orthogonal
+Function，EOF）模式，提出了新的数据同化方法，用于温盐剖面的重建\hyperref[_Ref165148613]{\textsuperscript{{[}59{]}}}。此后，Yan等在2004年提出了基于三维变分分析的方法，利用海面动力高度信息推算下层温盐的垂向分布\hyperref[_Ref165148613]{\textsuperscript{{[}60{]}}}。基于回归分析的方法也得到了广泛应用，张阳等（2005-2009）利用Argo浮标数据提取了各标准层的温度剖面，并构建了分段三次多项式模型用于描述垂直温度结构\hyperref[_Ref165148613]{\textsuperscript{{[}61{]}}}。传统的经验参数模型，如张春玲的温度参数模型，利用卫星遥感海表温度数据反演了2011年8月太平洋海域的上层海洋三维温度场。基于Argo数据和WOA09气候态温度数据，采用最大角度法确定了混合层深度、温跃层梯度和温跃层下边界深度等关键参数。通过与Argo观测剖面对比，定量评估了反演结果的精度，为后续的研究提供了数据参考。
+
+随着人工智能技术的发展，近年来机器学习方法在海洋温盐剖面反演中取得了显著进展。随着数据积累，随机森林等机器学习方法可建立海表与深层温度间的非线性统计映射。2016年，Su等采用随机森林（Random
+Forest，RF）算法反演全球海洋次表层温度异常，验证了RF在该领域的有效性\hyperref[_Ref165148613]{\textsuperscript{{[}63{]}}}。次年，Su等提出了地理加权回归（GWR）模型来反演印度洋的次表层温度异常，并应用极限梯度增强（eXtreme
+Gradient
+Boosting，XGBoost）模型研究了2015年全球海洋的温盐异常\hyperref[_Ref165148613]{\textsuperscript{{[}64{]}}}。2019年，Zhang等采用多层卷积长短期记忆（Convolutional
+Neural Network and Long Short-Term
+Memory，CNN-LSTM）神经网络模型，成功反演了全球海洋的三维温度结构，尽管该模型在中深层的精度仍有待提高\hyperref[_Ref165148613]{\textsuperscript{{[}65{]}}}。为了进一步提升模型的预测精度，在2020年，Su等基于卷积神经网络重构了全球海洋上层1000米的超分辨率温度场，并结合双向长短期记忆（Bi-directional
+Long Short-Term
+Memory，Bi-LSTM）模型对次表层温盐结构进行预测，为海表遥感数据的时间序列建模提供了技术指导\hyperref[_Ref165148613]{\textsuperscript{{[}66{]}}}。Wen等提出结合K-means聚类与人工神经网络（Artificial
+Neural
+Network，ANN）的模型，通过预聚类提高了模型的预测精度\hyperref[_Ref165148613]{\textsuperscript{{[}67{]}}}。近年来，深度学习模型进一步推动了该领域发展。例如，基于自注意力预测循环神经网络（Self-Attention
+and Recurrent neural networks for predictive
+learning，SA-PredRNN）融合注意力机制与时序建模能力，有效捕获海洋温度场的全局空间关联与时空演变特征，并基于Barnes客观分析（BOA-ARGO）网格化
+Argo
+温度数据实现了三维海洋温度的高精度预测\textsuperscript{\hyperref[_Ref165148613]{{[}36{]}}\hyperref[_Ref165148613]{{[}37{]}}\hyperref[_Ref165148613]{{[}38{]}}\hyperref[_Ref165148613]{{[}39{]}}\hyperref[_Ref165148613]{{[}40{]}}}。相比之下，UNet架构更侧重于空间特征提取。2024年，Yue等进一步提出了一种融合自注意力机制的预测循环神经网络模型，该模型通过引入自注意力机制增强了对空间和时空特征的捕捉能力，特别是基于BOA-ARGO全球网格化Argo温度数据的应用效果显著\hyperref[_Ref165148613]{\textsuperscript{{[}68{]}}}。Ren等则提出了时空UNet模型（Spatio-Temporal
+UNet，ST-Unet），利用并行卷积核和Conv-LSTM技术，优化了时空特征的提取和利用能力\hyperref[_Ref165148613]{\textsuperscript{{[}69{]}}}。UNet-3D能够高效提取三维空间特征，实现从海表到深层的温度场重构\textsuperscript{\hyperref[_Ref165148613]{{[}41{]}}\hyperref[_Ref165148613]{{[}42{]}}}。总体而言，人工智能方法已广泛应用于海温预测、海洋动力过程解析及生态监测等领域，为渔业管理、海洋环境保护和气候变化评估提供了高效、可靠的科学工具，展现出较传统方法更高的预测能力与应用潜力。
+
+综上所述，尽管传统数值方法和统计学模型在海洋温度预测方面取得了初步进展，但在应对复杂时空特征时，依然存在精度不足和计算效率较低的问题。随着深度学习技术的不断引入，尤其是卷积神经网络、长短期记忆网络（Long
+Short-Term
+Memory，LSTM）等模型的应用，海洋温度预测的精度和效率得到了显著提高。此外，诸如自注意力机制、时空UNet等新型网络结构的提出，进一步增强了模型对时空特征的捕捉能力。尽管如此，当前的预测模型，特别是随机森林模型，仍存在预测精度较低的问题。因此，进一步优化预测算法，提升中深层温度预测精度及时序依赖性处理能力，仍然是未来研究的一个重要方向。本研究提出了一种基于3D
+U-Net网络模型的改进方法，旨在提升全球海洋温度预测的精度与效率，特别是在表层和次表层温度的反演和时序依赖性建模方面具有潜在的优势。
+
+\protect\phantomsection\label{_Toc261626932}{}1.3 研究内容与技术路线
+
+\protect\phantomsection\label{_Toc1264820715}{}1.3.1 研究内容
+
+本研究的研究内容主要包括海表温度人工智能预测模型研究，三维海洋温度人工智能模型研究。本论文的章节内容安排如下。
+
+（1）数据介绍与预处理
+
+依次获取ERA5再分析数据与Argo实测数据的SST数据，采用归一化处理和空值采样技术，解决了ERA5数据中的陆地空值问题在模型训练过程中引起的问题，确保了数据的适应性和一致性。本研究对Argo浮标数据进行了逐月划分，并优化了数据的格式与分布，使其更加适应海温预测需求。将Argo数据拆分为海表温度与剖面温度两个部分，其中海表温度作为输入，剖面温度作为输出。
+
+（2）全球海表月平均温度人工智能预报方法
+
+全球海表月平均温度预报基于ERA5数据集，采用RG-Transformer模型开展短期时间预测研究。RG-Transformer是融合递归泛化自注意力机制与Transformer核心架构的神经网络模型，创新性引入球谐波编码函数以适配全球球面网格的时空序列数据特性，有效解决传统Transformer在处理球面数据时的几何畸变问题。为验证模型性能，本研究选取传统Transformer、LSTM、CNN-LSTM三种经典时序预测模型，在月尺度海表温度预报任务中开展对比实验，从时空特征捕捉精度与长序列依赖建模能力两个维度评估模型表现。此外，通过消融实验验证核心模块的作用：针对球谐波编码函数与递归泛化自注意力机制两个关键组件分别进行移除测试，分析模块缺失对模型在高纬度区域预报效果及长时序预报能力的影响，以明确核心模块对模型性能的支撑作用。
+
+（3）全球三维海洋月平均温度人工智能预报方法
+
+\protect\phantomsection\label{_Toc2048618999}{}全球三维海洋月平均温度反演研究采用多源数据融合与精准建模策略：训练阶段以经过严格预处理的Argo剖面数据为基础------将Argo数据拆分为海表温度作为输入特征与对应深度剖面温度作为输出标签；预测阶段则以全球海表温度场为输入，输出对应海域的三维剖面温度场。输出变量为全球海洋0-2000米深度范围内的月平均三维温度场。数据集构建覆盖2005-2020年全球海域，按7:2:1比例划分训练集、验证集与测试集，确保样本时空分布均衡。模型基于UNet-3D架构优化：输入层扩展为4D张量（时间×纬度×经度×特征）以捕捉海表温度时空关联，编码器通过3D卷积提取垂向-水平联合特征，解码器采用反卷积重建高分辨率三维场；训练使用Adam优化器（学习率1e-4）、均方误差损失函数，迭代500轮并引入早停机制，实现从海表到深层温度场的反演。为验证模型性能，选取传统温度参数模型、机器学习随机森林以及UNet-3D三种模型开展对比实验，从时空特征捕捉精度维度评估模型表现；进一步对不同深度层进行反演误差分析，验证模型对全深度范围的适应性。
+
+1.3.2 技术路线
+
+本文研究采用了预处理、海表预测、三维预测、综合验证评估的四步路线，综合了包括数据产品调研与分析、实验数据平台化管理、多数据来源综合对比、消融实验、实时数据评估等多种实验方法，同时探索研究了多种数据处理手段，例如不同分辨率的网格数据采样，能够降低研究过程中占用的资源。在细微之处，例如海表温度预报的RG-Transformer模型的构建之上，也采用很多前沿的处理技术，例如全局化的查询向量，以往的研究都是以当前时间序列为查询向量，而不考虑过去的气候态对现有的气候的影响，在引入全局查询向量之后，能够大幅度增加预测的长期效益。研究的总体技术路线如\hyperref[_Ref194515606]{图1-1}所示：
+
+\includegraphics[width=6.13542in,height=3.59722in,alt={C:/Users/justg/Pictures/research\_summary.pngresearch\_summary}]{./images/media/image3.png}
+
+图1-1 全球海洋月平均温度人工智能预报方法技术路线图
+
+Figure 1-1 Technical roadmap for artificial intelligence prediction of
+global ocean monthly mean temperature
+
+本研究的数据覆盖范围为2005-2020年全球海域，时间尺度为月平均分辨率，空间尺度涵盖全球海洋水平空间（空间分辨率为1°×1°）及0-2000米垂直深度范围。研究方法采用基于递归泛化自注意力机制的RG-Transformer模型开展全球海表月平均温度预报研究，采用基于UNet-3D架构的深度学习模型开展全球三维海洋月平均温度场反演研究。其中，海表温度预报研究基于ERA5再分析数据集，通过融合球谐波编码函数与递归泛化自注意力机制，实现全球球面网格时空序列数据的精准建模；三维温度场反演研究基于Argo剖面观测数据，通过编码器-解码器架构实现从海表温度场到三维剖面温度场的映射重构。
+
+1.3.3 创新点
+
+本研究的创新点主要体现在以下几个方面：
+
+（1）针对全球球面网格数据的球谐波编码创新
+
+针对传统Transformer模型在处理全球海洋球面网格数据时存在的几何畸变问题，本研究创新性地引入球谐波编码函数替代常规的空间位置编码单元。该编码方法基于最大阶数为2的球谐波函数，构建具有球面几何特性的空间编码网格，有效解决了传统位置编码在经纬度网格上难以区分赤道与极地热力学差异的问题，显著提升了模型对全球海洋温度场空间分布特征的捕捉能力。
+
+（2）递归泛化自注意力机制的长时序依赖建模创新
+
+针对现有模型在中长期预测（6个月以上）中误差大幅上升的问题，本研究提出融合递归泛化自注意力机制的RG-Transformer模型。该模型通过多层递归结构的泛化自注意力机制，实现了对跨越长时间序列依赖关系的有效捕捉，相较于传统Transformer模型和LSTM模型，在月尺度海表温度预报任务中表现出更强的长期预测稳定性和精度，预测误差较同类型模型降低22\%-35\%。
+
+（3）陆地掩码自适应处理机制创新
+
+针对ERA5再分析数据中陆地空值（NaN）在模型训练过程中引起的偏差问题，本研究设计了包含归一化层、投影层和自定义损失层的预处理与训练机制。该机制通过将陆地区域NaN值标准化处理，并在损失计算中自动排除陆地掩码区域，有效避免了与海表温度预测无关的陆地数据对模型训练的干扰，提升了模型在海洋区域的预测精度和鲁棒性。
+
+（4）从二维海表温度到三维剖面温度场的端到端映射创新
+
+针对传统方法在三维海洋温度场反演中存在的精度不足和计算效率较低的问题，本研究提出基于UNet-3D架构的深度学习模型，实现了从二维海表温度场到0-2000米深度范围内三维剖面温度场的端到端映射重构。该模型通过编码器-解码器架构的多尺度特征提取与融合机制，结合跳跃连接保留局部细节和全局语义信息，实现了对全深度范围温度场的精准反演，较传统温度参数模型和随机森林模型在反演精度上显著提升。
+
+（5）多源数据融合与时空特征联合建模创新
+
+本研究创新性地构建了融合ERA5再分析数据与Argo剖面观测数据的多源数据训练框架，通过时空特征联合建模策略，实现了海表温度预报与三维温度场反演的统一建模。该框架采用4D张量（时间×纬度×经度×特征）输入结构，通过3D卷积提取垂向-水平联合特征，有效捕捉了海表温度与深层温度场之间的时空关联，为全球海洋温度场的精准预测提供了新的技术路径。
+
+\subsection{第2章
+研究数据}\label{ux7b2c2ux7ae0-ux7814ux7a76ux6570ux636e}
+
+\protect\phantomsection\label{_Toc1882328034}{}2.1 数据产品概述
+
+在全球气候变化研究与海洋环境监测中，三维海洋温度数据作为揭示海洋热力学过程的核心参数，其数据产品的选择直接影响研究结论的可靠性。当前国际主流数据产品呈现多元化发展趋势，卫星遥感技术提供高时空分辨率的海表观测，现场观测网络实现垂直剖面的精细化采样，再分析数据融合多源信息弥补观测盲区，模式输出数据则通过数值模拟拓展时空覆盖范围。本研究针对海表温度预报与海洋三维反演的双重需求，重点分析数据产品在时间连续性、空间覆盖度、垂直分层精度及温度变量专属性等方面的适配性。通过系统性比对发现，现有数据产品在满足基础研究需求的同时，仍存在垂直分辨率不足、时间跨度有限及模式误差累积等结构性缺陷，因此在实验过程中会尝试通过多源数据融合与交叉验证构建可靠研究框架。
+
+\protect\phantomsection\label{_Toc1705663481}{}2.2
+卫星遥感数据产品（微波辐射计）
+
+卫星遥感技术凭借其全球覆盖能力，为海表温度研究提供关键观测基础。微波辐射计作为被动微波遥感传感器，通过接收海洋表面发射的微波辐射信号反演海表温度，其工作频段通常为6.9-89.0 GHz，具有不受云层遮挡影响、可进行全天候观测的显著优势，有效弥补了红外传感器在云雨天气条件下的观测盲区。微波辐射计基于普朗克辐射定律和瑞利-金斯近似，通过测量不同频率通道的亮温（Brightness Temperature），结合大气校正算法和表面发射率模型，实现海表温度的精确反演。主要用于海表温度观测的微波辐射计传感器包括搭载于NASA Aqua卫星的先进微波扫描辐射计（Advanced Microwave Scanning Radiometer for EOS, AMSR-E，2002-2011年运行，工作频率包括6.925、10.65、18.7、23.8、36.5和89.0 GHz）、搭载于日本GCOM-W1卫星的先进微波扫描辐射计2（AMSR2，2012年至今运行，在AMSR-E基础上增加了7.3 GHz通道）、以及搭载于热带降雨测量任务（Tropical Rainfall Measuring Mission, TRMM）卫星的TRMM微波成像仪（TMI，1997-2015年运行）等。
+
+微波辐射计在海表温度观测中展现出独特的技术优势：首先，其观测能力不受云层、水汽和大气气溶胶的影响，可实现全天候连续观测，全球覆盖率可达85\%-90\%，显著高于红外传感器的60\%-70\%覆盖率；其次，微波辐射计对海表粗糙度和风速变化敏感，可同时反演海表温度、海面风速和大气水汽含量等多参数信息；再次，微波信号对海洋表层几毫米深度的温度变化响应灵敏，能够反映海表微尺度温度结构。然而，微波辐射计也存在一定的技术局限性：空间分辨率相对较低且随频率变化显著（如AMSR-E在6.9 GHz频率下分辨率为56-74 km，在89 GHz频率下为5.4-6 km），受限于天线尺寸和频率选择，难以在低频段达到红外传感器的高分辨率（1-5 km）；在近岸浅水区域，由于陆地辐射干扰和复杂的地表发射率特性，观测精度显著下降；此外，高风速条件下（>15 m/s）海面泡沫和粗糙度变化会引入额外的亮温偏差，需要通过多通道联合反演和物理模型校正来提升精度。
+
+目前主流的海表温度融合产品，如NOAA最优插值海表温度分析产品（OISST），采用AVHRR红外传感器与AMSR-E微波辐射计等多源传感器数据融合，通过最优插值算法生成0.25°×0.25°水平分辨率的日平均数据，其优势在于时间连续性强（1981年至今），且包含海冰掩膜处理模块，特别适用于大尺度海气相互作用研究。该产品在台风路径预测与厄尔尼诺监测中已证实其有效性，但在浅海区存在3-5km的沿海数据缺失\textsuperscript{\hyperref[_Ref165148613]{{[}70{]}}\hyperref[_Ref165148613]{{[}71{]}}}。相比之下，哥白尼SLSTR传感器采用双通道红外探测技术，实现0.05°×0.05°的高分辨率观测，其创新性的像素级质量控制算法可将误差控制在0.3℃以内\hyperref[_Ref165148613]{\textsuperscript{{[}72{]}}}。该产品在近岸海洋热浪监测中展现出独特优势，但其夜间观测能力受限及云层遮挡导致的30\%数据缺失率，使其难以满足连续性建模需求\hyperref[_Ref165148613]{\textsuperscript{{[}73{]}}}。因此，将微波辐射计与红外传感器数据进行融合，可充分发挥各自优势，实现高时空分辨率、高精度的全球海表温度连续观测，为海洋温度场预测研究提供可靠的数据基础。
+
+\protect\phantomsection\label{_Toc326921364}{}2.3 现场观测数据产品
+
+现场观测数据通过直接测量提供高精度垂直温度剖面，是三维反演验证的核心依据。Argo浮标系统作为全球海洋观测网络的骨干力量，目前已部署超4000个剖面浮标，形成覆盖全球海域的0.5°×0.5°观测网格\hyperref[_Ref165148613]{\textsuperscript{{[}74{]}}}。其搭载的CTD传感器可实现0-2000m深度的逐层测量，温度精度达±0.002℃，时间分辨率10天\hyperref[_Ref165148613]{\textsuperscript{{[}75{]}}}。该系统自2000年运行以来积累的200万条剖面数据，为海洋混合层深度计算与温跃层结构分析提供基准参考。其局限性体现在极区观测稀疏（南纬80°以北）及浮标寿命限制（约4年），导致高纬度海域存在数据断层\hyperref[_Ref165148613]{\textsuperscript{{[}76{]}}}。
+
+\includegraphics[width=6.12014in,height=7.99028in,alt={图片2}]{./images/media/image4.png}
+
+图2-1 Argo网格资料集构建流程图
+
+Figure 2-1 Flowchart for building an Argo grid dataset
+
+如图2-1所示，为了系统地获取和处理全球海洋上层的温盐数据，Argo计划建立了一套科学严谨的数据构建流程，具体包括以下关键步骤：Argo浮标数据质量控制：观测参数及层次检验，水陆点及区域检测，密度逆变检测，温、盐范围检验，时间判断，统计检验等。Akima插值和重采样：对剖面分布较稀疏的数据进行插值，对密集的数据进行采样，垂直方向生成58个标准层\hyperref[_Ref165148613]{\textsuperscript{{[}77{]}}}。消除``簇聚''：划为研究区域为高精度网格，对每个方格内的观测值取平均，优化数据水平方向分布。逐步订正法构建背景场：逐年、季、月计算影响半径，迭代构建气候态背景场。计算增量：使用权重函数计算加权增量，和背景场进行叠加。结果检验：与CTD、TAO、WOA等观测资料进行比较。主要包括剖面检验、时间序列检验以及温、盐度分布特征检验\hyperref[_Ref165148613]{\textsuperscript{{[}78{]}}}。
+
+除了Argo数据之外，中国科学院大气物理研究所研发的IAPv4数据集通过融合XBT、CTD等多源观测，构建1°×1°水平分辨率的1-6000m垂直剖面，其创新性引入机器学习偏差校正算法，使1940年以来的历史数据可用性提升37\%。该产品在西北太平洋黑潮变异研究中表现出色，但对表层温度的表征精度(±0.05℃)低于浮标观测\textsuperscript{\hyperref[_Ref165148613]{{[}79{]}}\hyperref[_Ref165148613]{{[}80{]}}\hyperref[_Ref165148613]{{[}81{]}}}。
+
+\protect\phantomsection\label{_Toc1304195722}{}2.4 再分析数据产品
+
+再分析数据通过同化观测与数值模式，构建时空连续的海表温度或者三维海洋温度场。这类数据产品的特点是融合了观测数据和数值模式的特征，具备完整的空间和时间连续性，但同时也丢失了一定的准确性和实时性，通常更新的周期会较慢，适合用来作为训练数据集。
+
+欧洲中期天气预报中心(European Centre for Medium-Range Weather Forecasts,
+ECMWF)记录的全球大气再分析数据集ERA5数据集。ERA5数据基于4D-Var数据同化系统融合多源观测与数值预报结果，具有0.25°×0.25°的高空间分辨率，时间分辨率为1个月，时间覆盖范围为1940年1月至
+2025年1月，能够提供精细化的全球海洋表面温度分布信息，并支持对历史气候变化趋势的深入研究，适合捕捉季节性变化和长期趋势。为增强模型对气候周期性变化的感知能力，本研究首先对2004年1月至2024年12月的ERA5月平均
+SST 进行了周期信号分解(Seasonal-Trend Decomposition, STD)。STD
+将时间序列拆分为：长期趋势(Trend)：反映SST的缓慢变化趋势；季节性成分(Seasonality)：描述稳定的年周期变化模式；随机扰动(Residual)：代表不规则的高频波动。
+
+\includegraphics[width=5.25in,height=3.12986in,alt={图片3}]{./images/media/image5.png}
+
+\includegraphics[width=5.29167in,height=3.15347in,alt={图片4}]{./images/media/image6.png}
+
+图2-2 研究区域2024年3月平均海表温度图
+
+Figure 2-2 Average sea surface temperature map of the study area in
+March 2024
+
+图2-2的结果表明，全球 SST 月平均气候的周期约为6个月，季节性强度达到
+61.5\%。季节性分量的正值表示当月 SST
+高于全年平均温度，负值则表示低于全年平均温度（见图
+b）。提取到的年内循环信号为后续模型提供了明确的时间结构信息，有助于捕捉诸如厄尔尼诺--南方涛动（ENSO）等周期性气候过程。相较于傅里叶变换或小波分解，STD
+在处理非平稳气候时间序列方面更具优势，能够在不引入频谱混叠的情况下保持趋势与季节特征的独立性。
+
+美国国家环境预报中心（NCEP）的ORAS5系统采用集合卡尔曼滤波同化方案，集成ARGO、卫星测高等多源数据，生成0.25°×0.25°水平分辨率的75层垂直结构数据。其优势在于提供1958年以来的长时序记录（每日4次输出），且包含海浪参数耦合模块，特别适用于海洋环流模式验证。该产品在北大西洋翻转流研究中展现与观测数据0.82的相关系数，但其模式误差在热带太平洋表现为系统性冷偏差（年均-0.15℃）。欧盟哥白尼计划的EN4数据集采用最优插值算法，融合WOD、ARGO等观测数据，构建1°×1°水平分辨率的42层垂直剖面，时间跨度达120年（1900-2020）。其创新性引入观测权重动态调整机制，在南大洋观测稀疏区将均方根误差降低至0.18℃。该产品在百年尺度海温趋势分析中具有重要价值，但深层（\textgreater1500m）数据稀疏度增加导致垂直分辨率下降。
+
+\protect\phantomsection\label{_Toc251914725}{}2.5 模式同化数据产品
+
+数值模式通过物理过程参数化弥补观测不足，提供高时间分辨率的连续数据。欧洲中期天气预报中心(ECMWF)的ORAS5系统采用NEMO海洋模式，生成0.25°×0.25°水平分辨率的75层垂直结构数据，其优势在于提供1979年以来的每日4次预报输出，且包含潮汐效应耦合模块。该产品在黑潮延伸体动力学研究中展现出与浮标数据0.91的相关系数，但其模式误差在赤道西太平洋表现为暖偏差（年均+0.2℃）。美国国家大气研究中心(NCAR)的CESM2模式集成POP2海洋模块，生成1°×1°水平分辨率的60层垂直剖面，时间跨度覆盖工业革命前至2100年。其创新性引入生物地球化学耦合模块，使温跃层深度模拟精度提升23\%。该产品在古海洋学研究中具有重要价值，但模式对热带不稳定波的表征存在相位偏差（约15°经度偏移）。
+
+\protect\phantomsection\label{_Toc1240514838}{}2.6
+数据产品的归一化处理用途
+
+根据上述的数据产品介绍可以知道，不同数据产品之间在时间、空间、时效性少都有一些差异，可在表2.1中总览。
+
+表2-1 海表温度数据产品的详情表格
+
+Table 2-1 Table of Details for Different Data Products
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\centering\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.09}}
+  >{\centering\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.11}}
+  >{\centering\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.09}}
+  >{\centering\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.10}}
+  >{\centering\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.09}}
+  >{\centering\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.10}}
+  >{\centering\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.17}}
+  >{\centering\arraybackslash}p{(\linewidth - 14\tabcolsep) * \real{0.22}}@{}}
+\toprule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\textbf{数据产品} & \textbf{时间范围} & \textbf{水平分辨率} &
+\textbf{垂直层次} & \textbf{时间分辨率} & \textbf{数据类型} &
+\textbf{主要优势} & \textbf{主要用途} \\
+OISST & 1981-至今 & 0.25° & 表层 & 日 & SST & 长时序、高时效 & 大尺度海气相互作用研究、台风路径预测、厄尔尼诺监测 \\
+SLSTR & 2016-至今 & 0.05° & 表层 & 日 & SST & 高分辨率、多光谱校正 & 近岸海洋热浪监测、高精度区域SST分析、渔场预报 \\
+Argo & 2000-至今 & 3°间隔 & 0-2000m & 10天 & 剖面观测 &
+高垂直分辨率、全球覆盖 & 三维温度剖面反演、温跃层研究、海洋热含量分析 \\
+IAPv4 & 1940-至今 & 1° & 1-6000m & 月 & 分析场 & 长时序、历史数据校正 & 长期气候变化研究、历史海温趋势分析、深层海温变化 \\
+ORAS5 & 1958-至今 & 0.25° & 0-2000m & 日 & 再分析场 &
+多源同化、连续性强 & 海洋动力学研究、黑潮延伸体分析、业务化海洋预报 \\
+EN4 & 1900-2020 & 1° & 0-5500m & 月 & 再分析场 & 长时序、观测权重优化 & 百年尺度气候变化、全球海洋热含量估算、气候模式验证 \\
+CESM2 & 1850-2100 & 1° & 0-6000m & 月 & 模式输出 &
+古气候模拟、多参数耦合 & 古海洋学研究、气候情景预测、碳循环模拟 \\
+\end{longtable}
+}
+
+因此，为了保证研究的严谨性和实验结果的准确，在使用这些数据集之前，统一对这些数据产品进行归一化处理，来保证实验过程中使用到的数据都有良好的实验条件。主要侧重在以下几个方面：
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  稳定数值：以NetCDF格式存储的数据中陆地区域的值常常被标记为缺失或者非常大的正数值或负数值，这些值在物理意义上不适用于海洋预测任务。如果直接输入模型，会引发数值异常。为此，我们将所有缺失统一替换为0.0，并在训练过程中利用掩码机制屏蔽这些位置，使其不影响损失计算。除了缺失值外，各种数据集的数据精度也不尽相同，例如，ERA5数据集中，温度的精度是0.01，而在Argo数据集中，温度的精度是0.001，这种精度上的差距会导致浮点计算的可靠性降低，从而影响训练结果。因此，我们将所有数据集的温度精度都规范到0.01摄氏度的有效小数位。在上述两个措施的帮助下，能够保证不同的数据集在数值上的稳定。
+\item
+  对齐空间：在不同的数据集中，为消除经度 0°
+  附近的空间不连续性，本研究将原始经纬度网格由以 0°
+  经线为起点的参考框架，重新映射为以 西经 180°
+  为基准的全球网格。该调整与球谐波位置编码（Spherical Harmonics Position
+  Encoding）在球面几何特征表达上的要求一致，有助于模型在跨洋盆预测中保持空间特征的连续性，避免因经度突变造成的空间编码失真。
+\item
+  裁剪时序：本研究按时间顺序将数据集划分为70\%用于模型训练、30\%用于验证，并使用2025年1月至2025年5月的实时数据作为独立测试集，通过均方根误差(Root
+  Mean Square Error, RMSE)与决定系数(Coefficient of Determination,
+  R²)评估模型性能。补充一些结果图
+\end{enumerate}
+
+\subsection{第3章
+基于深度学习模型的全球海表月平均温度预报方法研究}\label{ux7b2c3ux7ae0-ux57faux4e8eux6df1ux5ea6ux5b66ux4e60ux6a21ux578bux7684ux5168ux7403ux6d77ux8868ux6708ux5e73ux5747ux6e29ux5ea6ux9884ux62a5ux65b9ux6cd5ux7814ux7a76}
+
+在当前的SST预测研究中，国内外学者普遍采用了基于深度学习的方法来处理海洋温度序列。然而，现有研究大多基于时域特征的建模方式，虽然这些方法在一定程度上取得了一些进展，但仍存在一定的局限性。特别是基于传统LSTM和Conv-LSTM等深度学习模型，尽管能够捕捉时间序列的动态变化，由于模型在处理空间依赖关系方面的能力不足，难以在复杂的时空交互中有效提取深层特征，从而导致其在海洋温度时空建模中的预测精度和效率较低。本研究提出了基于RG-Transformer的模型，提高了预测精度及效率。
+
+\protect\phantomsection\label{_Toc2038602343}{}3.1
+基于长短期记忆网络的全球海表温度预报方法
+
+在基础LSTM模型构建方面，将全球海表温度时间序列数据作为输入，利用
+LSTM单元对序列中的时序依赖关系进行深度挖掘。每个LSTM单元包含输入门、遗忘门和输出门，通过这些门的协同作用，能够精准地控制信息的流动与存储，有效捕捉海表温度在不同时间步之间的动态变化规律。在模型训练过程中，采用反向传播算法结合随机梯度下降优化器，不断调整模型参数，以最小化预测值与真实值之间的均方根误差（RMSE），从而提升模型的预测精度。
+
+在Conv-LSTM模型构建上，在基础LSTM的基础上引入卷积操作。考虑到海表温度数据不仅具有时序特性，还蕴含着丰富的空间信息，卷积操作能够有效地提取局部空间特征。通过将卷积层与LSTM层相结合，Conv-LSTM模型可以同时处理时序和空间维度上的信息，进一步增强模型对全球海表温度变化的理解能力。在模型训练时，同样采用合适的损失函数和优化算法，对模型进行迭代优化，以实现更准确的预测。
+
+UNet-LSTM模型则采用了编码器-解码器架构。编码器部分通过一系列的下采样操作，逐步提取海表温度数据中的高级空间特征，并将这些特征进行压缩表示；解码器部分则利用上采样操作，将压缩后的特征逐步恢复为与原始输入尺寸相同的预测结果。在编码器和解码器之间，引入LSTM单元，以捕捉特征在时序维度上的变化。这种架构能够更好地处理具有复杂空间结构的海表温度数据，提高模型对不同区域海表温度变化的预测能力。在实验过程中，对UNet-LSTM模型的各个参数进行精细调整，确保模型能够在训练集上达到良好的拟合效果，同时在验证集和测试集上展现出优异的泛化性能。
+
+通过对这三类递进式模型的构建与训练，能够全面评估LSTM及其变体在全球海表温度预报中的性能表现，为后续与RG-Transformer模型的性能对比提供坚实可靠的基准参照，进而深入探究不同模型在处理全球海表温度时间序列数据时的优势与不足。为了保证数据的严谨性，在对三种模型进行训练的过程中所使用的实验数据完全一致，且实验中的对不同模型的参数设置均经过精心调试并保持统一标准。对于基础LSTM模型、Conv-LSTM模型以及UNet-LSTM模型，在训练时均采用相同批次大小（batch
+size）和训练轮数（epochs），以确保模型在相同的计算资源和训练时长下进行优化。同时，在参数初始化方面，也采用一致的初始化策略，避免因初始参数差异而对模型性能产生不必要的影响。在训练过程中，密切关注模型在训练集和验证集上的损失函数变化情况，当验证集损失函数在连续多个轮次内不再显著下降时，及时停止训练，防止模型过拟合。此外，为了更全面地评估模型性能，除了均方根误差（RMSE）这一主要指标外，还引入平均绝对误差（MAE）、平均绝对百分比误差（MAPE）等多个评估指标，从不同角度衡量模型预测值与真实值之间的偏差程度。通过对这些指标的综合分析，能够更准确地判断不同模型在全球海表温度预报任务中的实际表现，为后续模型改进和优化提供有力依据。
+
+在梯度优化算法和学习率优化的选择上，使用了Adam作为梯度优化算法，该方法为常用的梯度下降方法，此外也会在某些模型中用到AdamW算法。Adam算法描述如下表所示。
+
+表3-1 Adam 算法描述
+
+Tab. 3-1 Description of the Adam Algorithm
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\centering\arraybackslash}p{(\linewidth - 0\tabcolsep) * \real{1.0000}}@{}}
+\toprule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Adam算法的参数及含义 \\
+Require：全局学习率\(\epsilon\)；初始参数\(\text{θ}\)；常数\(\text{δ}\)；为了数值稳定设为\(10^{- 7}\) \\
+初始化梯度累计变量\(r = 0\) \\
+从训练集中采包含m个样本\(\left\{ \text{x}^{\text{(1)}}\text{,...,}\text{x}^{\text{(n)}} \right\}\)的小批量，对应目标为\(\text{y}^{\text{(i)}}\) \\
+计算梯度：\(\text{g⟵}\frac{\text{1}}{\text{m}}\nabla_{\theta}\sum_{i}^{}{L(f(x^{(i)};\theta),y^{(i)})}\) \\
+累计平方梯度：\(r \longleftarrow \text{r + g⨀g}\) \\
+计算更新：\(\mathrm{\Delta}\text{θ← -}\frac{\epsilon}{\delta + \sqrt{r}}\text{⨀g}\) \\
+应用更新：\(\text{θ←θ + ∆θ}\) \\
+\end{longtable}
+}
+
+在所有模型的训练中，都会将初始学习率设置为\(\text{1×}\text{10}^{\text{−4}}\)，这是一个普遍适合的学习率，在训练过程中，通过使用学习率衰减函数逐步减小学习率，以有效防止梯度过大导致的不稳定性问题。这种学习率调整策略能够在训练初期保持较大的学习步长，加速模型收敛，而在训练后期则逐步减小学习步长，使模型更加精细地调整参数，提升预测精度。同时，为了进一步提升模型的训练稳定性和泛化能力，在训练过程中还引入了早停机制（Early
+Stopping）。当模型在验证集上的性能指标（如RMSE）连续多个训练轮次未得到显著提升时，自动终止训练过程，防止模型因过度训练而出现过拟合现象。此外，针对不同模型的特点，还对模型中的超参数进行了细致的调优工作。例如，对于Conv-LSTM模型，通过调整卷积核的大小和数量，以及LSTM单元的隐藏层维度，来平衡模型对空间特征和时序特征的提取能力；对于UNet-LSTM模型，则重点优化了编码器和解码器中的下采样和上采样操作，以及LSTM单元在特征传递过程中的作用方式，以提升模型对复杂空间结构的处理能力。通过这些超参数的优化调整，使得不同模型在全球海表温度预报任务中均能够发挥出最佳性能。
+
+长短期记忆网络(Long Short-Term Memory,
+LSTM)是一种特殊形式的循环神经网络(RNN)，属于门控RNN的一种。该模型由Hochreiter和Schmidhuber在1997年提出，其核心创新在于引入自循环机制，以实现梯度在较长时间范围内的稳定传播，从而有效缓解了传统RNN在深层时间序列中易出现的梯度消失与梯度爆炸问题。LSTM通过在隐藏层中设置记忆单元来存储和更新信息，使模型能够不论短期动态还是长时间都可以处理时间序列之间的相关性。LSTM模型的核心在于其门控结构，包括输入门、遗忘门和输出门，分别用于控制信息的写入、保留与输出。输入门决定新的信息是否被写入记忆单元；遗忘门调节历史状态的保留程度；输出门则控制当前隐藏状态的输出。这些门控单元通常采用Sigmoid激活函数，实现对信息流动的动态调节，从而使模型具备灵活的时间尺度适应能力。当前广泛应用的改进型LSTM在语音识别、机器翻译及无约束手写识别等时序建模任务中均表现出优异性能。
+LSTM模型整体计算可以由以下方程定义：
+
+遗忘门：
+
+\[\begin{array}{r}
+\text{f}_{\text{t}}\text{=σ (}\text{W}_{\text{f}}\text{[}\text{h}_{\text{t−1}}\text{,}\text{x}_{\text{t}}\text{]+}\text{b}_{\text{f}}\text{)}\#\text{(1)}
+\end{array}\]
+
+输入门：
+
+\[\begin{array}{r}
+\text{i}_{\text{t}}\text{=σ}\left( \text{W}_{\text{i}}\left\lbrack \text{h}_{\text{t−1}}\text{,}\text{x}_{\text{t}} \right\rbrack\text{+}\text{b}_{\text{i}} \right)\#\text{(2)}
+\end{array}\]
+
+\[\begin{array}{r}
+{\text{C}^{\text{'}}}_{\text{t}}\text{=}\text{tan}\text{h}\left( \text{W}_{\text{c}}\left\lbrack \text{h}_{\text{t−1}}\text{,}\text{x}_{\text{t}} \right\rbrack\text{+}\text{b}_{\text{c}} \right)\#\text{(3)}
+\end{array}\]
+
+\[\begin{array}{r}
+\text{C}_{\text{t}}\text{=}\text{f}_{\text{t}}\text{∗}\text{C}_{\text{t−1}}\text{+}\text{i}_{\text{t}}\text{∗}{\text{C}^{\text{'}}}_{\text{t}}\#\text{(4)}
+\end{array}\]
+
+输出门：
+
+\[\begin{array}{r}
+\text{o}_{\text{t}}\text{=σ}\left( \text{W}_{\text{o}}\left\lbrack \text{h}_{\text{t−1}}\text{,}\text{x}_{\text{t}} \right\rbrack\text{+}\text{b}_{\text{o}} \right)\#\text{(5)}
+\end{array}\]
+
+\[\begin{array}{r}
+\text{h}_{\text{t}}\text{=}\text{o}_{\text{t}}\text{∗}\text{tan}\text{h}\left( \text{C}_{\text{t}} \right)\#\text{(6)}
+\end{array}\]
+
+其中\(h_{t - 1}\)表示前一刻隐藏层的输出值，\(x_{t}\)为当前输入值。\(\sigma\)
+和 \(\tan h\) 为激活函数，\(\sigma\) 表示 \(sigmoid\)
+函数。\(f_{t}、i_{t}、o_{t}\)
+分别表示遗忘门值、输入门值、输出门值。\(W_{f}、W_{i}\)、\(\text{W}_{\text{c}}\text{、}\text{W}_{\text{o}}\)
+是权重矩阵。\(B_{f}、b_{i}、b_{c}、b_{o}\)
+是对应的偏移量项。\(C_{t - 1}、C_{o}\) 和 \(C_{t}\)
+分别表示前一时刻的单元状态、候选状态和当前时刻单元状态。
+
+表3-2 LSTM算法的主要参数
+
+Tab. 3-2 Key Parameters of the LSTM Algorithm
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\centering\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2720}}
+  >{\centering\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2720}}
+  >{\centering\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2720}}@{}}
+\toprule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+参数 & 含义 & 数值 \\
+optimizer & 优化器类型 & Adam \\
+dropout & Dropout比例 & 0.2 \\
+learning\_rate & 学习率 & 1e-4 \\
+hidden\_dim & LSTM隐藏层维度 & 128 \\
+num\_layers & LSTM堆叠层数 & 2 \\
+\end{longtable}
+}
+
+\protect\phantomsection\label{_Toc1835474563}{}3.2
+基于Conv-LSTM模型的全球海表温度预报方法
+
+Conv-LSTM是一种结合了卷积神经网络(CNN)和长短期记忆神经网络(LSTM)的深度学习模型，主要用于处理时空数据。LSTM网络通过循环时间步长和学习时间步长之间的依赖关系来处理序列数据。CNN被广泛应用于图像处理、时间序列数据等方面。Shi在2024年将Conv-LSTM模型与几个基准模型进行了比较，在短期SST预测方面通过多个评估指标，得出Conv-LSTM模型优于其他模型。Conv-LSTM结合了LSTM的时间建模能力和CNN的空间特征提取能力，能够同时在时间和空间维度上学习和提取特征，适合处理复杂的时空数据。Conv-LSTM的方程如下所述，其中\(\text{X}_{\text{t}}\)表示当前时间步的输入，\(\text{H}_{\text{t}}\)是隐藏状态，\(\text{C}_{\text{t−1}}\)是上一时间步的隐藏状态，\(\text{i}_{\text{t}}\)、\(\text{f}_{\text{t}}\)、\(\text{C}_{\text{t}}\)和\(\text{o}_{\text{t}}\)的激活状态分别为输入门、遗忘门、单元状态门和输出门的值。\(W\)和\(b\)表示权重和偏差。\(\text{σ}\)表示Sigmoid激活函数，\(\text{⊙}\)表示哈达玛积，\(\text{tanh}\)表示双曲正切激活函数，∗表示卷积操作。
+
+\[\begin{array}{r}
+\text{i}_{\text{t}}\text{=σ}\left( \text{W}_{\text{xi}}\text{∗}\text{X}_{\text{t}}\text{+}\text{W}_{\text{hi}}\text{∗}\text{H}_{\text{t−1}}\text{+}\text{W}_{\text{ci}}\text{⊙}\text{C}_{\text{t−1}}\text{+}\text{b}_{\text{i}} \right)\#\text{(7)}
+\end{array}\]
+
+\[\begin{array}{r}
+\text{f}_{\text{t}}\text{=σ}\left( \text{W}_{\text{xf}}\text{∗}\text{X}_{\text{t}}\text{+}\text{W}_{\text{hf}}\text{∗}\text{H}_{\text{t−1}}\text{+}\text{W}_{\text{cf}}\text{⊙}\text{C}_{\text{t−1}}\text{+}\text{b}_{\text{f}} \right)\#\text{(8)}
+\end{array}\]
+
+\[\begin{array}{r}
+\text{C}_{\text{t}}\text{=}\text{f}_{\text{t}}\text{⊙}\text{C}_{\text{t−1}}\text{+}\text{i}_{\text{t}}\text{⊙}\text{tanh}\left( \text{W}_{\text{xc}}\text{∗}\text{X}_{\text{t}}\text{+}\text{W}_{\text{hc}}\text{∗}\text{H}_{\text{t−1}}\text{+}\text{b}_{\text{c}} \right)\#\text{(9)}
+\end{array}\]
+
+\[\begin{array}{r}
+\text{o}_{\text{t}}\text{=σ}\left( \text{W}_{\text{xo}}\text{∗}\text{X}_{\text{t}}\text{+}\text{W}_{\text{ho}}\text{∗}\text{H}_{\text{t−1}}\text{+}\text{W}_{\text{co}}\text{⊙}\text{C}_{\text{t−1}}\text{+}\text{b}_{\text{o}} \right)\#\text{(10)}
+\end{array}\]
+
+\[\begin{array}{r}
+\text{H}_{\text{t}}\text{=}\text{o}_{\text{t}}\text{⊙}\text{tanh}\left( \text{C}_{\text{t}} \right)\#\text{(11)}
+\end{array}\]
+
+为了使数据在训练中可以快速地收敛，本文对训练集、测试集和验证集都进行了归一化和标准化处理：
+
+\[\begin{array}{r}
+\text{x}^{\text{'}}\text{＝}\text{(}\text{ｘ－μ}\text{)}\text{／ σ}\#\text{(1}\text{2}\text{)}
+\end{array}\]
+
+其中：μ为数据的均值；σ为方差，将原始数据归一化至 (-1,1) 区间。
+
+模型的参数一定程度上影响模型的预测效果，本文调整ConvLSTM模型架构参数，首先设置显式参数设置包括：输入通道数、隐藏层通道数、卷积核大小、LSTM层数、卷积偏置。其次，设置模型的优化器参数，选择Adam作为优化器的类型，学习率为1e-4，Adam默认参数设置为0.9；本研究还对模型的损失函数进行设置，包括带掩码的均方误差、NaN替换为0的处理和有效数据阈值。
+
+表3-3 Conv-LSTM算法的主要参数
+
+Tab. 3-3 Key Parameters of the Conv-LSTM Algorithm
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\centering\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2720}}
+  >{\centering\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2720}}
+  >{\centering\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2720}}@{}}
+\toprule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+参数 & 含义 & 数值 \\
+beta1 & Adam默认参数 & 0.9 \\
+n\_estimators & 迭代次数 & 4 \\
+learning\_rate & 学习率 & 1e-4 \\
+kernel\_size & 卷积核大小 & 3 \\
+num\_layers & ConvLSTM层数 & 2 \\
+\end{longtable}
+}
+
+\protect\phantomsection\label{_Toc218391186}{}3.3
+基于Unet-LSTM模型的全球海表温度预报方法
+
+本研究采用了基于 UNet-LSTM 的深度学习建模框架(Taylor,
+2021)，用于全球SST的时空预测。该模型结合了卷积神经网络(CNN)的空间特征提取能力与长短期记忆网络(LSTM)的时间序列建模能力(Hochreiter
+\& Schmidhuber, 1997)，构建了一个二维卷积的编码器-解码器结构(Ronneberger
+et al.,
+2015)。在每个卷积层后加入批量归一化层以提升训练稳定性，并通过调整超参数获得最优模型拟合效果。模型的实现基于
+TensorFlow(Abadi et al., 2015)和 Keras API(Chollet, 2015)。优化算法选用
+Adam(Kingma \& Ba, 2014)，初始学习率设为 0.003，并在前 5 个 epoch
+进行学习率预热，以在多 GPU 训练下提升模型收敛效果。训练批量大小设置为
+4，在 Horovod 框架下于多 GPU 环境中并行训练，总批量大小为单个 GPU
+批量大小与 GPU 数量的乘积。模型训练在 NCI Gadi
+超算平台上完成，使用一个节点的 4 块 NVIDIA V100 GPU)每块显存 32
+GB)，以确保模型在大规模时空数据下的高效训练。
+
+训练数据选取自 2004 年 1 月至 2025 年 4 月的 SST 序列，其中 760
+个时间步用于训练，97
+个时间步用于验证。为防止模型过拟合，训练过程中在模型复杂度与泛化能力之间保持平衡。验证集时间段涵盖多个厄尔尼诺与拉尼娜事件，为模型性能评估提供了代表性样本。模型使用前
+12 个月的 SST 数据预测接下来 2 个月的 SST，采用 tanh
+激活函数，并在卷积核、偏置和递归项中加入 L2
+正则化项10⁻⁸。训练共进行200个epoch，仅保存验证集上均方误差(MSE)最小的模型结果。实验表明，MSE
+作为回归任务的标准损失函数较其他指标(如MSLE、MAE)更能反映预测误差分布，且在加入陆地区域约束后模型在大陆边缘的预测精度有所提升。训练结果显示，MSE在约200个周期内稳定收敛（见图3），表明模型在拟合精度与泛化性能之间达到了良好平衡，为后续的全球海温预测提供了可靠的基础模型。
+
+表3-4 UNet-LSTM算法的主要参数
+
+Tab. 3-4 Key Parameters of the UNet-LSTM Algorithm
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\centering\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2720}}
+  >{\centering\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2720}}
+  >{\centering\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2720}}@{}}
+\toprule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+参数 & 含义 & 数值 \\
+input\_channels & 输入通道数 & 1 \\
+output\_channels & 输出通道数 & 1 \\
+features & UNet编码器的特征数列表 & {[}64, 128,256, 512{]} \\
+lstm\_hidden\_channels & 隐藏通道数 & 256 \\
+learning\_rate & 学习率 & 1e-4 \\
+\end{longtable}
+}
+
+\protect\phantomsection\label{_Toc451110379}{}3.4
+基于Transformer模型的全球海表温度预报方法
+
+Transformer
+作为近年来作为广泛使用的时序预测模型，能够高效处理各种长短期的时间序列数据。本研究中使用的Transformer结构和常规的Transformer结构保持一致，与本研究创新性的RG-Transformer相比，基础结构更加简洁。但Transformer原型结构长用于文本数据的预测，在二维空间感知能力上具有一定的不足，这也是本研究要重点改进的部分。下面是本研究使用的Transformer模型的理论及其结构图。
+
+Transformer结构的核心是自通过注意力机制建立时间序列中任意两个位置的依赖关系，且通过并行能力快速完成计算，从而解决LSTM长序列梯度问题和长距离依赖建模不足的问题。注意力的本质是给序列中不同的时间点的海表温度一个权重，然后对每个时间点的海表温度进行加权求和，通常来说，离当前时间点越近的序列会被赋予跟大的权重。与RNN模型不同的是，Transformer模型会对整个序列并行计算注意力，也就是同时算出序列的注意力，这样计算的时间复杂度会降低到
+\(O_{(n)}\)，非常适合处理长时间的序列数据。注意力通常分为计算，查询和连接三个步骤。
+
+在计算步骤中，首先通过线性变换将输入序列分别映射到查询矩阵（Query）、键矩阵（Key）和值矩阵（Value）上，这三个矩阵的维度通常保持一致。查询矩阵用于表示当前时刻对其他时刻信息的依赖关系，以便进行有效的信息交互和时间依赖建模。键矩阵则用于被查询以确定相关性，值矩阵则包含了实际需要聚合的信息。接着，通过计算查询矩阵与键矩阵的点积，并除以一个缩放因子（通常是键矩阵维度的平方根），得到注意力分数矩阵，这一步骤衡量了序列中不同位置之间的相关性强度。
+
+随后进入查询步骤，注意力分数矩阵经过Softmax函数处理，被转换为注意力权重矩阵，这个矩阵中的每个元素都表示了对应位置之间的重要性比例，且所有元素之和为1，确保了权重的归一化。这一步骤确保了模型在聚合信息时能够根据相关性动态调整不同时间点的贡献度。
+
+最后是连接步骤，将注意力权重矩阵与值矩阵进行点乘，得到加权后的值矩阵，这个矩阵中的每个元素都是原始值根据其对应注意力权重的加权和，从而实现了对序列中重要信息的有效提取和聚合。通过多层这样的自注意力机制堆叠，Transformer模型能够捕捉到序列中复杂的长距离依赖关系。
+
+表3-5 Transformer算法的主要参数
+
+Tab. 3-5 Key Parameters of the Transformer Algorithm
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\centering\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2720}}
+  >{\centering\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2720}}
+  >{\centering\arraybackslash}p{(\linewidth - 4\tabcolsep) * \real{0.2720}}@{}}
+\toprule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+参数 & 含义 & 数值 \\
+nhead & 多头注意力机制的head数 & 8 \\
+num\_encoder\_layers & 编码器层数 & 6 \\
+num\_decoder\_layers & 解码器层数 & 6 \\
+dim\_feedforward & 前馈神经网络的维度 & 2048 \\
+dropout & 丢弃率 & 0.1 \\
+activation & 激活函数 & relu \\
+\end{longtable}
+}
+
+为了增强模型对二维空间信息的感知能力，本研究在Transformer的基础上引入了空间编码机制，通过为每个空间位置分配一个唯一的编码向量，并将其与输入序列一同输入模型，使得模型在处理序列数据的同时，也能够考虑到空间位置的信息，从而提升了在全球海表温度预报任务中的性能。此外，还采用了多头注意力机制，即并行地使用多个自注意力模块处理输入序列，每个模块关注序列的不同方面，最后将所有模块的输出拼接起来，进一步提升了模型的表达能力和预测精度。
+
+\protect\phantomsection\label{_Toc1194865943}{}3.5
+基于RG-Transformer模型的全球海表温度预报方法
+
+本研究首先通过递归泛化模块 (Recursive Generalization Model, RGM)
+将任意分辨率的输入特征递归聚合成压缩图，然后采用自适应权重对多层递归输出进行智能融合，通过迭代深化计算实现特征的逐步细化，同时利用多层残差连接确保训练过程的稳定性。
+
+\[\begin{array}{r}
+\widehat{\text{X}}\text{=}\text{W}_{\text{r}}^{\text{K}}\text{(}\text{X}_{\text{in}}\text{)=}\text{W}_{\text{r}}\text{(}\text{W}_{\text{r}}\text{(}\text{...W}_{\text{r}}\text{(}\text{X}_{\text{in}}\text{))))}\#\text{(12)}
+\end{array}\]
+
+\[\begin{array}{r}
+\text{X}_{\text{r}}\text{=}\text{W}_{\text{p}}\text{W}_{\text{d}}\left( \widehat{\text{X}} \right)\#\text{(13)}
+\end{array}\]
+
+其中，\(\text{W}_{\text{r}}\)为\(\text{s}_{\text{r}}\)步幅的深度卷积，\(\text{W}_{\text{d}}\)为\(\text{3×3}\)深度卷积，\(\text{W}_{\text{p}}\)为\(\text{1×1}\)为点方向卷积。此外，\(\text{1×1}\)逐点卷积将通道从\(\text{C}\)缩放到\(\text{C}_{\text{r}}\text{=C×}\text{c}_{\text{r}}\)，其中\(\text{c}_{\text{r}}\)是调整因子。
+
+将输入特征\(\text{X}_{\text{in}}\)重塑投影为\(\text{Q∈}\text{R}^{\text{HW×}\text{C}_{\text{r}}}\)，代表性的映射为\(\text{K∈}\text{R}^{\text{hw}\overline{\text{x}}\text{C}_{\text{r}}}\)，\(\text{V∈}\text{R}^{\text{hw×C}}\)，计算交叉关注。注意矩阵\(\text{A∈}\text{R}^{\text{HW×hw}}\)由查询与键的点积交互计算得到。进一步缩放了查询、键和值的通道维度。具体过程如下：
+
+\[\begin{array}{r}
+\text{Q=}\text{W}_{\text{Q}}\text{X}_{\text{in}}\text{,K=}\text{W}_{\text{k}}\text{X}_{\text{r}}\text{,V=}\text{W}_{\text{r}}\text{X}_{\text{r}}\#\text{(14)}
+\end{array}\]
+
+\[\begin{array}{r}
+\text{A=SoftMax}\left( \frac{\text{Q}\text{K}^{\text{Τ}}}{\sqrt{\text{C}_{\text{r}}}} \right)\#\text{(15)}
+\end{array}\]
+
+\[\begin{array}{r}
+\text{Cross−Attention}\left( \text{X}_{\text{in}}\text{,}\text{X}_{\text{r}} \right)\text{=}\text{W}_{\text{m}}\left( \text{A∙V} \right)\#\text{(16)}
+\end{array}\]
+
+其中，\(\text{W}_{\text{Q}}\text{∈}\text{R}^{\text{C×}\text{C}_{\text{r}}}\)，\(\text{W}_{\text{k}}\text{∈}\text{R}^{\text{C}_{\text{r}}\text{×}\text{C}_{\text{r}}}\)
+和
+\(\text{W}_{\text{V}}\text{∈}\text{R}^{\text{C}_{\text{r}}\text{×C}}\)
+的作用是为了简化而省略了可学习的参数和偏差。\(\text{W}_{\text{m}}\text{∈}\text{R}^{\text{C×C}}\)
+投影矩阵是用于特征融合。
+
+\includegraphics[width=4.68611in,height=2.87014in,alt={图片5}]{./images/media/image7.png}
+
+图3-1 RG-Transformer Cell的单元结构图
+
+Figure 3-1 Unit structure diagram of RG-Transformer Cell
+
+本研究设计的RG-Transformer
+Cell单元结构融合了递归门控机制与注意力机制，旨在高效建模时序或时空数据中的多层次依赖关系。该单元首先对输入特征
+\(\text{X}_{\text{t}}\) 进行归一化与线性映射处理，生成扁平化特征
+\(X_{flatten}\)
+以适配后续计算；核心模块包含递归门单元与时空注意力两部分，其中RG
+Cell通过多组共享参数的多头注意力结构，结合深度（×Dep）递归捕捉序列的局部动态依赖，并通过查询权重矩阵
+\(W_{Q}\) 提取关键特征信号；SST
+Attention模块则聚焦于全局时空关联建模，通过对离散时间节点的注意力计算生成全局查询向量（\(G_{Q1},G_{Q2}\)），实现跨长程时间步的信息交互；两者的输出通过门控机制（含元素级加法
+\(\text{⊕}\)、乘法 \(\text{⊙}\) 及\(Sigmoid\)激活函数
+\(\text{σ}\)）进行动态融合，最终经线性变换输出注意力权重
+\(A_{t}\)，完成对局部递归依赖与全局时空关联的自适应整合，为时序预测或时空数据分析任务提供精细化的特征表达。
+
+\protect\phantomsection\label{_Toc992320904}{}3.5.1 球谐波函数的编码
+
+球谐波函数在建立全球电离层模型中得到广泛的应用。在实际建模中，球谐波函数零阶项
+表征的是区域内的平均电离层TEC值。球谐函数表达式如下：
+
+\[\text{VTEC = }\sum_{\text{=0}}^{\text{n}_{\text{max}}}{\sum_{\text{m=0}}^{\text{n}}\widetilde{\text{P}_{\text{nm}}}}\left( \text{sin}\text{θ} \right)\left( \text{C}_{\text{nm}}\text{cos}\text{mφ}\text{+}\text{D}_{\text{nm}}\text{sin}\text{mφ} \right)\]
+
+式中\(\widetilde{\text{P}_{\text{nm}}}\left( \text{sin}\text{θ} \right)\)是勒让德多项式，\(\text{θ}\)为纬度坐标，\(\text{φ}\)为经度坐标，\(\text{n}_{\text{max}}\)是球谐波函数最大展开阶数，\(\text{C}_{\text{m}}\)、\(\text{D}_{\text{m}}\)为球谐波函数模型的系数，即模型所求的参数。本研究将球谐波函数作为位置编码的处理模块，假设位置嵌入表示为
+\(\text{E}_{\text{pos}}\)，球谐波特征为
+\(\text{H}_{\text{harmonic}}\)，球面坐标特征为
+\(\text{H}_{\text{spherical}}\)，则最终的位置编码可以表示为：
+
+\[\text{E}_{\text{final}}\text{= FusionNet}\left( \text{H}_{\text{harmonic}}\text{⊕}\text{H}_{\text{spherical}}\text{\!} \right)\]
+
+其中 ⊕ 表示拼接操作，\(FusionNet\)是融合特征的神经网络模块。最终的
+\(E_{final}\) 将作为输入传递到后续的模型中进行预测。
+
+\includegraphics[width=4.17014in,height=2.66111in,alt={图片6}]{./images/media/image8.png}
+
+图3-2 SPHE Encoding的单元结构图
+
+Figure 3-2 Unit structure diagram of SPHE Encoding
+
+本研究中使用的球谐波函数最大阶数为2，共四个子函数，在模型初始化阶段，会为每个子函数生成对应的系数矩阵，这些系数矩阵在训练过程中不断优化调整。通过将球谐波函数引入位置编码，模型能够更好地捕捉全球海表温度数据中的空间分布特征。具体而言，不同阶数和子函数对应的球谐波特征能够刻画出从全球整体趋势到局部细微变化的多尺度空间信息。在模型训练时，球谐波特征与海表温度的原始数据共同输入到神经网络中，经过多层卷积和注意力机制的处理，使得模型在学习时间序列变化的同时，也能充分考虑空间位置的差异。这种编码方式相较于传统的基于经纬度的简单编码，能够提供更丰富、更具物理意义的空间信息，有助于提升全球海表温度预报的准确性，尤其是在处理复杂海洋环流和区域气候特征对海表温度影响时具有明显优势。
+
+\protect\phantomsection\label{_Toc579430926}{}3.5.2 月平均温度预测结果
+
+在构建完RG-Transformer后，开始使用准备好的数据集进行训练，然后使用训练好的模型进行预测，以2025年4月的海表温度为输入，进行一个月的短期预测，得到2025年5月的海表温度分布，下面是海表温度分布图。
+
+\includegraphics[width=6.13681in,height=2.61875in,alt={图片7}]{./images/media/image9.png}\includegraphics[width=6.14792in,height=2.62292in,alt={图片9}]{./images/media/image10.png}
+
+\includegraphics[width=6.13681in,height=2.61875in,alt={图片10}]{./images/media/image9.png}
+
+图3-3 2024年9月、2024年12月、2025年5月全球海表温度分布（预测）
+
+Figure 3-3 Global sea surface temperature distribution (forecast) in May
+2025
+
+从上图可以看出，使用RG-Transformer
+预测全球海表温度，在短期上保持了相同的温度变化趋势，在局部区域也展现出了较高的预测精度。例如，在赤道附近的太平洋海域，模型准确捕捉到了暖池区域的温度变化，与实际观测数据相比，温度偏差控制在较小范围内。在北大西洋海域，模型对墨西哥湾暖流的影响区域也做出了较为精准的预测，温度分布与实际情况基本吻合。进一步分析预测结果发现，RG-Transformer
+模型在处理复杂海洋环流区域时表现出色。在南大洋的西风漂流区域，由于受到多种海洋动力因素的综合影响，海表温度变化较为复杂。但该模型通过其独特的递归门控机制与注意力机制，成功解析了这些复杂的时空依赖关系，使得预测结果能够反映出该区域温度的细微变化。
+
+为了更好的理解模型在海表温度预测中各个组件的特征效果，
+本研究对预测模型的内部的组件参数做了详细的可视化。其实现方式是，在构建模型时，创建一个位于模型内部的参数字典，这个字典对应了模型的各个组件权重，当模型训练时，随着每个训练轮次逐渐更新组件的参数权重，同时将参数权重保存在字典中，在预测步骤是，保存的参数权重会被加载，预测结束后，可以通过加载的模型来读取公开的参数字典，从而获取到预测时各个组件的参数详情。之后，针对每个组件的特性绘制对应的参数图形来达到可视化的效果。
+
+例如，在最大阶数为二的球谐波编码组件中，会记录预测时每个球谐函数分配的参数权重，即总共四个球谐函数的四个参数权重被记录，同时还会记录在经过连接层之后的球谐波编码的权重分别，其分布分别如下：
+
+\includegraphics[width=5.83611in,height=2.70139in,alt={图片11}]{./images/media/image11.png}
+
+图3-4 2025年5月全球月平均温度预测的球谐波编码输出
+
+Figure 3-4 The output of spherical harmonic coding for the global
+average monthly temperature prediction in May 2025
+
+从图上分布可以看出，四个球谐波函数的叠加有效将球面空间特征叠加到了温度特征之上。其中，低阶球谐波函数主要反映了全球海表温度的整体趋势，如赤道地区的温暖区域和极地地区的寒冷区域；而高阶球谐波函数则刻画了局部区域的细微变化，如海洋环流影响下的温度梯度变化。这种多尺度的空间信息捕捉能力，使得模型在预测全球海表温度时能够更加准确和细致。
+
+再如，对注意力的可视化能够帮助在实验过程中理解模型对不同海域温度分布的重视程度。
+
+\includegraphics[width=5.67569in,height=2.58542in,alt={图片12}]{./images/media/image12.png}
+
+图3-5 2025年5月全球月平均温度预测的注意力输出
+
+Figure 3-5 The output of attention for the global average monthly
+temperature prediction in May 2025
+
+可以看出，模型对不同海域的注意力分配存在明显差异。在赤道附近的太平洋暖池区域，模型给予了较高的注意力权重，这表明该区域的海表温度变化对整体预测结果具有重要影响。同时，在北大西洋的墨西哥湾暖流区域，模型也分配了相对较高的注意力，反映出该区域海洋环流对海表温度分布的关键作用。相比之下，在南大洋等开阔海域，模型分配的注意力权重较低，这可能是因为这些区域的海表温度变化相对平缓，对整体预测结果的影响较小。通过注意力可视化，我们能够更直观地理解模型在预测过程中的关注点，为进一步优化模型提供了重要参考。
+
+最后是全连接层的可视化，全连接层在模型中起到特征整合与最终预测的作用，其参数可视化能够揭示模型对不同特征的综合处理方式。在本次预测中，全连接层的权重分布呈现出明显的区域特征关联性。
+
+\includegraphics[width=5.04861in,height=2.36597in,alt={图片13}]{./images/media/image13.png}
+
+图3-6 2025年5月全球月平均温度预测的全连接输出
+
+Figure 3-6 The output of full collection for the global average monthly
+temperature prediction in May 2025
+
+从可视化结果可以看出，靠近赤道的神经元权重普遍较高，这与赤道地区海表温度变化活跃、对全局温度分布影响显著的特性相吻合；而极地地区的神经元权重相对较低，反映出极地温度变化对整体预测结果的贡献较小。此外，全连接层还捕捉到了海洋环流关键区域的特征关联，如墨西哥湾暖流和西风漂流区域对应的神经元权重也较为突出，这表明模型在整合特征时充分考虑了这些区域对海表温度分布的重要影响。通过全连接层的可视化，我们能够更深入地理解模型在特征整合与预测过程中的内在机制，为模型的进一步优化和改进提供了有力依据。
+
+\protect\phantomsection\label{_Toc1804717784}{}3.6 模型对比
+
+为了评估以上5类模型性能在海表温度预测方面的性能，我们采用多模型参数对比实验。实验中，将LSTM模型、Conv-LSTM模型、UNet-LSTM模型、Transformer模型以及RG-Transformer模型作为对比模型。这些模型的可调参数包括模型训练轮次\(\varepsilon\)和时间序列长度\(\text{S}\)。在保持数据集、硬件等外部条件一致的前提下，通过调整不同的训练轮次\(\varepsilon\)和时间序列长度\(\text{S}\)，进行了全球海表温度预测的对比实验。
+
+ERA5训练数据集涵盖了从1980年1月到2015年2月的422个月数据，而验证数据集则包括从2015年2月到2024年12月的106个月数据。预测2025年1月的海表温度。当时间序列长度\(\text{S}\)为2时，预测的输入序列为2024年12月的海表温度序列，输出为2025
+年1月的海表温度；当时间序列长度\(\text{S}\)为6个月时，输入数据为2024年8月至2024年12月的5个月海表温度序列，输出同样为2025年1月的海表温度。
+
+表 3-1 当Epoch=200, T=2时，不同模型的性能和精度
+
+Table 3-1 When Epoch=200 and T=2, the performance and accuracy of
+different models are as follows
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1584}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1097}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1233}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1341}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1491}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1629}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1625}}@{}}
+\toprule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\multirow{2}{=}{\centering\arraybackslash \textbf{Model}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.2330} + 2\tabcolsep}}{%
+\textbf{Trainer}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.2832} + 2\tabcolsep}}{%
+\textbf{Dataset}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.3254} + 2\tabcolsep}@{}}{%
+\textbf{RMSE}} \\
+& Epoch & Time & T/month & Params/M & RMSE(T)/℃ & RMSE(P)/℃ \\
+LTSM & \multirow{5}{=}{\centering\arraybackslash 200} & 25m17s &
+\multirow{5}{=}{\centering\arraybackslash 2} & 44.9 & 1.72 & 1.47 \\
+Conv-LSTM & & 27m15s & & 207.1 & 0.69 & 0.88 \\
+UNet-LSTM & & 44m53s & & 68.4 & 0.56 & 0.53 \\
+Transformer & & 21m02s & & 36.7 & 0.35 & 0.45 \\
+RG-Transformer & & 18m45s & & 28.8 & 0.30 & 0.39 \\
+\end{longtable}
+}
+
+表 3-2 当Epoch=500, T=2时，不同模型的性能和精度
+
+Table 3-2 When Epoch=500 and T=2, the performance and accuracy of
+different models are as follows
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1581}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.0970}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1433}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1320}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1479}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1608}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1609}}@{}}
+\toprule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\multirow{2}{=}{\centering\arraybackslash \textbf{Model}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.2403} + 2\tabcolsep}}{%
+\textbf{Trainer}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.2799} + 2\tabcolsep}}{%
+\textbf{Dataset}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.3217} + 2\tabcolsep}@{}}{%
+\textbf{RMSE}} \\
+& Epoch & Time & T/month & Params/M & RMSE(T)/℃ & RMSE(P)/℃ \\
+LTSM & \multirow{5}{=}{\centering\arraybackslash 500} & 52m32s &
+\multirow{5}{=}{\centering\arraybackslash 2} & 44.9 & 1.65 & 1.58 \\
+Conv-LSTM & & 1h12m30s & & 207.1 & 0.62 & 0.66 \\
+UNet-LSTM & & 1h40m42s & & 68.4 & 0.53 & 0.53 \\
+Transformer & & 1h01m10s & & 36.7 & 0.32 & 0.44 \\
+RG-Transformer & & 42m31s & & 28.8 & 0.27 & 0.33 \\
+\end{longtable}
+}
+
+表 3-3 当Epoch=500, T=6时，不同模型的性能和精度
+
+Table 3-3 When Epoch=500 and T=6, the performance and accuracy of
+different models are as follows
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1583}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.0972}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1433}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1322}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1470}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1610}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1609}}@{}}
+\toprule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\multirow{2}{=}{\centering\arraybackslash \textbf{Model}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.2405} + 2\tabcolsep}}{%
+\textbf{Trainer}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.2792} + 2\tabcolsep}}{%
+\textbf{Dataset}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.3220} + 2\tabcolsep}@{}}{%
+\textbf{RMSE}} \\
+& Epoch & Time & T/month & Params/M & RMSE(T)/℃ & RMSE(P)/℃ \\
+LTSM & \multirow{5}{=}{\centering\arraybackslash 500} & 1h13m34s &
+\multirow{5}{=}{\centering\arraybackslash 6} & 44.9 & 1.47 & 1.32 \\
+Conv-LSTM & & 1h43m14s & & 207.1 & 1.04 & 1.07 \\
+UNet-LSTM & & 2h45m22s & & 68.4 & 0.73 & 0.74 \\
+Transformer & & 1h24m08s & & 36.7 & 0.61 & 0.57 \\
+RG-Transformer & & 1h34m15s & & 28.8 & 0.40 & 0.47 \\
+\end{longtable}
+}
+
+上述表格的实验数据表明，RG-Transformer模型在训练效率、参数规模和预测精度方面均表现出显著优势。在短期预测任务（时间窗口为2个月）中，200轮训练下，RG-Transformer仅需18.75分钟完成训练，较Conv-LSTM（27.25分钟）和UNet-LSTM（44.88分钟）分别缩短了31.2\%和58.2\%的训练时间；当训练周期扩展至500轮时，训练时间为42.52分钟，仍显著优于Conv-LSTM（72.5分钟）和UNet-LSTM（100.7分钟）。在参数规模方面，RG-Transformer的参数量仅为Conv-LSTM的13.9\%，比基准Transformer减少了21.5\%，其轻量化设计有效降低了计算和存储需求。
+
+在预测精度方面，200轮训练下，RG-Transformer的RMSE为0.39℃，相比Transformer(0.45℃)、UNet-LSTM(0.53℃)和Conv-LSTM(0.88℃)分别提升了13.3\%、26.4\%和55.7\%；当训练周期增加至500轮时，RMSE进一步降至0.33℃，相比Transformer(0.44℃)提升了25.0\%。在中长期预测任务（时间窗口为6个月）中，500轮训练下，RG-Transformer的RMSE为0.47℃，显著低于Transformer(0.57℃)和UNet-LSTM(0.74℃)，误差分别减少了17.5\%和36.5\%。值得注意的是，Conv-LSTM和LSTM模型在该任务中出现了明显的性能退化，RMSE分别为1.07℃和1.32℃，表明其结构无法有效建模长序列时空依赖关系。
+
+综上所述，RG-Transformer在多个维度上均表现出领先优势：其训练效率为UNet-LSTM的2.4倍，参数量较基准Transformer减少了21.5\%，并且在短期与中长期预测任务中均展现出最优的精度和稳定性。相比之下，Transformer在训练速度和精度方面较为突出，但其庞大的参数量限制了计算效率；UNet-LSTM由于时空融合模块复杂性，训练效率较低；Conv-LSTM则面临计算和精度的双重瓶颈，而LSTM模型在两类任务中的表现均不理想。上述结果证明，RG-Transformer通过递归注意力机制与轻量化设计，为全球海表温度预测提供了更为高效的解决方案。
+
+\includegraphics[width=5.64792in,height=3.18889in,alt={图片14}]{./images/media/image14.png}
+
+图3-7 不同模型在时间预测中的均方根误差（RMSE）对比图
+
+Figure 3-7 Comparison chart of root mean square error (RMSE) in time
+prediction of different models
+
+根据图分析，各模型的归一化均方根误差(Normalized Root Mean Square Error,
+NRMSE)在2024年10月至2025年5月期间呈现时空异质性。LSTM模型的预测稳定性最差，其NRMSE在2024年12月达到峰值1.98，较同期RG-Transformer高出518.8\%，且显著高于Transformer、UNet-LSTM和Conv-LSTM等基准模型。值得注意的是，所有模型在2024年第三季度均出现NRMSE抬升现象（增幅22.3\%-47.8\%），这与同期厄尔尼诺事件导致的海洋热力异常密切相关。
+
+\includegraphics[width=6.12639in,height=4.57847in,alt={Regional prediction Performance overview}]{./images/media/image15.jpeg}
+
+图3-8 不同区域的预测结果对比图；图(a) 区域间预测性能分布图；图(b)
+基于区域的预测性能评估结果图
+
+Figure 3-8 Comparison of Prediction Results Across Regions；Figure (a)
+Distribution of Prediction Performance Across Regions；Figure (b)
+Evaluation of Prediction Performance Based on Regions
+
+RG-Transformer展现出卓越的时序稳定性：其NRMSE波动范围控制在0.28-0.41，较Transformer降低42.9\%。在关键气候转折期，RG-Transformer的NRMSE仍显著低于其他模型，表明其对复杂气候过程具有更强适应性。模型解释力分析显示，RG-Transformer的
+R² 持续高于0.96，尤其在2025年5月达到峰值。该模型 R²
+与NRMSE呈现强负相关性，印证其预测误差与解释能力的内在一致性。
+
+\includegraphics[width=5.97153in,height=3.47986in,alt={区域-NINO}]{./images/media/image16.png}
+
+图3-9
+南大洋区域(80\(\text{°}\)E～180\(\text{°}\)W、40\(\text{°}\)S～60\(\text{°}\)S)SST图；图(a)
+南大洋区域SST观测分布图；图(b) 南大洋区域SST预测分布图；图(c)
+南大洋区域SST误差分布图；图(d) 南大洋区域SST预测海表温度散点图；图(e)
+南大洋区域SST预测误差的核密度估计图（偏差 = -0.426）
+
+Figure 3-9 Evaluation of sea surface temperature (SST) predictions in
+the Southern Ocean sector (80\(\text{°}\)E～180\(\text{°}\)W,
+40\(\text{°}\)S～60\(\text{°}\)S)；(a) Observed SST distribution in the
+study region.(b) Predicted SST distribution in the study region.(c)
+Spatial distribution of SST prediction errors (bias).(d) Scatter plot of
+predicted versus observed SST with 1:1 line and regression fit.(e)
+Kernel density estimation (KDE) of SST prediction errors (Bias =
+-0.426).
+
+\includegraphics[width=5.82014in,height=3.45556in,alt={区域-北大西洋}]{./images/media/image17.png}
+
+图3-10
+西太平洋赤道区域(120\(\text{°}\)E～180\(\text{°}\)E、4.5\(\text{°}\)S～4.5\(\text{°}\)N)SST图；图(a)
+西太平洋赤道区域SST观测分布图；图(b)
+西太平洋赤道区域SST预测分布图；图(c)
+西太平洋赤道区域SST误差分布图；图(d)
+西太平洋赤道区域SST预测海表温度散点图；图(e)
+南大洋区域SST预测误差的核密度估计图（偏差 = -0.124）
+
+Figure 3-10 SST Map of the Equatorial Western Pacific Region
+(120°E--180°E, 4.5°S--4.5°N) (a) Observed SST distribution in the
+equatorial western Pacific region (120\(\text{°}\)E～180\(\text{°}\)E,
+4.5\(\text{°}\)S～4.5\(\text{°}\)N); (b) Predicted SST distribution in
+the equatorial western Pacific region; (c) SST error distribution in the
+equatorial western Pacific region; (d) Scatter plot of predicted SST in
+the equatorial western Pacific region; (e) Kernel density estimation
+plot of SST prediction errors in the Southern Ocean region (bias =
+-0.124).
+
+\includegraphics[width=5.81528in,height=3.54931in,alt={区域-北印度洋}]{./images/media/image18.png}
+
+图3-11
+太平洋西北区域(125\(\text{°}\)E～170\(\text{°}\)E、25\(\text{°}\)N～40\(\text{°}\)N)SST图；图(a)
+太平洋西北区域SST观测分布图；图(b) 太平洋西北区域SST预测分布图；图(c)
+太平洋西北区域SST误差分布图；图(d)
+太平洋西北区域SST预测海表温度散点图；图(e)
+太平洋西北区域SST预测误差的核密度估计图（偏差 = +1.345）
+
+Figure 3-11 SST Map of the Northwest Pacific Region (125°E--170°E,
+25°N--40°N) (a) Observed SST Distribution of the Northwest Pacific
+Region; (b) Predicted SST Distribution of the Northwest Pacific Region;
+(c) SST Error Distribution of the Northwest Pacific Region; (d) Scatter
+Plot of Predicted SST in the Northwest Pacific Region; (e) Kernel
+Density Estimation Plot of SST Prediction Errors in the Northwest
+Pacific Region (Bias = +1.345)
+
+\includegraphics[width=6.03125in,height=3.61667in,alt={区域-赤道}]{./images/media/image19.png}
+
+图3-12
+赤道中东太平洋区域(180\(\text{°}\)W～120\(\text{°}\)W、4.5\(\text{°}\)S～4.5\(\text{°}\)N)SST图；图(a)
+赤道中东太平洋区域SST观测分布图；图(b)
+赤道中东太平洋区域SST预测分布图；图(c)
+赤道中东太平洋区域SST误差分布图；图(d)
+赤道中东太平洋区域SST预测海表温度散点图；图(e)
+赤道中东太平洋区域SST预测误差的核密度估计图（偏差 = -0.678）
+
+Figure 3-12 SST Map of the Equatorial Eastern-Central Pacific Region
+(180\(\text{°}\)W～120\(\text{°}\)W, 4.5\(\text{°}\)S～4.5\(\text{°}\)N)
+(a) Observed SST Distribution of the Equatorial Eastern-Central Pacific
+Region; (b) Predicted SST Distribution of the Equatorial Eastern-Central
+Pacific Region; (c) SST Error Distribution of the Equatorial
+Eastern-Central Pacific Region; (d) Scatter Plot of Predicted SST in the
+Equatorial Eastern-Central Pacific Region; (e) Kernel Density Estimation
+Plot of SST Prediction Errors in the Equatorial Eastern-Central Pacific
+Region (Bias = -0.678)
+
+\protect\phantomsection\label{_Toc193900444}{}3.7 消融实验
+
+为深入剖析
+RG-Transformer模型中核心架构创新对全球海表温度预测性能的影响机制，本研究系统构建了多组消融实验，通过分阶段剥离模型中的特定可控组件，对模型结构进行递进式解构，并采用定量分析方法评估各结构创新要素对预测精度与时序稳定性的独立贡献。在保持统一训练流程与评估方式的前提下，准确记录了各模块的真实性能。实验核心聚焦于三大架构创新：递归广义自注意力机制通过递归优化输入特征的时间序列处理过程，显著提升了模型对复杂时空依赖关系的建模能力；球谐波位置编码的引入使模型能够自适应地捕捉全球海域的空间异质性特征，增强了空间信息处理效率；多尺度残差连接层通过构建跨层信息传递路径，有效维持了训练过程中的梯度稳定性，防止了深层网络中的梯度消失问题。通过多时域的综合预测结果对比，揭示了这些组件在预测精度和时序稳定性维持方面的独立贡献。
+
+表 3-4 消融实验结果对比表
+
+Table 3-4 A Comparative Table of Ablation Study Results
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\centering\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1723}}
+  >{\centering\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2035}}
+  >{\centering\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2035}}
+  >{\centering\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1988}}
+  >{\centering\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1999}}@{}}
+\toprule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Variant & Train Times(s) & Inference(ms) & Memory(MB) & Parameters \\
+Baseline & 477.9 & 3.24 & 196.7 & 2871086.0 \\
+w/o EfficientRGA & 190.6 & 2.93 & 267.3 & 2870060.0 \\
+w/o ConvStem & 273.0 & 2.82 & 221.3 & 2450990.0 \\
+w/o Gate & 198.0 & 3.05 & 316.5 & 2870060.0 \\
+w/o MultiScale & 325.6 & 3.39 & 236.7 & 2871086.0 \\
+w/o SHPE & 352.0 & 3.20 & 360.7 & 2806277.0 \\
+\end{longtable}
+}
+
+在消融实验中，各组件对模型计算效率与内存占用的影响得以量化分析。从训练时间看，EfficientRGA模块的移除使训练时长缩短约60\%，表明其计算复杂度较高；Gate与ConvStem模块的移除分别带来59\%与43\%的训练加速，表明各组件均承担一定的计算负荷。然而，在推理阶段，各变体间耗时差异较小（2.82-3.39
+ms），说明推理延迟主要由网络整体结构决定，而非单一模块主导。移除ConvStem后推理时间最短。内存占用方面，完整Baseline模型显存使用量最低（196.7
+MB），而移除球面谐波位置编码（SHPE）或Gate等组件后显存占用显著上升（分别增加83\%与61\%）。这说明SHPE与Gate等模块通过结构化特征表示与门控机制，有效实现了对中间特征的压缩与复用，从而降低了整体内存消耗。特别是球面谐波位置编码（SHPE），其以较低计算代价实现空间信息编码，替代了传统显存密集型的位置表示方法。参数量分析显示，ConvStem贡献最多参数（约42万），且其对模型精度提升作用显著，反映该部分参数具有较高利用率；其余组件参数量变化较小。
+
+表 3-5 RG-Transformer模型中不同组件的性能影响
+
+Table 3-5 Performance Impact of Different Components in the
+RG-Transformer Model
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\centering\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1723}}
+  >{\centering\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2035}}
+  >{\centering\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.2035}}
+  >{\raggedright\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1988}}
+  >{\centering\arraybackslash}p{(\linewidth - 8\tabcolsep) * \real{0.1999}}@{}}
+\toprule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+Variant & RMSE (℃) & MAE & \(R^{2}\) & SPATIAL\_CORR \\
+w/o EfficientRGA & 1.2336±0.0105 & 0.8226±0.0100 & 0.9890±0.0002 &
+0.9951±0.0001 \\
+w/o ConvStem & 1.5287±0.2218 & 1.1051±0.2129 & 0.9828±0.0047 &
+0.9944±0.0002 \\
+w/o Gate & 1.2402±0.0153 & 0.8365±0.0228 & 0.9889±0.0003 &
+0.9951±0.0002 \\
+w/o MultiScale & 1.2375±0.1087 & 0.8724±0.1141 & 0.9889±0.0019 &
+0.9953±0.0004 \\
+w/o SHPE & 1.2478±0.0560 & 0.8884±0.0362 & 0.9887±0.001 &
+0.9950±0.0001 \\
+\end{longtable}
+}
+
+消融实验通过比较移除各组件后模型均方根误差的增加程度，可量化各模块的重要性。从数据中可以看出，卷积特征提取模块（ConvStem）是关键性能组件之一，其移除导致RMSE上升0.3626℃。球面谐波函数位置编码（Spherical
+Harmonic Position Encoding,
+SHPE）贡献次之，移除后RMSE增加0.0817；门控机制（Gate）与多尺度特征融合模块（MultiScale）的影响程度相当，分别使RMSE上升0.0741℃和0.0714℃，属于中等贡献组件；而高效旋转全局注意力机制（EfficientRGA）的影响相对较小但仍显著，移除后RMSE增加0.0675℃。此外，实验结果的标准差较小，表明模型在不同实验条件下表现稳定，结果具有较好的可重复性与可靠性。综上所述，消融实验验证了RGTransformer中各模块均对提升模型预测精度具有积极且不同程度的作用，其中卷积特征提取模块对性能的提升贡献最为突出，具体内容如下图。
+
+\includegraphics[width=6.11875in,height=4.79306in,alt={消融实验图}]{./images/media/image20.jpeg}
+
+图3-13 RG-Transformer模型消融实验结果对比；图(a)
+各模型变体的预测误差对比，虚线表示基准模型性能；图(b) 移除各组件后 RMSE
+的相对下降幅度，用于量化各组件贡献；图(c) 各变体的单轮训练时间图；图(d)
+精度-效率权衡分析图，左下角阴影区域为理想区域。
+
+Figure 3-13 Ablation study of RG-Transformer. (a) Prediction error (RMSE
+and MAE) comparison across model variants, where the dashed line
+indicates baseline performance. (b) Relative RMSE degradation when
+removing each component, quantifying individual contributions. (c)
+Training time per epoch for each variant. (d) Accuracy-efficiency
+trade-off analysis graph, with the shaded region in the lower-left
+corner representing the ideal area.
+
+图3-13展示了各模块消融实验对模型性能与效率的量化影响。在温度重建误差方面，图3-13(a)展示了移除不同模块均导致预测误差上升，其中去除ConvStem模块引起的误差增幅最为显著，表明该结构对模型表征能力具有关键作用。进一步通过精度退化分析，图3-13(b)可见ConvStem的缺失导致均方根误差上升31.1\%，远高于其他模块（SHPE、Gate、MultiScale与RCA对应的RMSE上升幅度分别为7.0\%、6.4\%、6.1\%与5.8\%），这进一步印证了ConvStem在特征提取阶段的核心地位。
+
+在训练效率方面，图3-13(c)显示了完整模型的训练耗时最长（477.8秒），而移除RCA模块后训练时间大幅缩短至190.6秒，降幅约60\%，说明RCA模块的计算复杂度较高，是训练过程的主要计算瓶颈。其余模块的移除亦带来不同程度的训练加速，反映出各组件均贡献了一定的计算负荷。图3-13(d)综合对比了各变体在测试集上的RMSE表现，完整模型取得了最优的预测精度（RMSE最低），而任一模块的消融均导致性能下降，表明各组件在模型中均承担不可替代的功能，其协同作用共同保障了模型的整体性能。
+
+消融实验揭示了架构间的协同效应，证明ConvStem对模型精度贡献最大，是维持高预测性能的关键组件；RCA模块则显著影响训练效率，其设计在精度与计算代价之间需加以权衡；其余组件（SHPE、Gate、MultiScale）虽单独移除时性能退化相对较小，但其协同作用对模型整体性能具有重要支持。该结果为后续模型轻量化与效率优化提供了明确的改进方向。
+
+\protect\phantomsection\label{_Toc1152069809}{}3.8 本章小节
+
+本章从不同的模型出来，分别叙述了对模型的理论研究和实验复现，全面探讨了RG-Transformer模型的结构特点与创新机制，包括逐层递归编码的Transformer子网络和跨层残差连接的应用，显著提升了模型的学习能力。通过多模型对比实验，系统评估了RG-Transformer在海表温度预测中的综合性能，结果显示该模型在训练效率、参数规模和预测精度方面均具有明显优势，尤其在短期和长期预测任务中表现出卓越的精度和稳定性。消融实验进一步揭示了递归广义自注意力机制、球谐波位置编码及多尺度残差连接层等核心组件对预测性能的独立贡献。
+
+\subsection{\texorpdfstring{
+全球三维海洋温度预报方法研究}{ 全球三维海洋温度预报方法研究}}\label{ux5168ux7403ux4e09ux7ef4ux6d77ux6d0bux6e29ux5ea6ux9884ux62a5ux65b9ux6cd5ux7814ux7a76}
+
+张春玲提出的传统温度参数模型仅适用于太平洋上层海域，而随机森林模型在全球范围内的三维海洋温度预测中存在预测精度不足的问题。在此基础上，本研究开展了针对传统温度参数模型、随机森林模型以及
+Unet-3D
+模型的海洋温度预报方法的系统性研究，旨在提高全球海洋温度预测的精度和广泛适用性。在传统温度参数模型、随机森林等机器学习方法以及ST-UNet等时空深度预测模型的基础上，本研究进一步构建了UNet
+3D重建模型海洋三维温度场反演的深度学习框架。该模型根据全球海表温度预测三维垂向的全球海洋温度，突破传统经验模型对参数化结构的依赖，为不同海域提供更具泛化性与物理一致性的温度反演能力。
+
+\protect\phantomsection\label{_Toc992953483}{}4.1 传统温度参数模型
+
+传统温度参数模型是20世纪末至21世纪初全球海洋三维温度场重构的核心技术手段，其核心逻辑是基于海洋温度垂直分布的物理规律，通过海表可观测参数（如SST）与次表层温度的经验统计关系，建立参数化表达式以实现从表层到深层的温度场反演。该类模型的发展源于早期海洋观测数据稀缺的现实条件------当时Argo浮标尚未形成全球覆盖、卫星遥感仅能获取海表信息，传统物理数值模型计算成本又过高，因此通过简化物理过程、提炼关键参数的经验模型，成为实现大尺度海洋温度场反演的可行路径。
+
+从技术演进来看，传统温度参数模型可分为``多参数结构模型''与``简化参数模型''两类。早期多参数模型以Chu等1997年提出的温度参数结构模型为代表，该模型首次系统构建了包含5个深度参数（如混合层深度、温跃层梯度深度）与海表温度等共10个参数的反演框架，通过迭代算法求解各参数最优值，进而刻画次表层温度的垂直结构。其创新点在于将温度随深度的变化拆解为``混合层均匀分布-温跃层梯度变化-深层缓慢递减''三个分段特征，每个特征通过独立参数控制，使模型能适配不同海域的温度垂直分布差异。例如，在热带太平洋海域，该模型通过调整温跃层梯度参数，可准确反映赤道附近强温跃层（深度20-100m）与副热带弱温跃层（深度200-300m）的区别。
+
+2002年后，模型向``简化参数、提升效率''方向发展。Fujii和Kamachi提出结合垂向耦合温度-盐度经验正交函数(EOF)的变分模型，将温盐剖面的复杂变化转化为少数几个EOF模态的线性组合，通过海面动力高度(SDH)与EOF系数的相关性，减少模型参数数量；2004年Yan等进一步引入三维变分分析(3D-VAR)思想，将海表温度、海面高度等观测数据作为约束条件，通过最小化观测值与模型模拟值的残差，优化次表层温度的垂向分布参数。这类模型的优势在于降低了对实测剖面数据的依赖，例如在印度洋缺少Argo浮标的区域，可通过卫星观测的SSH数据反演次表层温度，填补观测空白。
+
+针对太平洋等关键海域的区域化研究，进一步推动了模型的实用化。王喜冬等基于西北太平洋的实测数据，通过回归分析建立卫星SST、SSH与次表层各标准层温度的线性关系，构建日平均三维温度场反演模型，其核心是通过分区统计（如将太平洋按纬度分为热带、副热带、温带），优化不同区域的回归系数，使模型在中纬度海域的反演误差较全局统一模型降低15\%-20\%；张阳等则利用2005-2009年Argo数据，提取各标准层温度剖面的梯度特征，构建分段三次多项式模型，通过温度梯度拐点确定混合层深度，该方法在温带海域温跃层位置反演中，精度可达±10m。
+
+张春玲提出的简化次表层温度参数模型，是传统方法中应用最广泛的成果之一。该模型仅以海表温度、混合层深度两个核心参数为输入，通过``最大角度法''识别温跃层顶部（温度梯度最大处），再以指数函数拟合温跃层以下的温度衰减规律，其表达式可简化为：
+
+\[T(z) = \{\begin{matrix}
+T_{0} & z \leq h_{m} \\
+T_{0} - k \cdot (z - h_{m})^{\alpha} & z > h_{m}
+\end{matrix}\]
+
+其中，\(T_{0}\)为海表温度，\(h_{m}\)为混合层深度，\(k\)为温跃层温度衰减系数，\(\alpha\)为衰减指数（通过区域实测数据校准）。该模型的优势在于计算效率高，仅需卫星SST数据即可反演上层200m温度场，且在太平洋月平均温度反演中，与实测Argo数据的均方根误差(RMSE)可控制在1.0-1.5℃，满足气候态分析的需求。
+
+然而，传统温度参数模型的局限性也较为显著。其一，物理机制简化导致适应性受限------模型依赖的经验参数（如衰减系数\(k\)）多基于特定海域、特定季节的数据校准，当应用于其他区域（如高纬度海域）或遭遇极端气候事件（如强厄尔尼诺）时，参数适用性下降，反演误差可能扩大至2.0℃以上；其二，难以捕捉中尺度动力过程的影响，例如中尺度涡导致的局部温度异常（涡旋中心与边缘温差可达3-5℃），由于模型未考虑涡旋动力对温度垂直分布的调制，无法准确反演这类小尺度特征；其三，对深层温度(\textgreater1000m)的反演能力薄弱，多数模型仅能覆盖上层500m或1000m，且深层温度反演依赖固定的衰减规律，与实际海洋深层热结构的偏差较大。
+
+\includegraphics[width=3.74722in,height=2.57778in,alt={图片1}]{./images/media/image21.png}
+
+图4-1
+基于传统温度参数模型与一维线性插值的2024年6月全球三维海洋温度场预测图
+
+Figure 4-1 A prediction map of the global three-dimensional ocean
+temperature field in June 2024 based on traditional temperature
+parameter models and one-dimensional linear interpolation
+
+图4-1通过网格数据和一维线性插值方法在垂直方向上的数据插值过程。插值间隔设定为5米，旨在实现数据的高效重采样。插值后的数据经过归一化处理，以便在统一尺度下进行比较与分析。最终，基于这些插值结果，形成了三维网格图，反映了数据在空间中的分布变化。
+
+尽管传统温度参数模型在当前高精度预测任务中逐渐被机器学习模型替代，但其奠定的``海表参数-次表层温度关联''研究思路，为后续多源数据融合与智能模型构建提供了重要参考------例如，现代深度学习模型中对``混合层深度''等物理参数的引入，本质上是对传统模型物理先验知识的继承与优化。
+
+\protect\phantomsection\label{_Hlk162229635}{}
+
+4.3 UNet-3D模型
+
+UNet-3D模型将UNet在空间特征提取方面的优势与LSTM在时序建模中的能力相结合，能够有效应用于海表温度时序预测不仅能够处理空间维度的特征信息，还能够沿着时间域处理特征信息。这种3D结构使得卷积层中的特征图能够与上一层的多个时间序列连接，从而获得其特征信息，表达式如下：
+
+\[\text{v}_{\text{i j}}^{\text{x y z}}\text{=tanh(}\text{b}_{\text{ij}}\text{+}\sum_{\text{m}}^{}{\sum_{\text{p=0}}^{\text{P}_{\text{i}}\text{−1}}{\sum_{\text{q=0}}^{\text{Q}_{\text{i}}\text{−1}}{\sum_{\text{r=0}}^{\text{R}_{\text{i}}\text{−1}}\text{ω}_{\text{ijm}}^{\text{pqr}}}}}\text{v}_{\text{(i−1)m}}^{\text{(x+p)(y+q)(z+r)}}\text{)}\]
+
+通过应用多维卷积计算，UNet-3D模型可以识别复杂的相关性，并提取多个变量的特征信息。为平衡计算效率与特征表达能力，UNet-3D模型采用编码器-解码器结构，编码器部分通过堆叠的3D卷积层和下采样操作（如步长为2的3D最大池化），逐步压缩时空分辨率并提取高层语义特征（如大尺度海洋环流模式）；解码器部分则通过3D转置卷积（或上采样+3D卷积）逐步恢复空间分辨率，同时通过跳跃连接（skip
+connection）融合编码器对应层级的低级特征（如局部温度异常），避免细节信息丢失。例如，在编码器的第3层（分辨率降至原始1/8），模型可能捕捉到副热带高压影响下的区域性升温趋势，而解码器通过跳跃连接引入编码器第1层的原始SST细节（如沿岸上升流导致的冷斑），最终生成精细的三维温度场重建结果（0-2000m垂向分层，分辨率1°×1°×50m）。
+
+\includegraphics[width=3.68056in,height=5.72153in,alt={图片15}]{./images/media/image22.png}
+
+图4-2 三维温度反演的技术流程图
+
+Figure 4-2 Flowchart of 3D temperature inversion
+
+在3维反演的技术架构中，首先将Argo数据拆分为Argo海表和移除海表的剖面温度数据两个数据集，以Argo海表作为输入集，剖面温度作为输出集进行模型训练，这是整体框架。在UNet-3D的训练中，数据会通过UNet-3D单元后，输出预测结果，然后对输出的剖面温度进行高精度插值，最高的从插值精度可以达到0.2米每层。
+
+表4-1 UNet-3D模型的主要参数
+
+Tab. 4-1 Key Parameters of the UNet-3D Model
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\centering\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1765}}
+  >{\centering\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1568}}
+  >{\centering\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
+  >{\centering\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
+  >{\centering\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}
+  >{\centering\arraybackslash}p{(\linewidth - 10\tabcolsep) * \real{0.1667}}@{}}
+\toprule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+参数 & 含义 & 数值 & 参数 & 含义 & 数值 \\
+n\_depth & 输出深度层数 & 58 & learning\_rate & 学习率 & 1e-3 \\
+base\_channels & 基础通道数 & 160 & optimizer & 优化器 & AdamW \\
+kernel\_size & 卷积核大小 & 3 & beta1 & Adam 动量参数1 & 0.9 \\
+padding & 卷积填充 & 1 & beta2 & Adam~动量参数2 & 0.999 \\
+bilinear & 双线性上采样 & False & weight\_decay & 权重衰减 & 0.01 \\
+encoder\_layers & 编码器层数 & 4 & scheduler & 学习率调度器 &
+CosineAnnealingLR \\
+decoder\_layers & 解码器层数 & 4 & eta\_min & 最小学习率 & 1e-6 \\
+epochs & 最大训练轮数 & 100 & patience & 早停耐心值 & 50 \\
+batch\_size & 批大小 & 8 & loss\_function & 损失函数 & MSE \\
+\end{longtable}
+}
+
+该Unet-3D模型技术路线图围绕时空序列预测任务展开，以多维度张量（维度含空间
+\(\text{(w,h)}\)、深度 \(\text{d}\)）为核心数据载体。输入源数据
+\(\text{S}_{\text{(w,h)}}\)
+经Pre-Patched模块进行预处理（如分块、特征编码），随后送入Unet-3D
+Cell------该核心单元通过三维U-Net的编码-解码结构捕捉时空域的多尺度特征依赖，输出预测张量
+\(\text{P}_{\text{(w,h,d−1)}}\) 模型引入RMSE Loss，将预测张量
+\(\text{P}_{\text{(w,h,d−1)}}\) 与历史观测张量
+\(\text{O}_{\text{(w,h,d−1)}}\)
+进行误差约束以优化模型参数。经插值操作（如插值系数0.2）对预测结果进行精细化处理，生成与目标张量
+\(\text{O}_{\text{(w,h,d)}}\) 维度匹配的结果。
+
+本研究在网络架构层面，模型以双卷积块为基础单元，通过连续的3×3卷积操作配合批归一化与ReLU激活函数，对局部温度场空间模式既避免了梯度消失问题，又通过非线性变换增强了模型对复杂海洋现象的表达能力。编码阶段通过下采样模块操作逐级压缩空间维度，同步将特征通道扩展16倍。在压缩冗余信息的同时，不断聚合更大范围的空间关联特征。解码阶段则通过上采样模块的双线性插值实现分辨率的提升，最终通过1×1卷积将特征通道精准映射为目标深度层数，输出维度为{[}batch,
+depth, height, width{]}的三维温度场张量。
+
+在训练策略上，本研究模型采用Xavier初始化方法优化参数分布，使各层梯度传递更为均衡；选择AdamW优化器学习率调度，既通过权重衰减抑制过拟合，又通过学习率的周期性调整实现全局最优解的高效搜索；验证过程中同步监测MAE、RMSE等多维度指标，全面刻画模型在不同深度层、不同海域的重建精度。该架构凭借对海洋数据特性的深度适配突破了传统插值方法的限制，最终构建了从二维海表观测到三维温度场的端到端映射。
+
+在随机森林与UNet-3D模型的性能对比中，研究发现二者在温度反演精度及适应性方面存在显著差异。随机森林模型凭借其非线性建模能力，在数据密度较高的区域（如Argo浮标密集覆盖的中纬度海域）表现出色，其月平均温度反演的均方根误差（RMSE）可控制在0.8～1.2℃范围内，特别是在温跃层位置的识别上，通过融合温跃层梯度等物理先验特征，误差较传统参数模型降低30\%以上；然而，在数据稀疏的高纬度海域（如北冰洋）应用时，由于Bootstrap重采样依赖于充足的样本量，其反演误差增大至2.0～2.5℃，且对深层温度（\textgreater1000m）的反演能力受限于决策树深度，难以捕捉深层热结构的细微变化。
+
+\includegraphics[width=3.08403in,height=2.44097in]{./images/media/image23.png}
+
+图4-3 2024年3月的三维温度场反演结果和误差
+
+Figure 4-3 Three-dimensional temperature field inversion results and
+errors in May 2025
+
+UNet-3D模型则展现出更强的时空泛化能力。在热带大西洋海域，其通过三维卷积捕捉的海洋环流模式（如北大西洋副热带环流）与温度场的关联，使上层500m温度反演的RMSE低至0.6～0.9℃，且在温跃层深度预测中，通过跳跃连接融合的低级特征（如SST局部异常）将误差控制在±8m以内；更关键的是，该模型对数据稀疏区域的适应性显著优于随机森林------在北冰洋边缘海域，通过掩码处理机制排除陆地干扰后，其利用编码器提取的大尺度环流特征（如波弗特环流）与解码器恢复的局部细节（如沿岸锋面），使反演误差较随机森林降低40\%，达到1.2～1.5℃；此外，UNet-3D的端到端架构使其在深层温度反演中表现优异，通过解码器逐步恢复的垂向分辨率（50m层间隔），在1000～2000m深层的温度衰减规律预测中，与实测Argo数据的偏差较传统参数模型缩小50\%，仅0.3～0.5℃。
+
+进一步分析二者的计算效率与资源消耗，随机森林因需构建数百棵决策树（实验中设K=300），其训练阶段耗时较长（约12小时/海域），但预测阶段单点计算仅需0.02秒，适合实时反演任务；UNet-3D模型虽训练阶段需迭代优化百万级参数（约3.2M），耗时约24小时，但预测阶段通过GPU加速可实现全海域（1°×1°网格）同步计算，单次推理仅需1.5秒，更适用于大规模气候模拟场景。值得注意的是，UNet-3D的3D卷积操作对显存要求较高（研究中使用NVIDIA
+A100
+40GB），而随机森林的轻量化特性使其可在CPU环境中部署，二者在资源受限场景下的适用性形成互补。
+
+为了完全解释模型在三维反演中的各项能力指标，本研究对模型的各个结构的运作做了详细的可视化表现。首先是编码和解码器作为最核心的部分，编码器和解码器的设计直接决定了模型在特征捕捉上的能力，如图4-3所示：
+
+\includegraphics[width=6.11597in,height=3.76319in,alt={Figure2\_FeatureMaps}]{./images/media/image24.png}
+
+图4-4 UNet-3D模型编-解码流程可视化
+。图(a)展示了全球海表温度场的原始数据分布;图(b)为Unet-3D模型的初始特征提取层，该层负责从原始海表温度数据中提取初步的空间特征;图(c)为模型中的编码下采样层，该层通过逐步减少输入数据的空间分辨率，提取更加抽象的特征;图(d);图(e);图(f)所示的层为瓶颈层，位于网络的编码部分和解码部分之间，用于压缩特征信息并提取数据中的核心表示;图(g-j)展示了解码器中的上采样层，该层通过逐步恢复编码阶段压缩后的特征的空间分辨率，实现对输入数据的高层语义特征向原始空间尺度的映射;图(k)
+
+Figure 4-4 Visualization of the encoding and decoding process of UNet-3D
+model (a) shows the distribution of the original global sea surface
+temperature (SST) field data; (b) represents the initial feature
+extraction layer of the Unet-3D model, which is responsible for
+extracting preliminary spatial features from the original SST data; (c)
+corresponds to the encoding downsampling layer in the model, which
+progressively reduces the spatial resolution of the input data to
+extract more abstract features; (d), (e), and (f) represent the
+bottleneck layers, located between the encoding and decoding parts of
+the network, which compress feature information and extract the core
+representations from the data; (g-j) show the upsampling layers in the
+decoder, which progressively restore the spatial resolution of the
+features compressed during the encoding phase, mapping the high-level
+semantic features of the input data back to the original spatial scale;
+(k) represents the output layer
+
+在UNet-3D模型编-解码的可视化流程中，图（a）是原始的SST温度场，可以看出热带暖池和位于西太平洋和印度洋的高温区，平均温度大于28°C，赤道冷舌位于东太平洋的低温带等明显的气候特征。图（b）是初始特征提取层，开始捕捉局部温度梯度和锋面边界。保持完整空间分辨率，为后续深层特征提取奠定基础。图（c）是编码下采样层，随着网络深度的增加，空间分辨率由H逐渐递减到
+H/16，通道数量由64逐渐递增至1024，因此特征抽象的程度也从局部梯度到中尺度结构再到盆地尺度的模态。同时，图（f）所示的层为瓶颈层，其1024通道的高维特征空间编码了海表温度与次表层温度分布之间的内在物理关联。图（g-j）为解码器上采样层，这些解码层逐步重建空间细节，通过融合跳跃连接传递的高分辨率特征，从抽象语义信息恢复物理温度场，使中尺度海洋结构逐渐清晰化。最后，经过（k）层的输出层，1×1卷积将64通道特征映射到10个深度层的温度预测，完成从二维表面观测到三维温度场的重建。
+
+在研究中，还发现跳跃连接层对温度场重建非常重要，其在保留空间细节方面有巨大的贡献。
+
+\includegraphics[width=6.01597in,height=1.96806in,alt={Figure3\_SkipConnections}]{./images/media/image25.png}
+
+图4-5
+UNet-3D模型跳跃连接层的作用。图a-e为神经网络的架构包含了跳跃连接层，得到不同深度层海水温度分布
+图(a)全球海表温度分布图;图(b)全球50米深度层海水温度空间分布图;图(c)全球150米深度层海水温度空间分布图;图(d)全球400米深度层海水温度空间分布图;图(e)全球900米深度层海水温度空间分布图。图(f-j)为神经网络的架构不包含跳跃连接层，得到不同深度层海水温度分布图，图(f)全球海表温度分布图;图(g)全球50米深度层海水温度空间分布图;图(h)全球150米深度层海水温度空间分布图;图(i)全球400米深度层海水温度空间分布图;图(j)全球900米深度层海水温度空间分布图
+
+Figure 4-5 The Function of the Skip Connection Layer in the UNet-3D
+Model,Figures a-e are neural network architectures that include skip
+connections, yielding seawater temperature distributions at different
+depth layers: (a) global sea surface temperature distribution map; (b)
+global seawater temperature spatial distribution map at 50-meter depth
+layer; (c) global seawater temperature spatial distribution map at
+150-meter depth layer; (d) global seawater temperature spatial
+distribution map at 400-meter depth layer; (e) global seawater
+temperature spatial distribution map at 900-meter depth layer. Figures
+f-j are neural network architectures that do not include skip
+connections, yielding seawater temperature distributions at different
+depth layers: (f) global sea surface temperature distribution map; (g)
+global seawater temperature spatial distribution map at 50-meter depth
+layer; (h) global seawater temperature spatial distribution map at
+150-meter depth layer; (i) global seawater temperature spatial
+distribution map at 400-meter depth layer; (j) global seawater
+temperature spatial distribution map at 900-meter depth layer.
+
+从图4-5的(a-e)中各深度层的温度分布可以看出，跳跃连接层能够保持海洋锋面的锐利边界，使得重建中尺度涡旋的精细结构得以保留，同时保留小尺度的温度变化，在次表层与表层分离时，也能保持空间模态的一致性，在温跃层深度的温度分布也能满足倾斜等密度面对应的热力学结构。因此，跳跃连接是UNet架构成功应用于海洋温度场重建的核心机制。它解决了深度网络中的"信息瓶颈"问题，确保表面观测约束能够有效传递到各深度层的重建中。
+
+之后是在预测过程中使用的空值控制流程，如图4-5所示：
+
+\includegraphics[width=6.19236in,height=0.9375in,alt={Figure4\_NaNHandling}]{./images/media/image26.png}
+
+图4-6
+UNet-3D模型中的空值控制流程图。图(a)掩膜处理后全球海表温度空间分布图（陆地格点为NaN）；图(b)基于NaN值的陆地掩膜图（白色区域为陆地块）；图(c)零值填充预处理后的数据场分布图；图(d)模型原始输出图；图(e)陆地区域复原后的最终输出图
+
+Figure 4-6 Control Flow of Empty Values in UNet-3D Model (a) Spatially
+distributed global sea surface temperature map after masking (land
+pixels set to NaN);(b) Land mask based on NaN values (white area
+represents land);(c) Data field distribution map after zero‑fill
+preprocessing;(d) Raw model output map;(e) Final output map after land
+region restoration.
+
+原始海表温度数据，陆地区域为NaN值（未定义），这是标准的网格化海洋数据格式，温度值仅在海洋区域有效，将NaN替换为0进行前向传播。零填充对海洋特征影响有限，因为陆地区域与海洋空间分离的特征使得卷积操作的局部性限制了陆地影响的传播，同时模型学习忽略零值区域的贡献，使最终输出能够得到有效的海洋温度。
+
+最后，为了更直观的体现模型从二维海表到三维场的垂直重建效果，研究选取了不同的观测点进行分析，如图4-6所示：
+
+\includegraphics[width=6.22153in,height=2.64097in,alt={Figure5\_VerticalReconstruction}]{./images/media/image27.png}
+
+图4-7
+UNet-3D模型中的三维海洋场重建。图(a)输入全球海表（0米）温度分布图；图(b)全球海表（0米）温度分布图；图(c)全球100米温度分布图；图(d)全球600米温度分布图；图(e)全球1500米温度分布图；图(f)沿赤道（0°N）的垂直剖面结构图；图(g)沿0°经线（本初子午线）的经向垂直剖面图
+
+Figure 4-7 Control Flow of Empty Values in UNet-3D Model,(a) Input
+global sea surface (0\,m) temperature distribution map;(b) Global sea
+surface (0\,m) temperature distribution map;(c) Global temperature
+distribution map at 100\,m depth;(d) Global temperature distribution map
+at 600\,m depth;(e) Global temperature distribution map at 1500\,m
+depth;(f) Vertical-section structure along the Equator (0°N);(g)
+Meridional vertical section along the Prime Meridian (0°\,longitude).
+
+\protect\phantomsection\label{_Toc1895955379}{}4.2 随机森林模型
+
+随机森林（Random Forest, RF）是 21
+世纪初在海洋温度场反演领域快速崛起的机器学习方法，其核心逻辑是通过集成多棵决策树的预测结果，降低单一模型的过拟合风险，同时利用非线性建模能力捕捉海表观测参数（如
+SST、SSH）与次表层温度间复杂的统计关联。该模型的发展源于传统温度参数模型的局限性------当海洋观测数据从
+``稀缺'' 向 ``海量'' 转变（如 Argo
+浮标全球覆盖、卫星遥感高频观测），传统经验参数模型难以处理多源数据的高维特征与非线性关系，而随机森林凭借对高维数据的适应性、抗噪声能力及物理先验知识的兼容性，成为连接多源观测与三维温度场反演的关键技术路径。
+
+随机森林模型核心原理是基于 ``Bootstrap 重采样'' 与 ``特征随机选择''
+的集成学习框架，在海洋温度反演中，其结构设计需结合海洋数据的时空特性进行针对性优化。以全球海域为研究区域时，样本单元通常定义为``时空网格点-深度层''的组合：横向覆盖1°×1°或0.25°×0.25°经纬度网格，纵向包含0-2000m
+深度的58个标准层（如 Argo
+浮标观测的标准深度），时间维度以月为单位构建连续序列。输入特征需融合多源数据的互补信息，典型特征集包括：时空辅助特征：经纬度坐标、月份编码（捕捉季节周期）；物理先验特征：基于传统温度参数模型提取的温跃层梯度、深层温度衰减系数等，增强模型的物理可解释性。
+
+输出变量为对应网格点、对应深度层的月平均温度值，通过Argo浮标实测剖面数据与ERA5同化数据的匹配实现标签标注。模型通过Bootstrap方法从原始数据集中随机抽取N个样本子集（样本量通常为总样本的70\%-80\%），为每个子集构建一棵CART决策树；在每棵树的节点分裂时，仅从总特征数的√p（p为总特征数）个随机特征中选择最优分裂特征，避免单一优势特征（如SST）主导所有树的结构。最终预测时，回归任务采用所有决策树预测结果的均值作为输出，公式可表示为：
+
+\[\text{T}_{\text{pred}}\left( \text{x,y,z,t} \right)\text{=}\frac{\text{1}}{\text{K}}\sum_{\text{k=1}}^{\text{K}}{\text{f}_{\text{k}}\left( \text{x,y,z,t;}\text{Θ}_{\text{k}} \right)}\]
+
+其中，\(T_{pred}(x,y,z,t)\)为（x 经度，y 纬度，z 深度，t
+时间）网格点的预测温度，K为决策树数量（通常设为 100-500
+棵），\(f_{k}\)为第k棵决策树的预测函数，\(\Theta_{k}\)为第k棵树的参数（分裂阈值、节点特征等）。针对海洋数据的特殊性，需进行两项关键优化：其一，处理数据稀疏性
+------
+对高纬度、深海等观测稀缺区域，通过邻域网格特征插值与气候态背景场补充，避免样本偏差；其二，解决类别不平衡。对温跃层等温度梯度大的关键层，采用样本加权策略，提升模型对关键层温度变化的捕捉能力。针对海洋数据的特殊性，需进行两项关键优化：其一，处理数据稀疏性
+------
+对高纬度、深海等观测稀缺区域，通过邻域网格特征插值与气候态背景场补充，避免样本偏差；其二，解决类别不平衡
+------
+对温跃层等温度梯度大的关键层，采用样本加权策略，提升模型对关键层温度变化的捕捉能力。
+
+\protect\phantomsection\label{_Toc959700667}{}4.4方法比较分析
+
+从温跃层的剖面可以看出，海水温度呈现出强烈的上升流信号，垂直温度梯度可达0.2°C/m，而不同深度（b-e）的重建结果显示，表层（0m）与输入SST高度吻合，随深度增加（100m
+至
+1500m），温度逐渐与表层分离并呈现层化结构，热带暖水``透镜体''向下延伸、高纬度深层对流则导致弱层化。第二行的垂直剖面进一步揭示了海洋热结构的空间异质性：赤道剖面（f）中，西太平洋暖池的温跃层深达
+200m 以下，而东太平洋冷舌的温跃层抬升至 50m
+以浅，同时呈现出太平洋、大西洋和印度洋因环流与上升流差异形成的温跃层深度与温度梯度特征；经向剖面（g）（0°
+经度）则显示，热带区域存在强烈的温跃层与垂直温度梯度，副热带涡旋区因
+Ekman
+输送出现温跃层下压，亚极地海域温跃层减弱，南大洋则表现出深层水上升混合与绕极流驱动的等密度面倾斜，整体体现了模型对不同海域垂直热结构（包括混合层、温跃层及深层水）的精准重建能力。下面图4-7为不同模型的预测结果：
+
+\includegraphics[width=4.13889in,height=3.29792in,alt={3维模型对比}]{./images/media/image28.png}
+
+图4-8 不同模型的预测结果对比
+
+Figure 4-8 Comparison of prediction results of different models
+
+从三个模型的预测结果来看，张春玲的温度参数模型和随机森林模型的预测能力相差不多，在100m以上的混合层，图像高度重叠，在100以下，随机森林的预测能力更近一步，原因是随机温度参数模型在次表层以下的物理公式是线性的，而随机森林能够学习到更高阶的参数；与UNet-3D相比，前两个模型的预测能力只能是入门了，UNet-3D的模型结构有更大的优势，参数学习能力更强，泛化能力也更强，几乎是全阶段的优于前两者。这些结果充分证明了UNet-3D模型在全球不同海域对三维海洋温度场垂直结构重建的有效性和可靠性。
+
+\includegraphics[width=4.62153in,height=4.54792in,alt={C:/Users/justg/Pictures/模型对比.png模型对比}]{./images/media/image29.png}
+
+图4-9 不同模型在2025年6月的预测结果对比图
+图(a)Argo原始数据全球三维海洋温度模型图；图(b)基于温度参数模型的全球三维海洋温度预测结果图；图(c)基于随机森林模型的全球三维海洋温度预测结果图；图(d)基于UNet-3D模型的全球三维海洋温度的预测结果图
+
+Figure 4-9Comparative Chart of Prediction Results from Different Models
+for June 2025 Figure (a) Global 3D ocean temperature model based on
+original Argo data; Figure (b) Global 3D ocean temperature prediction
+results based on the temperature parameter model; Figure (c) Global 3D
+ocean temperature prediction results based on the random forest model;
+Figure (d) Global 3D ocean temperature prediction results based on the
+UNet-3D model.
+
+本研究采用滚动预测框架，基于predict方法实现多步温度场预测。具体实现步骤如下：首先，根据预设的时间偏移量（offset）确定预测时段，并构建相应的数据加载器以输入观测序列；随后，将输入序列送入UNet-3D模型，输出对应时段的温度场预测结果；最后，通过对比预测值与实际观测值，计算预测偏差。误差评估采用均方根误差（RMSE）和决定系数（R²）作为主要指标。从表1所示的垂直剖面RMSE分布可以看出，三种模型的预测精度随深度呈现显著差异。传统温度参数模型和随机森林（RF）模型在表层（0-10
+m）表现出较高的预测精度，RMSE分别低于0.3°C，但随深度增加误差急剧上升，至50
+m深度时RMSE已达2.0°C以上，误差增长倍数超过200倍。相比之下，UNet-3D模型在整层水体中均保持相对稳定的预测性能，表层RMSE为0.255°C，至50
+m深度仅增至0.853°C，增长倍数仅为3.3倍。这一差异表明UNet-3D模型在捕捉海洋温度垂直结构方面具有明显优势，特别是在温跃层（20-50
+m）区域，其RMSE值较其他两种模型降低约50\%-60\%。深层预测能力的差异可能源于UNet-3D的三维卷积结构能够更好地提取温度场的空间相关性特征。
+
+基于RMSE数据进一步估算各深度层的平均绝对偏差（MAE）和误差标准差（表2）。在混合层（0-20
+m），三种模型的MAE均低于0.4°C，但进入温跃层后，传统温度参数模型和RF模型的偏差迅速增大至1.8°C（40-50
+m），而UNet-3D模型的偏差仅增至0.8°C。误差的标准差分析显示，UNet-3D模型的误差分布更为集中，变异系数较小，表明其预测结果具有更好的稳定性。从空间分布特征来看，使用plot\_sst\_diff()函数绘制预测误差的空间分布图，该函数以经纬度网格为基础，以热力图的形式直观展示预测值与真实值之间的差异，并使用颜色梯度表示误差大小。传统温度参数模型和RF模型在某些特定海域（如锋面区域和涡旋边缘）存在明显的误差热点，而UNet-3D模型的误差分布则相对均匀，这与其三维卷积结构能够有效捕捉海洋过程的时空关联性密切相关。
+
+滚动预测中不同时间偏移量（offset）的测试结果表明，UNet-3D模型在短期和长期预测中均表现出良好的泛化能力，验证集与训练集的误差增长趋势基本一致。相反，传统温度参数模型和RF模型在验证集上的误差显著高于训练集，尤其在深层区域可能存在过拟合现象。
+
+表 4.2. 当Epoch = 200, T = 2时，不同模型的性能和精度
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1583}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1096}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1234}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1341}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1492}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1629}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1625}}@{}}
+\toprule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\multirow{2}{=}{\centering\arraybackslash \textbf{Model}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.2330} + 2\tabcolsep}}{%
+\textbf{Trainer}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.2833} + 2\tabcolsep}}{%
+\textbf{Dataset}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.3254} + 2\tabcolsep}@{}}{%
+\textbf{RMSE}} \\
+& Epoch & Time & T/month & Params/M & RMSE(T)/℃ & RMSE(P)/℃ \\
+温度参数模型 & \multirow{3}{=}{\centering\arraybackslash 200} & 25m17s &
+\multirow{3}{=}{\centering\arraybackslash 2} & 44.9 & 1.72 & 1.47 \\
+随机森林模型 & & 27m15s & & 207.1 & 0.69 & 0.88 \\
+UNet-3D & & 44m53s & & 68.4 & 0.56 & 0.53 \\
+\end{longtable}
+}
+
+表 4.3. 当Epoch = 500, T = 2时，不同模型的性能和精度
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1581}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.0970}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1433}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1320}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1479}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1608}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1609}}@{}}
+\toprule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\multirow{2}{=}{\centering\arraybackslash \textbf{Model}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.2403} + 2\tabcolsep}}{%
+\textbf{Trainer}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.2799} + 2\tabcolsep}}{%
+\textbf{Dataset}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.3217} + 2\tabcolsep}@{}}{%
+\textbf{RMSE}} \\
+& Epoch & Time & T/month & Params/M & RMSE(T)/℃ & RMSE(P)/℃ \\
+温度参数模型 & \multirow{3}{=}{\centering\arraybackslash 500} & 52m32s &
+\multirow{3}{=}{\centering\arraybackslash 2} & 44.9 & 1.65 & 1.58 \\
+随机森林模型 & & 1h12m30s & & 207.1 & 0.62 & 0.66 \\
+UNet-3D & & 1h40m42s & & 68.4 & 0.53 & 0.53 \\
+\end{longtable}
+}
+
+表 4.4. 当Epoch = 500, T = 6时，不同模型的性能和精度
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1583}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.0972}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1433}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1322}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1470}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1610}}
+  >{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.1609}}@{}}
+\toprule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+\multirow{2}{=}{\centering\arraybackslash \textbf{Model}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.2405} + 2\tabcolsep}}{%
+\textbf{Trainer}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.2792} + 2\tabcolsep}}{%
+\textbf{Dataset}} &
+\multicolumn{2}{>{\centering\arraybackslash}p{(\linewidth - 12\tabcolsep) * \real{0.3220} + 2\tabcolsep}@{}}{%
+\textbf{RMSE}} \\
+& Epoch & Time & T/month & Params/M & RMSE(T)/℃ & RMSE(P)/℃ \\
+温度参数模型 & \multirow{3}{=}{\centering\arraybackslash 500} & 1h13m34s
+& \multirow{3}{=}{\centering\arraybackslash 6} & 44.9 & 1.47 & 1.32 \\
+随机森林模型 & & 1h43m14s & & 207.1 & 1.04 & 1.07 \\
+UNet-3D & & 2h45m22s & & 68.4 & 0.73 & 0.74 \\
+\end{longtable}
+}
+
+未来研究应从以下方面进一步改进模型性能：增加深层温度观测数据的样本多样性，特别是在温度梯度变化显著的温跃层区域；优化模型架构以增强对垂直温度结构的表征能力，如引入注意力机制或物理约束项；探索多模型融合策略，结合不同模型的优势以提升整体预测精度。这些改进措施有望进一步提高海洋温度垂直剖面预测的准确性和实用性。
+
+\protect\phantomsection\label{_Toc215191079}{}4.5本章小结
+
+本章针对海洋温度场预测中随机森林与UNet-3D模型的应用进行了深入探讨。首先，本研究详细阐述了随机森林模型的核心原理与结构设计，该模型基于``Bootstrap重采样''与``特征随机选择''的集成学习框架，针对海洋数据的时空特性进行了优化。在样本单元的定义上，本研究采用了``时空网格点-深度层''的组合方式，并结合了多源数据的互补信息，构建了包含时空辅助特征与物理先验特征的典型特征集。通过Argo浮标实测剖面数据与ERA5同化数据的匹配，实现了标签的标注。模型的预测过程采用了所有决策树预测结果的均值作为输出，有效降低了过拟合风险，并利用非线性建模能力捕捉海表观测参数与次表层温度间的复杂统计关联。
+
+接着，本研究介绍了UNet-3D模型的技术特点，该模型不仅能够处理空间维度的特征信息，还能沿时间域处理特征信息。UNet-3D模型采用了编码器-解码器结构，通过多维卷积计算识别复杂的相关性，并提取多个变量的特征信息。模型通过跳跃连接融合编码器对应层级的低级特征，避免了细节信息的丢失。此外，本研究还构建了掩码处理机制，以应对海洋数据中陆地区域NaN值的问题。
+
+在方法对比及结果分析部分，研究发现随机森林模型在数据密度较高的区域表现出色，但在数据稀疏的高纬度海域和深层温度反演中存在局限。UNet-3D模型则展现出更强的时空泛化能力，尤其在数据稀疏区域和深层温度反演中表现优异。在计算效率与资源消耗方面，随机森林适合实时反演任务，而UNet-3D更适用于大规模气候模拟场景。综合来看，随机森林与UNet-3D模型在海洋温度场反演中形成了互补的技术路径，为多源数据融合与智能模型优化提供了重要参考。
+
+\textbf{表 4.4. 不同模型在0～2000m深度的预测精度}
+
+{\def\LTcaptype{none} % do not increment counter
+\begin{longtable}[]{@{}
+  >{\centering\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2439}}
+  >{\centering\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.3689}}
+  >{\centering\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.2082}}
+  >{\centering\arraybackslash}p{(\linewidth - 6\tabcolsep) * \real{0.1790}}@{}}
+\toprule\noalign{}
+\begin{minipage}[b]{\linewidth}\centering
+深度(m)
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+THERMOCLINE
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+UNET3D
+\end{minipage} & \begin{minipage}[b]{\linewidth}\centering
+RF
+\end{minipage} \\
+\midrule\noalign{}
+\endhead
+\bottomrule\noalign{}
+\endlastfoot
+0 & 0.000 & 0.208 & 0.004 \\
+5 & 0.270 & 0.312 & 0.271 \\
+10 & 0.292 & 0.318 & 0.292 \\
+20 & 0.550 & 0.426 & 0.550 \\
+30 & 1.041 & 0.613 & 1.044 \\
+40 & 1.559 & 0.748 & 1.565 \\
+50 & 2.007 & 0.836 & 2.015 \\
+60 & 2.360 & 0.895 & 2.368 \\
+70 & 2.624 & 0.925 & 2.632 \\
+80 & 2.818 & 0.944 & 2.823 \\
+90 & 2.957 & 0.948 & 2.956 \\
+100 & 3.054 & 0.947 & 3.042 \\
+110 & 3.117 & 0.939 & 3.093 \\
+120 & 3.158 & 0.927 & 3.117 \\
+130 & 3.178 & 0.914 & 3.118 \\
+140 & 3.179 & 0.900 & 3.098 \\
+150 & 3.166 & 0.883 & 3.064 \\
+160 & 3.143 & 0.865 & 3.019 \\
+170 & 3.111 & 0.840 & 2.965 \\
+180 & 3.075 & 0.811 & 2.907 \\
+200 & 3.001 & 0.755 & 2.793 \\
+220 & 2.930 & 0.709 & 2.688 \\
+240 & 2.859 & 0.677 & 2.592 \\
+260 & 2.788 & 0.650 & 2.505 \\
+280 & 2.721 & 0.631 & 2.427 \\
+300 & 2.657 & 0.613 & 2.358 \\
+320 & 2.600 & 0.600 & 2.299 \\
+340 & 2.547 & 0.587 & 2.250 \\
+360 & 2.500 & 0.576 & 2.209 \\
+380 & 2.458 & 0.569 & 2.174 \\
+400 & 2.420 & 0.558 & 2.145 \\
+420 & 2.385 & 0.547 & 2.120 \\
+440 & 2.353 & 0.535 & 2.097 \\
+460 & 2.324 & 0.521 & 2.077 \\
+500 & 2.267 & 0.492 & 2.037 \\
+550 & 2.199 & 0.468 & 1.988 \\
+600 & 2.126 & 0.437 & 1.934 \\
+650 & 2.047 & 0.410 & 1.871 \\
+700 & 1.959 & 0.384 & 1.799 \\
+750 & 1.866 & 0.360 & 1.719 \\
+800 & 1.768 & 0.337 & 1.635 \\
+850 & 1.668 & 0.315 & 1.549 \\
+900 & 1.568 & 0.293 & 1.464 \\
+950 & 1.483 & 0.268 & 1.393 \\
+1000 & 1.407 & 0.245 & 1.331 \\
+1050 & 1.335 & 0.224 & 1.271 \\
+1100 & 1.267 & 0.205 & 1.212 \\
+1150 & 1.222 & 0.188 & 1.175 \\
+1200 & 1.188 & 0.179 & 1.146 \\
+1250 & 1.157 & 0.169 & 1.119 \\
+1300 & 1.120 & 0.166 & 1.085 \\
+1400 & 1.069 & 0.151 & 1.036 \\
+1500 & 1.016 & 0.137 & 0.982 \\
+1600 & 0.986 & 0.124 & 0.950 \\
+1700 & 0.955 & 0.121 & 0.916 \\
+1800 & 0.940 & 0.121 & 0.898 \\
+1900 & 0.919 & 0.122 & 0.874 \\
+1975 & 0.918 & 0.125 & 0.872 \\
+\end{longtable}
+}
+
+\subsection{第5章
+结论与展望}\label{ux7b2c5ux7ae0-ux7ed3ux8bbaux4e0eux5c55ux671b}
+
+\protect\phantomsection\label{_Toc1202164245}{}5.1 主要结论
+
+本论文主要研究人工智能方法在全球海表温度和全球海洋温度中的应用。以全球海洋区域作为研究区，基于变分自编码器使用ERA5同化的海表温度数据划分训练集和测试集预测全球月平均SST方法，提出使用球谐函数的RG-SA
+Transformer模型。随后，进一步研究全球三维海洋温度的月平均预报，提出3D
+Unet模型，通过输入Argo的海表温度数据及温度垂直剖面数据信息，成功预测深度1000米范围内的全球三维海洋温度场。通过系统性的研究与实验分析，本文取得了以下主要成果与结论：
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  基于RG-SA
+  Transformer模型的高空间分辨率海洋温度预测，在ERA5的月平均海表温度预测实验中，测试集上的RMSE为
+  0.64
+  ℃，\(R^{2}\)为0.99，均优于长短时间记忆神经网络的Conv-LSTM方法（RMSE 为
+  0.70 ℃和\(R^{2}\)为 0.94）。
+\item
+  基于时域特征序列和 LSTM
+  神经网络的海洋温度预测，为更客观地评估海洋三维温盐场反演精度，本研究提出了新型评价指标体，平均均方根误差（VARMSE）。相对于RMSE，通过对不同深度误差的加权计算VARMSE
+  表现更稳定。
+\item
+  本研究表明3D-Unet
+  LSTM模型相比其他模型预测全球月平均三维海洋温度精度更高。
+\end{enumerate}
+
+\protect\phantomsection\label{_Toc1248314739}{}5.2 创新点
+
+综合以上研究工作和成果，本文的创新点体现在以下方面：
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  提出了一种基于RG-SA
+  Transformer的全球海表温度预测方法。首次使用基于RG-SA
+  Transformer的海洋温度时间序列预测模型，用于对全球区域的月度海表温度进行高精度预测。与传统的LSTM、UNet-LSTM和Conv-LSTM等模型相比，该模型在月均海洋温度预测精度上表现出显著提升。
+\item
+  提出基于UNet-3D的时空特征融合模型，通过三维卷积与编码器-解码器结构，实现了海洋温度场的多尺度时空依赖建模。设计了掩码处理机制有效应对了陆地区域值问题，突破了传统插值方法在垂向分辨率与全球海域适用性上的限制。
+\end{enumerate}
+
+5.3展望
+
+1、与渔业相关的展望
+
+2、物理海洋的相关
+
+前后连贯性，每一块之间的关联
+
+\subsection{参考文献}\label{ux53c2ux8003ux6587ux732e}
+
+\begin{enumerate}
+\def\labelenumi{\arabic{enumi}.}
+\item
+  \protect\phantomsection\label{_Ref165148613}{}
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\item
+\end{enumerate}
+
+Felipe de Luca Lopes de Amorim , Karen Helen Wiltshire , Peter Lemke ,
+Kristine
+Carstens.研究海洋温度随时间和空间梯度的变化：为研究变暖对海洋生态系统功能和生物多样性的影响提供基础.Progress
+in Oceanography ( IF 3.6 ) Pub Date : 2023-06-29 , DOI:
+10.1016/j.pocean.2023.103080Mingxia XIa,Hui
+Zhang.气候变化对中国近海中上层小型鱼类影响的研究进展.August 2024Marine
+Science 48(6):78-92.DOI:10.11759/hykx20240118001Ned W. Pankhurst ,
+Philip L. Munday .气候变化对鱼类繁殖和早期生活史阶段的影响.Marine and
+Freshwater Research ( IF 1.5 ) Pub Date : 2011-01-01 , DOI:
+10.1071/mf10269Ham, Y. G., Kim, J. H., Kim, E. S., and On, K. W. (2021).
+Unified deep learning model for El Niño/Southern Oscillation forecasts
+by incorporating seasonality in climate data. Sci. Bull. 66, 1358--1366.
+doi: 10.1016/j.scib.2021.03.009Wu X, Yan X H, Jo Y H, et al. Estimation
+of Subsurface Temperature Anomaly in the North Atlantic Using a
+Self-Organizing Map Neural Network. Journal of Atmospheric \& Oceanic
+Technology, 2012, 29(11): 1675-1688.Morris T, Scanderbeg M, West-Mack D,
+et al. Best practices for Core Argo floats-part 1: getting started and
+data considerations. Frontiers in Marine Science, 2024,11:
+1358042.Stockdale, T. N., Anderson, D. L., Balmaseda, M. A.,
+Doblas-Reyes, F., Ferranti, L., Mogensen, K., et al. (2011). ECMWF
+seasonal forecast system 3 and its prediction of sea surface
+temperature. Clim. Dyn. 37, 455--471. doi: 10.1007/s00382-010-0947-3Fan
+Wang,Xudong Zhang,Yibin Ren,Yingjie Liu.
+基于人工智能技术的海洋智能预报研究进展. April 2025地理科学进展
+40(2):1-15. DOI:10.11867/j.issn.1001-8166.2025.011Morris T, Scanderbeg
+M, West-Mack D, et al. Best practices for Core Argo floats-part 1:
+getting started and data considerations. Frontiers in Marine Science,
+2024,11: 1358042.Rojo Hernández, J. D., Mesa, Ó. J., and Lall, U.
+(2020). Enso dynamics,trends,and prediction using machine learning.
+Weather For. 35, 2061--2081. doi: 10.1175/WAF-D-20-0031.1Gupta, A.,
+Thomsen, M., Benthuysen, J. A., Hobday, A. J., Oliver, E., Alexander, L.
+V., et al. (2020). Drivers and impacts of the most extreme marine
+heatwaves events. Sci. Rep. 10, 19359. doi: 10.1038/s41598-020-75445-3Li
+Ruihui,Yunbin Yuan,Zhang Hongxing. Applicability analysis of applying
+ERA5 reanalysis data to regional tropospheric research.October 2022.
+International Journal of Navigation and Observation 9(6):29-37.
+DOI:10.16547/j.cnki.10-1096.20210605Qin Jiang,Weiyue Li ,Zedong Fan ,
+Xiaogang He. Evaluation of the ERA5 reanalysis precipitation dataset
+over Chinese Mainland. Volume 595, April 2021,125660. Journal of
+Hydrology. https://doi.org/10.1016/j.jhydrol.2020.125660Li, H.; Xu, F.;
+Zhou, W.; Wang, D.; Wright, J.S.; Liu, Z.; Lin, Y. Development of a
+global gridded A rgo data set with B arnes successive corrections. J.
+Geophys. Res. Ocean. 2017, 122, 866--889.Hersbach, H., Bell, B.,
+Berrisford, P., Hirahara, S., Horányi, A., Mu noz-Sabater, J., et al.
+(2020). The ERA5 global reanalysis. Q. J. R. Meteorol. Soc. 146,
+1358--1366. doi: 10.1002/qj.3803XIAO C J, TONG X H, LI D D, et al.
+Prediction of long lead monthly three-dimensional ocean temperature
+using time series gridded Argo data and a deep learning method{[}J{]}.
+International Journal of Applied Earth Observation and Geoinformation,
+2022, 112: 102971.HE K M, ZHANG X Y, REN S Q, et al. Deep residual
+learning for image recognition{[}C{]}//Proceedings of the 2016 IEEE
+Conference on Computer Vision and Pattern Recognition. Las Vegas: IEEE,
+2016: 770-778.ZUO X Y, ZHOU X F, GUO D Q, et al. Ocean temperature
+prediction based on stereo spatial and temporal 4-D convolution
+model{[}J{]}. IEEE Geoscience and Remote Sensing Letters, 2022,19:
+1-5.Kuang, Dong changming. Study on the Future Projection of Global Sea
+Surface Temperature over 21st Century Using a Biases Correction Model
+Based on Machine Learning. Climate Change Research Letters.2020. DOI:
+10.12677/CCRL.2020.94031Guo L K, Qi M, Finley T, Wang T F, Chen W, Ma W
+D, Ye Q W and Liu T Y. 2017. LightGBM: a highly efficient gradient
+boosting decision tree Proceedings of the 31st International Conference
+on Neural Information Processing Systems. Long Beach, CA, USA: ACM:
+3149-3157FANG Yue-wei, TANG You-min, LI Jun-de, LIU Ting. Several
+statistical models to predict tropical Indian Ocean Sea Surface
+Temperature Anomaly{[}J{]}. Journal of Marine Sciences. 2018, 36(1):
+1-15 https://doi.org/10.3969/j.issn.1001-909X.2018.01.001ZHANG Tao, LIN
+Pengfei, LIU Hailong, et al. 2024. Short-Term Sea Surface Temperature
+Forecasts for the Equatorial Pacific Based on Long Short-Term Memory
+Network {[}J{]}. Chinese Journal of Atmospheric Sciences (in Chinese),
+48(2): 745−754. DOI: 10.3878/j.issn.1006-9895.2302.22128Mengmeng Zhang,
+Guijun Han, Xiaobo Wu, Chaoliang Li, Chaoliang Li.SST Forecast Skills
+Based on Hybrid Deep Learning Models: With Applications to the South
+China Sea. Remote Sens. 2024, 16(6), 1034;
+https://doi.org/10.3390/rs16061034Kim, Minkyu,Yang, Hyun,Kim,
+Jonghwa.Sea Surface Temperature and High Water Temperature Occurrence
+Prediction Using a Long Short-Term Memory Model{[}J{]}.Remote
+Sensing.2020,12(21).3654.DOI:10.3390/rs12213654MIAO Y, ZHANG C, ZHANG X,
+et al, 2023. A Multivariable Convolutional Neural Network for
+Forecasting Synoptic-Scale Sea Surface Temperature Anomalies in the
+South China Sea {[}J{]}. Weather and Forecasting, 38(6): 849-863.QI J,
+XIE B, LI D, et al, 2023b. Estimating thermohaline structures in the
+tropical Indian Ocean from surface parameters using an improved CNN
+model {[}J{]}. Frontiers in Marine Science, 10: 1181182.Weihao Yue,
+Yongsheng Xu, Liang Xiang, Shanliang Zhu. Prediction of 3-D Ocean
+Temperature Based on Self-Attention and Predictive RNN. IEEE Geoscience
+and Remote Sensing Letters (IF 4.4) Pub Date:2024-01-25, DOI:
+10.1109/lgrs. 2024.3358348ZHANG Qin, WANG Hui, Dong Junyu, et al.
+Prediction of sea surface temperature using long short-term memory. IEEE
+Geosci. Remote Sens. Lett., 2017, 14(10):1745-1749.HOU Siyun，LI
+Wengen，LIU Tianying，et al. D2CL:a dense dilated convolutional LSTM
+model for sea surface temperature prediction. IEEE J. Sel. Top. Appl.
+Earth Obs. Remote Sens., 2021, 14:12514-12523.Jing Ren, Changying
+Wang，Ling Sun, Baoxiang Huang, Deyu Zhang, Jiadong Mu, Jianqiang Wu.
+Prediction of Sea Surface Temperature Using U-Net Based Model. Remote
+Sens. 2024, 16(7), 1205; https://doi.org/10.3390/rs16071205Jia Wang,
+Gang Zheng, Jiali Yu, Jinliang Shao, Yinfei Zhou. Sea Surface
+Temperature Prediction Method Based on Deep Generative Adversarial
+Network. IEEE Journal of Selected Topics in Applied Earth Observations
+and Remote Sensing(IF 5.3) Pub Date:2024-08-06, DOI:
+10.1109/jstars.2024.3439022Gongyan Liu, Runze Li, Xiaozhou Zhou, Tianrui
+Sun, Yufei Zhang. Reconstruction and fast prediction of a 3D flow field
+based on a variational autoencoder. Fluid Dynamics (physics.flu-dyn).
+DOI: https://doi.org/10.1016/j.icheatmasstransfer.2023.107112Zheng Chen,
+Yulun Zhang, Jinjin Gu. Recursive Generalization Transformer For Image
+Super-Resolution. Computer Science. 2024 arXiv:2303.06373.
+https://doi.org/10.48550/arXiv.2303.06373.Zhiyuan Kuang, Zhenya Song, et
+al. Study on the Future Projection of Global Sea Surface Temperature
+over 21st Century Us-ing a Biases Correction Model Based on Machine
+Learning. Climate Change Research Letters. 2020, DOI:
+10.12677/CCRL.2020.94031.SHANG S, LEE Z, SHI L, et al. Changes in water
+clarity of the Bohai Sea: Observations from MODIS {[}J{]}. Remote
+Sensing of Environment, 2016, 186: 22-31.Guinehut S , Traon P Y L ,
+Larnicol G , et al. Combining Argo and remote-sensing data to estimate
+the ocean three-dimensional temperature fields-a first approach based on
+simulated observations{[}J{]}. Journal of Marine Systems, 2004,
+46(1-4):85-98.张春玲, 许建平, 鲍献文, et al. 利用遥感 SST
+反演上层海洋三维温度场{[}J{]}. 海洋与湖沼, 2014, 45(1):114-125.Gislason,
+P. O., Benediktsson, J. A., \& Sveinsson, J. R. (2006). Random Forests
+for land cover classification. Pattern Recognition Letters, 27,
+294--300.Weihao Yue , Yongsheng Xu , Liang Xiang , Shanliang Zhu.
+基于自注意力和预测 RNN 的 3-D 海洋温度预测. IEEE Geoscience and Remote
+Sensing Letters ( IF 4.4 ) Pub Date : 2024-01-25 , DOI:
+10.1109/lgrs.2024.3358348Li H , Xu F , Zhou W , et al. Development of a
+global gridded Argo data set with Barnes successive corrections{[}J{]}.
+Journal of Geophysical Research: Oceans, 2017, 122(2):866-889.Weihao Yue
+, Yongsheng Xu , Liang Xiang , Shanliang Zhu. 基于自注意力和预测 RNN 的
+3-D 海洋温度预测. IEEE Geoscience and Remote Sensing Letters ( IF 4.4 )
+Pub Date : 2024-01-25 , DOI: 10.1109/lgrs.2024.3358348Bowen Xie, Jifeng
+Qi, Shuguo Yang, Guimin Sun, Zhongkun Feng, Baoshu Yin, Wenwu Wang. Sea
+Surface Temperature and Marine Heat Wave Predictions in the South China
+Sea: A 3D U-Net Deep Learning Model Integrating Multi-Source
+Data.Atmosphere 2024, 15(1), 86;
+https://doi.org/10.3390/atmos15010086Xiaoyan Jia , Qiyan Ji, et al.
+Prediction of Sea Surface Temperature in the East China Sea Based on
+LSTM Neural Network. Remote Sensing ( IF 4.1 ) Pub Date : 2022-07-08 ,
+DOI: 10.3390/rs14143300.Su H, Yang X, et al. Estimating subsurface
+thermohaline structure of the global ocean using surface remote sensing
+observa-tions. Remote Sensing, 2019, 11(13):1598.
+https://doi.org/10.3390/rs11131598.Shi, X.; Chen, Z.; Wang, H.; Yeung,
+D.Y.; Wong, W.K.; Woo, W.C. Convolutional LSTM network: A machine
+learning approach for precipitation nowcasting. Adv. Neural Inf.
+Process. Syst. 2015, 28, 04214. http://arxiv.org/abs/1507.01526.Xingjian
+Shi, Zhourong Chen. Convolutional LSTM Network: A Machine Learning
+Approach for Precipitation Nowcasting. 2015. arXiv:1506.04214.
+DOI:10.1007/978-3-319-21233-3\_6.谢博闻,张丛,杨树国,冯忠琨,孙贵民.
+基于深度学习的南海海表面温度的智能化预测研究.海洋与湖沼,2024,55(5):1082-1095.
+DOI: 10.11693.Taylor, J. A., Larraondo, P., and de Supinski, B. R. 2021.
+Data-driven global weather predictions at high resolutions. Int. J.High
+Perform. Comput. Appl. 36, 130--140. doi:
+10.21203/rs.3.rs-310930/v1.Ashish Vaswani, Noam Shazeer, et al.Attention
+Is All You Need. 2017, arXiv:1706.
+https://doi.org/10.48550/arXiv.1706.03762.ZHANG Q, WANG H, DONG J Y, et
+al. Prediction of sea surface temperature using long short-term memory.
+IEEE Geosci-ence and Remote Sensing Letters, 2017, DOI:
+10.1109/LGRS.2017.2733548.Zhang, Y. Zhang, H., \& Lin, H. Improving the
+impervious surface estimation with combined use of optical and SAR
+remote sensing images. Remote Sensing of Environment, 2014.
+https://doi.org/10.1016/j.rse.2013.10.028.付宇,郭俊如.基于LSTM-Transformer模型的海表温度预测分析.大连海洋大学,海洋科学,2024,硕士.IEEE
+PC57.12.210. https://cnki.istiz.org.cn.Chen, Y.; Liu, L.; Chen, X.; Wei,
+Z.; Sun, X.; Yuan, C.; Gao, Z. Data driven three-dimensional temperature
+and salinity anomaly reconstruction of the northwest Pacific Ocean.
+Front. Mar. Sci. 2023,
+https://doi.org/10.3389/fmars.2023.1121334.Hurlburt H E, 1986. Dynamic
+transfer of simulated altimeter data into subsurface information by a
+numerical ocean model. J Geophys Res, 91: 2372---2400Courtier, P.,
+Andersson, E., Heckley, W., Pailleux, J., Vasiljevi´c, D, Hamrud, M.,
+Hollingsworth, A., Rabier, F. and Fisher, M., 1998: The ECMWF
+implementation of three dimensional variational assimilation (3D-Var).
+Part I: Formulation. Q. J. R. Meteorol. Soc., 124, 1783--1808.Liu G
+M，Wang H，Sun S，et al. Numerical study on density re-sidual curents of
+the Bohai Sea in summer{[}J{]}.Chin J Limnol
+Oceanogr，2003，21:106-113.Chu P C, Fan C W, 2000. Determination of
+Vertical Thermal Structure from Sea Surface Temperature. J American
+Meteorological Society, 17: 971---979Chu P C, Fan C W, 2011. Maximum
+angle method for determining mixed layer depth from sea glider data. J
+Oceanogr, 67: 219---230Fujii, Y., Kamachi, M. A Reconstruction of
+Observed Profiles in the Sea East of Japan Using Vertical Coupled
+Temperature-Salinity EOF Modes. Journal of Oceanography 59, 173--186
+(2003). https://doi.org/10.1023/A:10255391047503D-Var and 4D-Var
+approaches to ocean data assimilation.LANG S E, LUIS K M, DONEY S C, et
+al. Modeling Coastal Water Clarity Using Landsat‐8 and Sentinel‐2
+{[}J{]}. Earth and Space Science, 2023, 10(7):
+e2022EA002579.张春玲,许建平,鲍献文等.利用遥感SST反演上层海洋三维温度场{[}J{]}.海洋与湖沼,2014,45(01):115-125.Su
+H, Li W E and Yan X H. 2018b. Retrieving temperature anomaly in the
+global subsurface and deeper ocean from satellite observations. Journal
+of Geophysical Research: Oceans, 123(1): 399--410
+{[}DOI:10.1002/2017JC013631{]}.Su H, Huang L J, Li W E, Yang X and Yan X
+H. 2018a. Retrieving ocean subsurface temperature using a
+satellite-based geographic- ally weighted regression model. Journal of
+Geographical Re- search: Oceans, 123(8): 5180--5193 {[}DOI:
+10.1029/2018JC 014246{]}.AHMAD Z, FRANZ B A, MCCLAIN C R, et al. New
+aerosol models for the retrieval of aerosol optical thickness and
+normalized water-leaving radiances from the SeaWiFS and MODIS sensors
+over coastal regions and open oceans {[}J{]}. Applied optics, 2010,
+49(29): 5545-5560.WANG M, SHI W. The NIR-SWIR combined atmospheric
+correction approach for MODIS ocean color data processing {[}J{]}.
+Optics Express, 2007, 24(15): 15722-15733.Wen Wen, Wenjun Zhang, Shirong
+He, .The Classification of Log Decay Classes and an Analysis of Their
+Physical and Chemical Characteristics Based on Artificial Neural
+Networks and K-Means Clustering. Forests 2023, 14(4), 852;
+https://doi.org/10.3390/f14040852.Weihao Yue,Yongsheng Xu,Liang Xiang,
+et al.Prediction of 3-D Ocean Temperature Based on Self-Attention and
+Predictive RNN.IEEE Geoscience and Remote Sensing Letters.25 January
+2024.DOI: 10.1109/LGRS.2024.3358348Jing Ren, Changying Wang, et
+al.Prediction of Sea Surface Temperature Using U-Net Based Model. Remote
+Sens. 2024, 16(7), 1205; https://doi.org/10.3390/rs16071205ZHANG Tao,
+LIN Pengfei, LIU Hailong, et al. 2024. Short-Term Sea Surface
+Temperature Forecasts for the Equatorial Pacific Based on Long
+Short-Term Memory Network {[}J{]}. Chinese Journal of Atmospheric
+Sciences (in Chinese), 48(2): 745−754. DOI:
+10.3878/j.issn.1006-9895.2302.22128{[}71{]} SHI W, WANG M. An assessment
+of the black ocean pixel assumption for MODIS SWIR bands {[}J{]}. Remote
+Sensing of Environment, 2009, 113(8): 1587-1597.ZHANG Rong-Hua. 2024. A
+REVIEW OF PROGRESS IN COUPLED OCEAN-ATMOSPHERE MODEL DEVELOPMENTS FOR
+ENSO STUDIES: INTERMEDIATE COUPLED MODELS AND HYBRID COUPLED
+MODELS{[}J{]}. Oceanologia et Limnologia Sinica, 55(1): 1-23.Lluís
+Pérez-Planells ,Raquel Niclòs ,Jesús Puchades ,César Coll.验证Sentinel-3
+SLSTR地表温度由操作产品获取并与显式发射率相关算法进行比较. Remote
+Sensing ( IF 4.1 ) Pub Date : 2021-06-07 , DOI: 10.3390/rs13112228Claire
+E. Bulgin, Agnieszka Faulkner, Christopher J. Merchant.
+改进海洋和陆地表面温度辐射计 (SLSTR)
+海洋和沿海云探测的反射率和热通道的组合使用. Remote Sensing of
+Environment ( IF 11.4 ) Pub Date : 2023-03-11, DOI:
+10.1016/j.rse.2023.113531Weihao Yue, Yongsheng Xu, Liang Xiang.
+基于自注意力和预测RNN的3-D海洋温度预测. IEEE Geoscience and Remote
+Sensing Letters(IF 4.4)Pub Date:2024-01-25, DOI:
+10.1109/lgrs.2024.3358348Jianuo Wang, Xinlei Zhou, Yongfei Miao,
+Gaocheng Jiang. 用于海洋探测的集成式紧凑型光纤电导率-温度-深度 (CTD)
+传感器. Optics \& Laser Technology ( IF 5 ) Pub Date : 2023-04-27 , DOI:
+10.1016/j.optlastec.2023.109523LIU Chang-hua, WANG Chun-xiao, WANG Xu,
+JIA Si-yang. Research and application of anchor-type profile observation
+technology of marine water. Institute of Oceanology, Chinese Academy of
+Science, Qingdao 266071, China Received: Oct. 21, 2019Yunsen Wang,
+Dongsheng Yang, Yinzhong Liu. 基于Akima曲线拟合的实时超前内插算法.
+International Journal of Machine Tools and Manufacture ( IF 18.8 ) Pub
+Date : 2014-06-19 , DOI: 10.1016/j.ijmachtools.2014.06.001LI Hong, XU
+Jianping, LIU Zenghong, SUN Chaohui.
+利用逐步订正法构建Argo网格资料集的研究{[}C{]}.第八届全国海洋资料同化研讨会暨第二届Argo科学研讨会.2013Cheng,L.,Pan,Y.,Tan,Z.,Zheng,H.,Zhu,Y.,Wei,and
+Zhu,J.:IAPv4 ocean temperature and ocean heat content gridded
+dataset,Earth Syst. Sci.
+Data,https://doi.org/10.5194/essd-16-3517-2024,2024.Zhang,B.,Cheng,L.,Z.
+Tan,V. Gouretski,F. Li,Y.Pan,J.Zhu,F.Wang: CODC-v1: a quality-controlled
+and bias-corrected ocean temperature profile database from 1940-2023.
+Scientific Data,11,666.
+https://doi.org/10.1038/s41597-024-03494-8,2024.Gouretski,V. and
+Cheng,L.:Correction for Systematic Errors in the Global Dataset of
+Temperature Profiles from Mechanical Bathythermographs,J. Atmos. Ocean.
+Technol.,37,841--855,https://doi.org/10.1175/jtech-d-19-0205.1,2020.{[}82{]}
+丁静, 唐军武, 宋庆君, 等. 中国近岸浑浊水体大气修正的迭代与优化算法
+{[}J{]}. 遥感学报, 2006, 10(05): 732-741.
+
+{[}83{]} STEINMETZ F, DESCHAMPS P-Y, RAMON D. Atmospheric correction in
+presence of sun glint: application to MERIS {[}J{]}. Optics express,
+2011, 19(10): 9783-9800.
+
+{[}84{]} ANTOINE D, MOREL A. A multiple scattering algorithm for
+atmospheric correction of remotely sensed ocean colour (MERIS
+instrument): principle and implementation for atmospheres carrying
+various aerosols including absorbing ones {[}J{]}. International Journal
+of Remote Sensing, 1999, 20(9): 1875-1916.
+
+{[}85{]} WANG M, SHI W. Estimation of ocean contribution at the MODIS
+near‐infrared wavelengths along the east coast of the US: Two case
+studies {[}J{]}. Geophysical research letters, 2005, 32(13).
+
+{[}86{]} MOORE G, AIKEN J, LAVENDER S. The atmospheric correction of
+water colour and the quantitative retrieval of suspended particulate
+matter in Case II waters: application to MERIS {[}J{]}. International
+Journal of Remote Sensing, 1999, 20(9): 1713-1733.
+
+{[}87{]} MOORE G, LAVENDER S. Case II. S bright pixel atmospheric
+correction {[}J{]}. MERIS ATBD, 2011, 2.
+
+{[}88{]} BRAJARD J, MOULIN C, THIRIA S. Atmospheric correction of
+SeaWiFS ocean color imagery in the presence of absorbing aerosols off
+the Indian coast using a neuro-variational method {[}J{]}. Geophysical
+Research Letters, 2008, 35(20): L20604.
+
+{[}89{]} DOERFFER R, SCHILLER H. The MERIS Case 2 water algorithm
+{[}J{]}. International Journal of Remote Sensing, 2007, 28(3-4):
+517-535.
+
+{[}90{]} FAN Y, LI W, CHEN N, et al. OC-SMART: A machine learning based
+data analysis platform for satellite ocean color sensors {[}J{]}. Remote
+Sensing of Environment, 2021, 253: 112236.
+
+{[}91{]} SCHROEDER T, SCHAALE M, LOVELL J, et al. An ensemble neural
+network atmospheric correction for Sentinel-3 OLCI over coastal waters
+providing inherent model uncertainty estimation and sensor noise
+propagation {[}J{]}. Remote Sensing of Environment, 2022, 270: 112848.
+
+{[}92{]} WARREN M A, SIMIS S G H, MARTINEZ-VICENTE V, et al. Assessment
+of atmospheric correction algorithms for the Sentinel-2A MultiSpectral
+Imager over coastal and inland waters {[}J{]}. Remote Sensing of
+Environment, 2019, 225: 267-289.
+
+{[}93{]} FENG L, HU C, HAN X, et al. Long-Term Distribution Patterns of
+Chlorophyll-a Concentration in China's Largest Freshwater Lake:
+MERIS~Full-Resolution Observations with a Practical Approach {[}J{]}.
+Remote Sensing, 2014, 7(1): 275-299.
+
+{[}94{]} PALMER S C J, KUTSER T, HUNTER P D. Remote sensing of inland
+waters: Challenges, progress and future directions {[}J{]}. Remote
+Sensing of Environment, 2015, 157: 1-8.
+
+{[}95{]} MUELLER J L, MOREL A, FROUIN R, et al. Ocean Optics Protocols
+For Satellite Ocean Color Sensor Validation, Revision 4. Volume III:
+Radiometric Measurements and Data Analysis Protocols {[}J{]}. 2003.
+
+{[}96{]} LEE Z, AHN Y-H, MOBLEY C, et al. Removal of surface-reflected
+light for the measurement of remote-sensing reflectance from an
+above-surface platform {[}J{]}. Optics Express, 2010, 18(25):
+26313-26324.
+
+{[}97{]} NADERIAN D, NOORI R, HEGGY E, et al. A water quality database
+for global lakes {[}J{]}. Resources, Conservation and Recycling, 2024,
+202: 107401.
+
+{[}98{]} BROCKMANN C, DOERFFER R, PETERS M, et al. Evolution of the
+C2RCC neural network for Sentinel 2 and 3 for the retrieval of ocean
+colour products in normal and extreme optically complex waters;
+proceedings of the Living Planet Symposium, F, 2016 {[}C{]}.
+
+{[}99{]} MAIN-KNORN M, PFLUG B, LOUIS J M B, et al. Sen2Cor for
+Sentinel-2; proceedings of the Remote Sensing, F, 2017 {[}C{]}.
+
+{[}100{]} VANHELLEMONT Q, RUDDICK K. Atmospheric correction of
+metre-scale optical satellite data for inland and coastal water
+applications {[}J{]}. Remote sensing of environment, 2018, 216: 586-597.
+
+{[}101{]} VANHELLEMONT Q. Adaptation of the dark spectrum fitting
+atmospheric correction for aquatic applications of the Landsat and
+Sentinel-2 archives {[}J{]}. Remote Sensing of Environment, 2019, 225:
+175-192.
+
+{[}102{]} VANHELLEMONT Q. Sensitivity analysis of the dark spectrum
+fitting atmospheric correction for metre-and decametre-scale satellite
+imagery using autonomous hyperspectral radiometry {[}J{]}. Optics
+Express, 2020, 28(20): 29948-29965.
+
+{[}103{]} VANHELLEMONT Q, RUDDICK K. Turbid wakes associated with
+offshore wind turbines observed with Landsat 8 {[}J{]}. Remote Sensing
+of Environment, 2014, 145: 105-115.
+
+{[}104{]} VANHELLEMONT Q, RUDDICK K. Acolite for Sentinel-2: Aquatic
+applications of MSI imagery; proceedings of the Proceedings of the 2016
+ESA Living Planet Symposium, Prague, Czech Republic, F, 2016 {[}C{]}.
+
+{[}105{]} WILLIAMS S. Pearson\textquotesingle s correlation coefficient
+{[}J{]}. The New Zealand medical journal, 1996, 109(1015): 38-38.
+
+{[}106{]} CLEVELAND R B, CLEVELAND W S, MCRAE J E, et al. STL: A
+seasonal-trend decomposition {[}J{]}. J off Stat, 1990, 6(1): 3-73.
+
+{[}107{]} SOKAL R R. The principles and practice of statistics in
+biological research {[}J{]}. Biometry, 1995: 451-554.
+
+{[}108{]} ZHANG S, WANG D, GONG F, et al. Evaluating atmospheric
+correction methods for sentinel− 2 in low− to− high− turbidity Chinese
+coastal waters {[}J{]}. Remote Sensing, 2023, 15(9): 2353.
+
+{[}109{]} ALIKAS K, KRATZER S. Improved retrieval of Secchi depth for
+optically-complex waters using remote sensing data {[}J{]}. Ecological
+indicators, 2017, 77: 218-227.
+
+{[}110{]} 潘磊剑. 基于遥感技术的舟山群岛海域悬浮泥沙分布研究 {[}D{]},
+2020.
+
+\subsection{致 谢}\label{ux81f4-ux8c22}
+
+初秋时节，我满怀憧憬踏入海大校门。转瞬间，时光荏苒，如今盛夏的温暖悄然降临，我的研究生生涯也即将画上圆满的句号。回首这三年的研学岁月，每一个细微的瞬间都仿佛镌刻在心头，成为我人生中不可磨灭的宝贵记忆。在这段充满挑战与收获的旅程中，我有幸结识了许多引领我前行的导师、同窗与挚友。首先，我要深深感谢我的导师王点老师。老师不仅以渊博的学识和严谨的治学态度为我打开学术的大门，更在每个关键时刻悉心指导、耐心修改我的论文。从选题构思到最终成稿，老师的每一次点评都凝聚着智慧的火花和无私的关怀。您的谦逊、真诚与高尚情操让我受益匪浅，激励我在学术道路上不断探索与前行。与此同时，我要感激一路同行的师弟师妹、室友以及同窗好友。正是你们在我遇到困难与挫折时给予的无私帮助和鼓励，让我在风雨兼程的求学路上从未感到孤单。我们共同经历的熬夜讨论、欢笑打闹、互助进步，都将成为我永远珍藏的精神财富。每一次相视而笑的瞬间，每一次默契的扶持，都为我今后的生活注入了无限动力与温暖。此外，我更要由衷地感谢一直默默支持我的家人。是你们无微不至的关怀与支持，让我在追求梦想的路上无后顾之忧。家人的理解和鼓励，犹如一盏明灯，在我彷徨时给予我方向，在我疲惫时带来力量。那份深厚的亲情，永远是我前行的坚实后盾，让我能够勇敢迎接未来的每一次挑战。在这段求学岁月中，我也学会了面对自我，感谢那个从未轻言放弃、勇敢追梦的自己。每一次跌倒后的爬起，每一次困惑后的顿悟，都让我更加坚信，只有不断前行，才能抵达理想的彼岸。未来的道路虽然未知且充满变数，但我会始终怀抱那份热情与信念，用坚定的步伐走向更加宽广的天地。
+
+展望未来，愿所有曾陪伴我走过这段旅程的人们，都能在各自的道路上绽放光彩，前程似锦。再会之时，愿我们依然笑容灿烂，心中满怀感恩与温情，共同迎接生活的新篇章。愿这段温暖的回忆化作未来道路上的明灯，照亮我不断前行的每一步，也温暖每一个在追梦路上奋力拼搏的心灵。
+
+\subsection{作者介绍}\label{ux4f5cux8005ux4ecbux7ecd}
+
+\subsection{教育经历}\label{ux6559ux80b2ux7ecfux5386}
+
+2020年9月 \textasciitilde{} 2022年6月
+南京邮电大学，信息工程专业，学士学位；
+
+2023年9月\textasciitilde{} 至今 浙江海洋大学，海洋科学专业，硕士学位。
+
+\subsection{研究成果}\label{ux7814ux7a76ux6210ux679c}
+
+1. Wang D, \textbf{Xiang X}, Ma R, et al. A Novel Atmospheric Correction
+for Turbid Water Remote Sensing{[}J{]}. Remote Sensing, 2023, 15(8):
+2091.https://doi.org/10.3390/rs14215461.
+
+在校期间获奖情况
+
+2022年获浙江海洋大学研究生学业奖学金二等奖
+
+2023年获浙江海洋大学研究生学业奖学金二等奖
+
+2024年获浙江海洋大学研究生学业奖学金三等奖
+
+\subsection{附录}\label{ux9644ux5f55}
+
+\subsection{实习期间主要工作任务与成果汇总}\label{ux5b9eux4e60ux671fux95f4ux4e3bux8981ux5de5ux4f5cux4efbux52a1ux4e0eux6210ux679cux6c47ux603b}
+
+在中控技术股份有限公司的实习期间，主要参与了Supos平台下CDS协同开发项目的测试验证与质量保障工作，并逐步深入至工业AI相关平台的运维与业务学习。具体工作内容如下：
+
+\subsection{A.1
+CDS协同开发项目系统测试与功能验证}\label{a.1-cdsux534fux540cux5f00ux53d1ux9879ux76eeux7cfbux7edfux6d4bux8bd5ux4e0eux529fux80fdux9a8cux8bc1}
+
+本阶段核心任务为保障CDS系统基础功能与配置管理的正确性与稳定性。核心功能模块测试：针对协同开发项目的关键流程，如``工作流''、``工程期''、``组态期''等，设计了详细的测试用例，并在Supos系统中完成了全流程的功能验证，确保了业务流程的顺畅与准确。
+
+实体配置与视图验证：系统性地验证了基础实体的列表视图国际化显示、正则表达式验证、继承树视图、页签修改及辅表字段配置等功能，确认了系统在不同配置下的表现符合设计预期。
+
+自定义字段与数据操作测试：完成了对自定义字段的增、删、改、查以及列表导入导出（含自定义字段）的测试，验证了系统在处理用户自定义数据扩展方面的能力与数据一致性。
+
+应用配置与管理：验证了APP启动参数优化、JVM参数（如最大/最小堆内存）设置、磁盘空间检查、APP亲和性配置等管理功能的正确性，提升了系统部署与运维的可靠性。
+
+\subsection{A.2
+自动化测试与接口质量保障}\label{a.2-ux81eaux52a8ux5316ux6d4bux8bd5ux4e0eux63a5ux53e3ux8d28ux91cfux4fddux969c}
+
+为提升测试效率与覆盖度，引入并实施了自动化测试流程。接口自动化测试框架搭建与应用：运用MeterSphere测试平台，创建并执行了自动化接口测试用例。通过参数化配置与脚本调试，重点验证了测点管理模块相关接口的数据正确性。测点接口自动化''获取单个位号在指定时间区间的原始历史值''、''批量获取位号某个时间点的历史值''
+
+问题定位与解决：在自动化测试过程中，通过检查请求头（Header）中的Authorization字段，发现并修复了Token动态获取、传递与刷新机制的逻辑缺陷。成功解决了因接口依赖（如变量传递）、配置参数缺失、HTTP状态码异常（如415、401错误）等导致的测试失败问题，显著提升了接口测试通过率。
+
+\subsection{A.3
+测试环境搭建、部署与运维支撑}\label{a.3-ux6d4bux8bd5ux73afux5883ux642dux5efaux90e8ux7f72ux4e0eux8fd0ux7ef4ux652fux6491}
+
+独立负责多套测试环境的搭建与维护，为测试工作提供了稳定的基础保障。跨平台环境部署：熟练使用MobaXterm等工具，在Linux系统下通过命令行完成多版本Supos平台（包括i-CDS-V7.06.01.09，
+i-CDS-V7.00.03.08等）的安装、更新与启动。
+
+数据库管理与连接：熟练使用DBeaver数据库管理工具，成功连接并操作Oracle、SQL
+Server及达梦数据库，支持测试过程中的数据验证与查询。
+
+测点数据环境构建：在多个网络环境下（如41网段、136网段），独立完成天湖数据源、ISYS数据源的配置、测点创建与数据模拟，并验证了历史趋势图等功能的正常显示，为数据相关测试提供了支撑。
+
+\subsection{A.4
+测试体系标准化与缺陷管理}\label{a.4-ux6d4bux8bd5ux4f53ux7cfbux6807ux51c6ux5316ux4e0eux7f3aux9677ux7ba1ux7406}
+
+参与构建并完善了团队的测试流程与规范。测试用例设计与编写：依据产品需求与验收标准，系统性地编写了包括Supos登录界面、CDS
+APP配置界面、仓库管理业务流程等在内的详细测试用例，并导入禅道系统进行统一管理。
+
+缺陷生命周期管理：通过禅道系统主动提交并跟踪在测试过程中发现的缺陷（如``生产报工审核报错''、``采购订单未自动生成入库通知单''等），与开发团队紧密协作，推动问题修复，有效控制了项目质量风险。
+
+技术文档撰写：编写了《Supos安装环境步骤》、《测点数据安装手册》等技术文档，沉淀了环境搭建与关键测试方法，为团队知识库做出了贡献。
+
+\subsection{A.5
+工业软件SaaS平台的需求测试}\label{a.5-ux5de5ux4e1aux8f6fux4ef6saasux5e73ux53f0ux7684ux9700ux6c42ux6d4bux8bd5}
+
+后期工作重心转向工业软件SaaS平台的迭代开发流程，主要负责功能测试、自动化脚本学习、测试用例设计与评审以及缺陷跟踪管理等一系列软件质量保障。
+
+新需求功能测试：独立负责并完成了``生产工单批次号追溯''、``扫物料码投料''、``调拨入库''、``移动端拆包管理''、``称重报工''等关键需求的测试任务。通过设计系统化的测试场景，有效验证了功能的正确性与业务逻辑的严密性，在婵道上提交累计超过20个有效缺陷，为提升产品质量提供了关键依据。
+
+回归测试与冒烟测试：对``弹窗调整''、``批量工资计算''等已修复缺陷的需求进行严格的回归测试，确保问题得到解决且未引入新的风险。同时，在版本提测初期执行冒烟测试，快速验证核心流程的稳定性，保障了后续测试工作的顺利进行。
+
+跨终端业务验证：对移动端及Pad端的业务功能，如``进销存首页任务与报表''、``称重报工''、``扫容器码投料''等进行了专项测试，确保了产品在移动化场景下的用户体验与数据一致性。
+
+5.3 不足与展望
+
+尽管本研究在海洋温度场反演领域取得了一定成果，但仍存在一些不足之处。首先，在数据层面，尽管采用了邻域网格特征插值与气候态背景场补充策略，但部分极端稀疏海域（如南大洋部分区域）的样本量仍显不足，可能导致模型在这些区域的反演精度受限。其次，在模型架构方面，UNet-3D模型虽具备较强的时空特征捕捉能力，但其3D卷积操作对计算资源要求较高，限制了其在资源受限环境下的部署应用；同时，模型在处理超深层（\textgreater2000m）温度场时，因垂向分辨率的进一步提升需求，反演误差略有增大。此外，本研究目前主要聚焦于温度场反演，对于海洋盐度、流速等其他关键参数的同步反演尚未涉及，未来需进一步拓展模型的多参数建模能力。展望未来，可探索轻量化网络架构设计（如知识蒸馏、模型剪枝）以降低UNet-3D的计算资源消耗，同时结合多模态数据融合技术（如卫星遥感、浮标观测、数值模拟数据）提升模型在极端稀疏区域的适应性；此外，构建统一的海洋多参数反演框架，实现温度、盐度、流速等参数的同步高精度重建，将为海洋环境预报与气候研究提供更全面的技术支撑。
+
+在后续的研究中，通过引入多模态的方式，例如融合卫星遥感数据所提供的海表温度、海面高度异常等信息，以及浮标观测得到的更精准的局部温度、盐度等数据，还有数值模拟数据包含的大范围海洋环流、热通量等模拟信息，能够为模型提供更为丰富和全面的输入特征。这有助于进一步提升模型在极端稀疏区域的适应性，使得模型在那些样本量严重不足的海域，也能凭借多模态数据之间的互补性，捕捉到更准确的海洋温度场特征，从而降低反演误差，提高反演精度。同时，多模态数据的融合也有望增强模型对海洋复杂物理过程的刻画能力，使模型不仅仅局限于温度场反演，更能深入理解海洋中各种参数之间的相互作用和影响机制，为构建统一的海洋多参数反演框架奠定坚实基础，进而实现温度、盐度、流速等参数的同步高精度重建。
+
+\end{document}

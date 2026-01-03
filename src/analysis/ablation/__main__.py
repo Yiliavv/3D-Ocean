@@ -81,8 +81,8 @@ def parse_args():
     parser.add_argument(
         '--runs', '-r',
         type=int,
-        default=3,
-        help='每变体运行次数 (默认: 3)'
+        default=1,
+        help='每变体运行次数 (默认: 1)'
     )
     
     parser.add_argument(
@@ -263,7 +263,7 @@ def main():
             avg_r2 = sum(r.r2 for r in variant_results) / len(variant_results)
             
             display_name = variant_results[0].display_name
-            print(f"  {display_name:20s} RMSE: {avg_rmse:.4f}, MAE: {avg_mae:.4f}, R²: {avg_r2:.4f}")
+            print(f"  {display_name:20s} RMSE: {avg_rmse:.4f}, MAE: {avg_mae:.4f}, R2: {avg_r2:.4f}")
         
         # 生成图表和表格
         generate_figures_and_tables(args.output)
