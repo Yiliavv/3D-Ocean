@@ -198,6 +198,9 @@ class OISSTMonthlyDataset(Dataset):
         # 创建网格索引
         lon_grid, lat_grid = np.meshgrid(lon_indices, lat_indices)
         
+        # 统一精度：保留到 0.001℃
+        sst = np.round(sst, 3)
+        
         return sst[lat_grid, lon_grid]
     
     def __get_lon_indices__(self):
@@ -476,6 +479,9 @@ class OISSTDailyMonthlyDataset(Dataset):
         # 处理异常值
         monthly_sst[monthly_sst > 50] = np.nan
         monthly_sst[monthly_sst < -10] = np.nan
+        
+        # 统一精度：保留到 0.001℃
+        monthly_sst = np.round(monthly_sst, 3)
         
         # 缓存结果
         self._update_cache(month_key, monthly_sst)
@@ -792,6 +798,9 @@ class OISSTDailyDataset(Dataset):
         # 处理异常值
         sst_region[sst_region > 50] = np.nan
         sst_region[sst_region < -10] = np.nan
+        
+        # 统一精度：保留到 0.001℃
+        sst_region = np.round(sst_region, 3)
         
         # 缓存结果
         self._update_cache(date_key, sst_region)

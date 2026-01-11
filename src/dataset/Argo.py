@@ -90,6 +90,10 @@ class Argo3DTemperatureDataset(Dataset):
         sst = temp[:, :, 0]
         
         # print(f"=========== sst ==========: {sst.shape}")
+        
+        # 统一精度：保留到 0.001℃
+        sst = np.round(sst, 3)
+        temp = np.round(temp, 3)
     
         return sst, temp
 

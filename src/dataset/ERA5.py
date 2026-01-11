@@ -187,6 +187,9 @@ class ERA5SSTMonthlyDataset(Dataset):
         # 创建网格索引
         lon_grid, lat_grid = np.meshgrid(lon_indices, lat_indices)
         
+        # 统一精度：保留到 0.001℃
+        sst = np.round(sst, 3)
+        
         return sst[lat_grid, lon_grid]
     
     def __get_lon_indices__(self):
