@@ -1,5 +1,5 @@
 """注意力机制模块"""
 
-from .RGAttention import EfficientRGAttention, RGAttention
+from .RGAttention import RGAttention
 
-__all__ = ['EfficientRGAttention', 'RGAttention']
+__all__ = ['RGAttention']

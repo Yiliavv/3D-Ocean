@@ -63,9 +63,6 @@ def create_carto_ax():
     figure = create_base_figure()
     ax = figure.add_subplot(111, projection=ccrs.PlateCarree())
     
-    # 设置字体为 Liberation Serif（Times New Roman 的开源等效字体）
-    plt.rcParams['font.family'] = 'Liberation Serif'
-    
     ax.add_feature(cfeat.LAND)
     ax.add_feature(cfeat.COASTLINE, linewidth=0.5)
     
@@ -80,9 +77,7 @@ def create_carto_axes(row=1, col=1, shared='all'):
     :param shared: 共享类型,可选值为 'all'(共享 x 和 y 轴),'x'(仅共享 x 轴),'y'(仅共享 y 轴)
     :return: 返回一个包含所有子图的数组（可能是1D或2D）
     """
-    # 设置字体为 Liberation Serif（Times New Roman 的开源等效字体）
-    plt.rcParams['font.family'] = 'Liberation Serif'
-    
+
     # 设置共享坐标轴
     match shared:
         case 'all':

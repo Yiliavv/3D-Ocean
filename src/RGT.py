@@ -14,7 +14,7 @@ if __name__ == '__main__':
     )
     from src.models.SST.RGTransformer import RGTransformer
     from src.config.params import PROJECT_PATH
-    from src.dataset.OISST import OISSTMonthlyDataset
+    from src.dataset.OISST import OISSTDailyDataset
 
     # ============================================================
     # 训练
@@ -37,7 +37,7 @@ if __name__ == '__main__':
     trainer = BaseTrainer(
         area=area,
         model_class=RGTransformer,
-        dataset_class=OISSTMonthlyDataset,
+        dataset_class=OISSTDailyDataset,
         use_checkpoint=trainer_params.get('use_checkpoint', True),
         dataset_params=dataset_params,
         trainer_params=trainer_params,

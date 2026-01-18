@@ -378,7 +378,7 @@ class BaseTrainer:
         if hasattr(self, 'model_params'):
             print(f"\n🧠 模型配置:")
             print(f"  • d_model: {self.model_params.get('d_model', 'N/A')}")
-            print(f"  • num_attn_layers: {self.model_params.get('num_attn_layers', 'N/A')}")
+            print(f"  • num_heads: {self.model_params.get('num_heads', 'N/A')}")
             print(f"  • dim_feedforward: {self.model_params.get('dim_feedforward', 'N/A')}")
             print(f"  • ffn_activation: {self.model_params.get('ffn_activation', 'gelu')}")
             print(f"  • use_se_attention: {self.model_params.get('use_se_attention', False)}")
@@ -705,31 +705,6 @@ class BasePrediction:
         
         print(f"--------------------------------")
         print(f"Model: {self.model_class.__name__} Prediction RMSE: {rmse}")
-
-        # 绘制模型可视化
-
-        # position_encoding = self.model.viz['position_encoding'].detach().cpu().numpy()
-        # attention_out = self.model.viz['attention'].detach().cpu().numpy()[0, :, :, :]
-        # ffn_out = self.model.viz['ffn'].detach().cpu().numpy()[0, :, :, :]
-        # sst_after = self.model.viz['sst_after'].detach().cpu().numpy()[0, :, :, :]
-        # temporal_weights = self.model.viz['temporal_weights'].detach().cpu().numpy()
-
-        # print(f"--------------------------------")
-        # print(f" 📊 Model: {self.model_class.__name__} Prediction Position Encoding:")
-        # print(f"position_encoding: {position_encoding.shape}")
-        # print(f"attention_out: {attention_out.shape}")
-        # print(f"ffn_out: {ffn_out.shape}")
-        # print(f"sst_after: {sst_after.shape}")
-        # print(f"temporal_weights: {temporal_weights.shape}")
-        # print(f"--------------------------------")
-
-
-        # 其他参数
-        spatial_enc_scale = self.model.spatial_enc_scale.detach().cpu().numpy()
-
-        print(f" 📊 Model: {self.model_class.__name__} Prediction Other Parameters:")
-        print(f"spatial_enc_scale: {spatial_enc_scale}")
-        print(f"--------------------------------")
         
         if plot:
             resolution = self.dataset_params.get('resolution', 1)

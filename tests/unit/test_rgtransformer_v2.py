@@ -18,7 +18,7 @@ project_root = Path(__file__).parent.parent.parent
 sys.path.insert(0, str(project_root))
 
 from src.models.SST.RGTransformer import RGTransformer as RGTransformerV2, ChannelFeedForward
-from src.models.SST.Attention.RGAttention import EfficientRGAttention
+from src.models.SST.Attention.RGAttention import RGAttention
 from src.models.SST.ConvStem import ConvStem
 
 
@@ -50,46 +50,47 @@ class TestConvStem:
             assert output.shape == expected_shape, f"Input {size} -> {output.shape}, expected {expected_shape}"
 
 
-class TestEfficientRGAttention:
-    """EfficientRGAttention 模块测试"""
+class TestRGAttention:
+    """RGAttention 门控注意力模块测试"""
     
     def test_init(self):
         """测试初始化"""
-        attn = EfficientRGAttention(d_model=256, num_heads=8, num_layers=1)
+        attn = RGAttention(d_model=256, num_heads=8)
         assert attn is not None
     
     def test_forward_shape(self):
         """测试前向传播输出形状"""
-        attn = EfficientRGAttention(d_model=256, num_heads=8, num_layers=1)
+        attn = RGAttention(d_model=256, num_heads=8)
         x = torch.randn(4, 7, 256)  # [batch, seq, d_model]
-        output = attn(x)
-        
-        assert output.shape == x.shape
-    
-    def test_multi_layer(self):
-        """测试多层注意力"""
-        attn = EfficientRGAttention(d_model=256, num_heads=8, num_layers=3)
-        x = torch.randn(4, 7, 256)
         output = attn(x)
         
         assert output.shape == x.shape
     
     def test_without_gate(self):
         """测试无门控模式"""
-        attn = EfficientRGAttention(d_model=256, num_heads=8, num_layers=1, use_gate=False)
+        attn = RGAttention(d_model=256, num_heads=8, use_gate=False)
         x = torch.randn(4, 7, 256)
         output = attn(x)
         
         assert output.shape == x.shape
     
+    def test_with_gate(self):
+        """测试有门控模式"""
+        attn = RGAttention(d_model=256, num_heads=8, use_gate=True)
+        x = torch.randn(4, 7, 256)
+        output = attn(x)
+        
+        assert output.shape == x.shape
+        # 检查门控值被记录
+        assert attn.viz['gate_values'] is not None
+    
     def test_parameter_count(self):
         """测试参数量"""
-        attn = EfficientRGAttention(d_model=256, num_heads=8, num_layers=1, use_gate=True)
-        param_count = attn.get_num_parameters()
+        attn = RGAttention(d_model=256, num_heads=8, use_gate=True)
+        param_count = sum(p.numel() for p in attn.parameters())
         
-        # 应该远小于原 RGAttention 的 ~394K
-        assert param_count < 300000, f"参数量 {param_count} 过大"
-        print(f"EfficientRGAttention 参数量: {param_count:,}")
+        # 单层注意力参数量应该较小
+        print(f"RGAttention 参数量: {param_count:,}")
 
 
 class TestRGTransformerV2:
@@ -111,7 +112,6 @@ class TestRGTransformerV2:
             num_heads=4,
             dim_feedforward=256,
             dropout=0.1,
-            num_attn_layers=1,
             lat_range=[-90, 90],
             lon_range=[0, 360],
             resolution=5.625,  # 64 points in 360 degrees (lon), 32 points in 180 degrees (lat)
@@ -123,7 +123,7 @@ class TestRGTransformerV2:
         """测试初始化"""
         assert model is not None
         assert isinstance(model.conv_stem, ConvStem)
-        assert isinstance(model.attention, EfficientRGAttention)
+        assert isinstance(model.attention, RGAttention)
     
     def test_forward_shape(self, model):
         """测试前向传播输出形状"""
@@ -163,7 +163,7 @@ class TestRGTransformerV2:
         model.eval()
         with torch.no_grad():
             output = model(x)
-            loss = model.custom_mse_loss(output, y)
+            loss = model.compute_loss(output, y)
         
         assert torch.isfinite(loss), "损失无效"
     

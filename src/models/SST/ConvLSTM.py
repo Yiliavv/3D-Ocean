@@ -1,262 +1,250 @@
+"""
+ConvLSTM: 海表温度时空序列预测模型
+
+输入格式: [B, S-1, W, H] - 与 RGTransformer 一致
+输出格式: [B, W, H]
+"""
+
 import torch
-from torch import nn, manual_seed, optim
+import torch.nn as nn
+import torch.nn.functional as F
+from torch import optim
 from lightning import LightningModule
 
-from src.utils.log import Log
 
-
-class ConvLSTMCell(LightningModule):
+class ConvLSTMCell(nn.Module):
     """
-    Initialize ConvLSTM cell.
-
+    ConvLSTM 单元
+    
     Parameters
     ----------
     input_dim: int
-        Number of channels of input tensor.
+        输入通道数
     hidden_dim: int
-        Number of channels of hidden state.
-    kernel_size: (int, int)
-        Size of the convolutional kernel.
+        隐藏状态通道数
+    kernel_size: tuple
+        卷积核大小
     bias: bool
-        Whether to add the bias.
+        是否使用偏置
     """
 
-    def __init__(self, input_dim, hidden_dim, kernel_size, bias):
-        manual_seed(1)
-
+    def __init__(self, input_dim, hidden_dim, kernel_size, bias=True):
         super().__init__()
 
         self.input_dim = input_dim
         self.hidden_dim = hidden_dim
         self.kernel_size = kernel_size
-        self.bias = bias
 
-        self.conv = nn.Conv2d(in_channels=self.input_dim + self.hidden_dim,  #
-                              out_channels=4 * self.hidden_dim,
-                              kernel_size=self.kernel_size,
-                              padding='same',
-                              bias=self.bias)
+        self.conv = nn.Conv2d(
+            in_channels=input_dim + hidden_dim,
+            out_channels=4 * hidden_dim,
+            kernel_size=kernel_size,
+            padding='same',
+            bias=bias
+        )
 
-    def forward(self, input_tensor, cur_state):
-        h_cur, c_cur = cur_state
+    def forward(self, x, state):
+        h, c = state
+        combined = torch.cat([x, h], dim=1)
+        gates = self.conv(combined)
+        
+        i, f, o, g = torch.split(gates, self.hidden_dim, dim=1)
+        i = torch.sigmoid(i)
+        f = torch.sigmoid(f)
+        o = torch.sigmoid(o)
+        g = torch.tanh(g)
 
-        combined = torch.cat([input_tensor, h_cur], dim=1)  # concatenate along channel axis
-
-        combined_conv = self.conv(combined)
-        cc_i, cc_f, cc_o, cc_g = torch.split(combined_conv, self.hidden_dim, dim=1)
-        i = torch.sigmoid(cc_i)
-        f = torch.sigmoid(cc_f)
-        o = torch.sigmoid(cc_o)
-        g = torch.tanh(cc_g)
-
-        c_next = f * c_cur + i * g
+        c_next = f * c + i * g
         h_next = o * torch.tanh(c_next)
 
         return h_next, c_next
 
-    def init_hidden(self, batch_size, image_size):
-        height, width = image_size
-        return (torch.zeros(batch_size, self.hidden_dim, height, width, device=self.conv.weight.device),
-                torch.zeros(batch_size, self.hidden_dim, height, width, device=self.conv.weight.device))
+    def init_hidden(self, batch_size, height, width, device):
+        return (
+            torch.zeros(batch_size, self.hidden_dim, height, width, device=device),
+            torch.zeros(batch_size, self.hidden_dim, height, width, device=device)
+        )
 
 
 class ConvLSTM(LightningModule):
     """
-
-    Parameters:
-        input_dim: Number of channels in input
-        hidden_dim: Number of hidden channels
-        kernel_size: Size of kernel in convolutions
-        num_layers: Number of LSTM layers stacked on each other
-        bias: Bias or no bias in Convolution
-        # Note: Will do same padding.
-
-    Input:
-        A tensor of size B, T, C, H, W or T, B, C, H, W
-    Output:
-        A tuple of two lists of length num_layers.
-            0 - layer_output_list is the list of lists of length T of each output
-            1 - last_state_list is the list of last states
-                    each element of the list is a tuple (h, c) for hidden state and memory
-    Example:
-        >> x = torch.rand((32, 10, 64, 128, 128))
-        >> conv_lstm = ConvLSTM(64, 16, 3, 1, True, True, False)
-        >> _, last_states = conv_lstm(x)
-        >> h = last_states[0][0]  # 0 for layer index, 0 for h index
+    ConvLSTM 海表温度预测模型
+    
+    与 RGTransformer 接口一致：
+    - 输入: [B, S-1, W, H]
+    - 输出: [B, W, H]
+    
+    Parameters
+    ----------
+    width: int
+        空间宽度 (经度方向)
+    height: int
+        空间高度 (纬度方向)
+    seq_len: int
+        序列长度
+    hidden_dim: int
+        隐藏层维度
+    kernel_size: tuple
+        卷积核大小
+    num_layers: int
+        ConvLSTM 层数
+    learning_rate: float
+        学习率
+    weight_decay: float
+        权重衰减
+    dropout: float
+        Dropout 比例
     """
 
-    def __init__(self, input_dim, hidden_dim, kernel_size, num_layers, bias=True):
+    def __init__(
+        self,
+        width: int,
+        height: int,
+        seq_len: int = 2,
+        hidden_dim: int = 64,
+        kernel_size: tuple = (3, 3),
+        num_layers: int = 2,
+        learning_rate: float = 1e-4,
+        weight_decay: float = 0.01,
+        dropout: float = 0.1,
+        **kwargs  # 忽略其他参数
+    ):
         super().__init__()
+        self.save_hyperparameters()
 
-        self._check_kernel_size_consistency(kernel_size)
-
-        self.input_dim = input_dim
-        self.hidden_dim = self._extend_for_multilayer(hidden_dim, num_layers)
-        self.kernel_size = self._extend_for_multilayer(kernel_size, num_layers)
-        # Make sure that both `kernel_size` and `hidden_dim` are lists having len == num_layers
-        if not len(self.kernel_size) == len(self.hidden_dim) == num_layers:
-            raise ValueError('Inconsistent list length.')
-
+        self.width = width
+        self.height = height
+        self.seq_len = seq_len
         self.num_layers = num_layers
-        self.bias = bias
+        self.hidden_dim = hidden_dim
+        self.learning_rate = learning_rate
+        self.weight_decay = weight_decay
 
-        cell_list = []
-        for i in range(0, self.num_layers):
-            cur_input_dim = self.input_dim if i == 0 else self.hidden_dim[i - 1]
+        # ConvLSTM 层
+        self.cells = nn.ModuleList()
+        for i in range(num_layers):
+            in_dim = 1 if i == 0 else hidden_dim
+            self.cells.append(
+                ConvLSTMCell(in_dim, hidden_dim, kernel_size)
+            )
 
-            cell_list.append(ConvLSTMCell(input_dim=cur_input_dim,
-                                          hidden_dim=self.hidden_dim[i],
-                                          kernel_size=self.kernel_size[i],
-                                          bias=self.bias))
-
-        self.cell_list = nn.ModuleList(cell_list)
-        
-        # 修改全连接层的输入和输出维度，保持与输入相同的空间维度
-        self.fc = nn.Sequential(
-            nn.Sigmoid(),
-            nn.Linear(self.hidden_dim[-1] * 80 * 180, 1 * 80 * 180, bias=False)
+        # 输出层：用卷积代替全连接，避免空间尺寸硬编码
+        self.output_conv = nn.Sequential(
+            nn.BatchNorm2d(hidden_dim),
+            nn.Conv2d(hidden_dim, hidden_dim // 2, kernel_size=3, padding=1),
+            nn.ReLU(inplace=True),
+            nn.Dropout2d(dropout),
+            nn.Conv2d(hidden_dim // 2, 1, kernel_size=1),
         )
-        self.nor = nn.BatchNorm2d(self.hidden_dim[-1])
-        
-        # 训练损失
+
+        # 损失记录
         self.train_loss = []
-        # 验证损失
         self.val_loss = []
 
     def forward(self, x):
-        # b - batch_size: Number of images in each batch
-        # t - seq_len: Number of images in each sequence
-        # c - Number of channels in the input
-        # h - Height of the image
-        # w - Width of the image
+        """
+        前向传播
         
-        x_processed = self.__normalize__(x)
+        Input: [B, S-1, W, H]
+        Output: [B, W, H]
+        """
+        # 处理 NaN
+        x = self._normalize(x)
         
-        b, t, c, h, w = x_processed.shape
+        batch_size, seq_len, w, h = x.shape
+        device = x.device
+
+        # 添加通道维度: [B, S, W, H] -> [B, S, 1, H, W]
+        # 注意：ConvLSTM 期望 [B, T, C, H, W]，这里 H=height, W=width
+        x = x.unsqueeze(2)  # [B, S, 1, W, H]
+        x = x.permute(0, 1, 2, 4, 3)  # [B, S, 1, H, W]
+
+        # 初始化隐藏状态
+        hidden_states = []
+        for cell in self.cells:
+            hidden_states.append(cell.init_hidden(batch_size, h, w, device))
+
+        # 逐时间步处理
+        for t in range(seq_len):
+            input_t = x[:, t]  # [B, 1, H, W]
+            
+            for layer_idx, cell in enumerate(self.cells):
+                h_state, c_state = hidden_states[layer_idx]
+                h_state, c_state = cell(input_t, (h_state, c_state))
+                hidden_states[layer_idx] = (h_state, c_state)
+                input_t = h_state  # 下一层的输入
+
+        # 最后一层的隐藏状态作为输出
+        output = hidden_states[-1][0]  # [B, hidden_dim, H, W]
+
+        # 输出层
+        output = self.output_conv(output)  # [B, 1, H, W]
         
-        # 将张量尺寸转换为整数
-        h_int = h.item() if isinstance(h, torch.Tensor) else h
-        w_int = w.item() if isinstance(w, torch.Tensor) else w
-        
-        hidden_state = self._init_hidden(batch_size=b,
-                                         image_size=(h_int, w_int))
-        # 所有层的输出
-        layer_output_list = []
-        # 通过最后一个神经元的状态
-        last_state_list = []
-
-        seq_len = x_processed.size(1)
-        # 当前层的输入，从前一层继承输出
-        cur_layer_input = x_processed
-
-        # 每一层进行计算
-        for layer_idx in range(self.num_layers):
-            # 保存每一层的输出
-            h, c = hidden_state[layer_idx]
-            output_inner = []
-            # 每一个时间步进行计算
-            for t in range(seq_len):
-                cell = self.cell_list[layer_idx]
-                h, c = cell(input_tensor=cur_layer_input[:, t, :, :, :],
-                            cur_state=[h, c])
-                output_inner.append(h)
-
-            # 一个层输出的时间序列
-            layer_output = torch.stack(output_inner, dim=1)
-
-            # 更新当前层的输入
-            cur_layer_input = layer_output
-
-            layer_output_list.append(layer_output)
-            last_state_list.append([h, c])
-
-        # 获取最后的输出
-        output_c = last_state_list[-1][1]
-
-        output = output_c
-        output = self.nor(output)
-        # 调整 view 操作以匹配实际的输入维度
-        output = output.view(b, -1)  # 将所有维度展平
-        output = self.fc(output)
-        output = output.view(b, 1, h_int, w_int)  # 使用整数尺寸
+        # 调整输出格式: [B, 1, H, W] -> [B, W, H]
+        output = output.squeeze(1)  # [B, H, W]
+        output = output.permute(0, 2, 1)  # [B, W, H]
 
         return output
 
-    def training_step(self, batch):
+    def _normalize(self, x):
+        """将 NaN 替换为 0"""
+        x = x.clone()
+        x[torch.isnan(x)] = 0.0
+        return x
+
+    def compute_loss(self, y_pred, y_true):
+        """计算损失（处理 NaN）"""
+        valid_mask = ~(torch.isnan(y_true) | torch.isnan(y_pred))
+        
+        if valid_mask.sum() == 0:
+            return y_pred.sum() * 0.0
+        
+        y_pred_valid = y_pred[valid_mask]
+        y_true_valid = y_true[valid_mask]
+        
+        return F.mse_loss(y_pred_valid, y_true_valid)
+
+    def training_step(self, batch, batch_idx):
         x, y = batch
-
-        output = self(x)
-
-        loss = self.custom_mse_loss(output, y)
-        self.train_loss.append(loss.item())
-        self.log('train_loss', loss, prog_bar=True)
-
+        y_pred = self(x)
+        loss = self.compute_loss(y_pred, y)
+        
+        self.train_loss.append(loss.detach().cpu().item())
+        self.log('train_loss', loss, prog_bar=True, on_step=True, on_epoch=True)
+        
         return loss
 
-    def validation_step(self, batch):
+    def validation_step(self, batch, batch_idx):
         x, y = batch
+        y_pred = self(x)
+        loss = self.compute_loss(y_pred, y)
         
-        output = self(x)
-
-        loss = self.custom_mse_loss(output, y)
-        self.val_loss.append(loss.item())
-        self.log('val_loss', loss, prog_bar=True)
-
+        self.val_loss.append(loss.detach().cpu().item())
+        self.log('val_loss', loss, prog_bar=True, on_step=False, on_epoch=True)
+        self.log('val_rmse', torch.sqrt(loss), prog_bar=True, on_step=False, on_epoch=True)
+        
         return loss
 
     def configure_optimizers(self):
-        a_opt = optim.Adam(self.parameters(), lr=1e-4)
-        return a_opt
-    
-    def custom_mse_loss(self, y_pred, y):
-        """
-        自定义MSE损失函数，忽略nan值
-        """
+        optimizer = optim.AdamW(
+            self.parameters(),
+            lr=self.learning_rate,
+            weight_decay=self.weight_decay
+        )
         
-        y_mask = torch.isnan(y)
+        scheduler = optim.lr_scheduler.CosineAnnealingLR(
+            optimizer, T_max=500, eta_min=1e-6
+        )
         
-        # 创建掩码，标记非nan值
-        mask = ~y_mask
-        
-        # 只计算非nan值的MSE
-        if mask.sum() > 0:  # 确保有非nan值
-            # 将y_pred中的nan值替换为0，以便计算损失
-            y_pred_processed = y_pred.clone()
-            y_pred_processed[y_mask] = 0.0
-            
-            # 将y中的nan值替换为0
-            y_processed = y.clone()
-            y_processed[y_mask] = 0.0
-            
-            # 计算MSE，只考虑非nan位置
-            return nn.MSELoss()(y_pred_processed, y_processed)
-        else:
-            # 如果所有值都是nan，返回0
-            return torch.tensor(0.0, device=y_pred.device, requires_grad=True)
-    
-    def __normalize__(self, x):
-        # 保存原始nan掩码
-        x_mask = torch.isnan(x)
-        # 将nan值替换为0，以便模型处理
-        x_processed = x.clone()
-        x_processed[x_mask] = 0.0
-        
-        return x_processed
+        return {
+            "optimizer": optimizer,
+            "lr_scheduler": {
+                "scheduler": scheduler,
+                "interval": "epoch",
+                "monitor": "val_loss"
+            }
+        }
 
-    def _init_hidden(self, batch_size, image_size):
-        init_states = []
-        for i in range(self.num_layers):
-            init_states.append(self.cell_list[i].init_hidden(batch_size, image_size))
-        return init_states
-
-    @staticmethod
-    def _check_kernel_size_consistency(kernel_size):
-        if not (isinstance(kernel_size, tuple) or
-                (isinstance(kernel_size, list) and all([isinstance(elem, tuple) for elem in kernel_size]))):
-            raise ValueError('`kernel_size` must be tuple or list of tuples')
-
-    @staticmethod
-    def _extend_for_multilayer(param, num_layers):
-        if not isinstance(param, list):
-            param = [param] * num_layers
-        return param
+    def get_num_parameters(self, trainable_only: bool = True) -> int:
+        """获取参数量"""
+        return sum(p.numel() for p in self.parameters() if (not trainable_only or p.requires_grad))

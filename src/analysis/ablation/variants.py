@@ -146,7 +146,7 @@ class StandardAttention(nn.Module):
     """
     标准多头注意力模块
     
-    用于 w/o EfficientRGAttention 变体，使用简单的残差连接。
+    用于 w/o RGAttention 变体，使用简单的残差连接。
     """
     
     def __init__(
@@ -263,7 +263,7 @@ def _apply_ablation_modifications(
                 patch_size=patch_size
             )
     
-    # w/o EfficientRGAttention: 替换为标准注意力
+    # w/o RGAttention: 替换为标准注意力
     if not config.use_efficient_attention:
         if hasattr(model, 'attention'):
             d_model = model.d_model
@@ -330,7 +330,7 @@ def get_variant_description(config: AblationConfig) -> str:
     if not config.use_conv_stem:
         modifications.append("ConvStem → PatchEmbedding")
     if not config.use_efficient_attention:
-        modifications.append("EfficientRGAttention → StandardAttention")
+        modifications.append("RGAttention → StandardAttention")
     if not config.use_spherical_encoding:
         modifications.append("SphericalHarmonicEncoding → None")
     if not config.use_multiscale_decoder:

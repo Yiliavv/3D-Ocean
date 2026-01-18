@@ -49,13 +49,12 @@ model_params = {
     "seq_len": seq_len,
     
     # === 适中的模型容量（避免过拟合）===
-    "d_model": 512,                    # 模型维度（适中）
+    "d_model": 256,                    # 模型维度（适中）
     "num_heads": 8,                    # 注意力头数
-    "dim_feedforward": 1024,           # FFN 维度 = d_model * 2
-    "num_attn_layers": 1,              # 注意力层数（不宜过深）
+    "dim_feedforward": 512,            # FFN 维度 = d_model * 2
     
     # === 强正则化（防止过拟合）===
-    "dropout": 0.1,                    # Dropout 增加到 0.1
+    "dropout": 0.2,                    # Dropout 增加到 0.1
     
     # === 非线性增强（这个有用）===
     "ffn_activation": "swiglu",        # FFN 激活函数
@@ -69,9 +68,9 @@ model_params = {
     "huber_delta": 1.0,
     
     # === 优化器配置（小数据需要更谨慎）===
-    "learning_rate": 5e-4,             # 学习率（降低，更稳定）
+    "learning_rate": 1e-4,             # 学习率（降低，更稳定）
     "use_lr_scheduler": True,          # 余弦退火
-    "warmup_epochs": 20,               # 预热轮数
+    "warmup_epochs": 10,               # 预热轮数
     "min_lr": 1e-6,                    # 最小学习率
     "weight_decay": 0.05,              # 权重衰减增加（重要！）
 }
@@ -87,8 +86,8 @@ model_params = {
 #
 trainer_params = {
     # === 基础训练参数 ===
-    "epochs": 1000,                    # 小数据需要更多轮次
-    "batch_size": 16,                  # 适中批量
+    "epochs": 100,                    # 小数据需要更多轮次
+    "batch_size": 8,                  # 适中批量
     
     # === 梯度累积（可选）===
     "accumulate_grad_batches": 1,      # 数据少时不需要累积
@@ -109,7 +108,7 @@ trainer_params = {
     "mode": "min",
     
     # === 早停策略（重要！防止过拟合）===
-    "early_stopping_patience": 30,     # 30轮无改善则停止
+    "early_stopping_patience": 10,     # 30轮无改善则停止
     
     # === 梯度裁剪 ===
     "gradient_clip_val": 1.0,
@@ -119,33 +118,24 @@ trainer_params = {
 # 配置说明
 # ============================================================
 # 
-# 🎯 目标: RMSE < 0.5°C
+# 🎯 目标: RMSE < 0.25°C (接近SOTA水平)
 # 
-# V3.1 更新（针对 8G 显存）:
+# V4.0 更新 - 对标SOTA方法优化:
 # 
-# 1. 【模型增强】
-#    - d_model: 512 -> 768 (+50%)
-#    - num_heads: 8 -> 12
-#    - dim_feedforward: 1024 -> 2048 (+100%)
-#    - num_attn_layers: 2 -> 3
-#    - 参数量预计增加约 2-3 倍
+# 1. 【序列长度优化】⭐ 最重要的改动
+#    - seq_len: 2 -> 10
+#    - 使用过去9天历史预测下一天
+#    - 对标: U-Transformer(10天), CAAD-Transformer(30天)
+#    - 预期RMSE改进: 10-15%
 # 
-# 2. 【数据增强】
-#    - 水平翻转: 增加空间多样性
-#    - 高斯噪声: 模拟观测误差
-#    - 随机遮挡: 模拟云层遮挡
-#    - 温度偏移: 模拟系统偏差
-#    - augment_factor=4: 样本量 530 -> 2120
+# 2. 【后续优化方向】(待实施)
+#    - 添加坐标注意力 (CAAD-Transformer思路)
+#    - 添加轻量谱卷积 (FNO思路)
+#    - 添加物理约束损失 (SSTODE思路)
 # 
-# 3. 【显存利用优化】
-#    - batch_size: 8 -> 16
-#    - 关闭梯度检查点（加速训练）
-#    - 预计显存使用: ~6-7G
-#
-# 显存估算:
-#   模型参数: ~30M * 4 bytes * 2 (optimizer) ≈ 240MB
-#   激活值: ~2GB (batch_size=16)
-#   梯度: ~2GB
-#   缓冲区: ~1GB
-#   总计: ~5-6GB，留有余量
+# 显存估算 (seq_len=10):
+#   模型参数: ~1M * 4 bytes * 2 (optimizer) ≈ 8MB
+#   激活值: ~3GB (batch_size=16, seq_len=10)
+#   梯度: ~1GB
+#   总计: ~4-5GB，显存充足
 

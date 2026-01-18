@@ -4,7 +4,7 @@ RGTransformer: 海表温度时空序列预测模型
 主要特性：
 - ConvStem 局部特征提取
 - 球谐波空间位置编码
-- EfficientRGAttention 时序注意力
+- RGAttention 门控时序注意力
 - SwiGLU 激活函数
 - SE 通道注意力
 """
@@ -20,7 +20,7 @@ from torch import optim
 from einops import rearrange
 
 from src.models.SST.PE.SphericalHarmonicEncoding import SpatialSphericalHarmonicEncoding
-from src.models.SST.Attention.RGAttention import EfficientRGAttention
+from src.models.SST.Attention.RGAttention import RGAttention
 from src.models.SST.ConvStem import ConvStem, MultiScaleConvStem
 from src.models.SST.MultiScaleDecoder import MultiScaleDecoder
 
@@ -95,7 +95,6 @@ class RGTransformer(LightningModule):
         num_heads: int = 8, 
         dim_feedforward: int = 1024,
         dropout: float = 0.1,
-        num_attn_layers: int = 1,
         learning_rate: float = 1e-4,
         lat_range: Optional[List[float]] = None,
         lon_range: Optional[List[float]] = None,
@@ -183,9 +182,9 @@ class RGTransformer(LightningModule):
             self.decoder = None
     
         # Transformer
-        self.attention = EfficientRGAttention(
+        self.attention = RGAttention(
             d_model=d_model, num_heads=num_heads,
-            dropout=dropout, num_layers=num_attn_layers, use_gate=True
+            dropout=dropout, use_gate=True
         )
         self.ffn = ChannelFeedForward(d_model, dim_feedforward, dropout, ffn_activation)
         self.dropout = nn.Dropout(dropout)
@@ -290,7 +289,7 @@ class RGTransformer(LightningModule):
         loss = self.compute_loss(self(x), y)
         self.train_loss.append(loss.detach().cpu().item())
         self.log('train_loss', loss, prog_bar=True, on_step=True, on_epoch=True)
-        if self.use_lr_scheduler:
+        if self.use_lr_scheduler and self.trainer is not None:
             self.log('lr', self.optimizers().param_groups[0]['lr'], prog_bar=True, on_step=False, on_epoch=True)
         return loss
     

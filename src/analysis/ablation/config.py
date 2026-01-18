@@ -31,7 +31,7 @@ class AblationConfig:
     
     # 组件开关
     use_conv_stem: bool = True             # 是否使用 ConvStem（否则用 PatchEmbedding）
-    use_efficient_attention: bool = True   # 是否使用 EfficientRGAttention
+    use_efficient_attention: bool = True   # 是否使用 RGAttention（门控注意力）
     use_spherical_encoding: bool = True    # 是否使用球谐波编码
     use_multiscale_decoder: bool = False   # 是否使用多尺度解码器（默认关闭，与正常训练一致）
     use_gated_residual: bool = True        # 是否使用门控残差
