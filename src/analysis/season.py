@@ -69,6 +69,8 @@ class SeasonalityAnalysis:
         """Plot visualizations of seasonal patterns as two separate figures"""
         # Apply a professional-looking style
         sns.set_style("whitegrid")
+        plt.rcParams['font.family'] = 'serif'
+        plt.rcParams['font.serif'] = ['Times New Roman']
         plt.rcParams['font.size'] = 10
         
         # Figure 1: Time-series plot

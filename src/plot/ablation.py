@@ -33,7 +33,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # 配置 matplotlib 中文支持
-plt.rcParams['font.sans-serif'] = ['SimHei', 'DejaVu Sans', 'Arial']
+plt.rcParams['font.family'] = 'serif'
+plt.rcParams['font.serif'] = ['Times New Roman']
 plt.rcParams['axes.unicode_minus'] = False
 
 
@@ -659,7 +660,8 @@ class AblationVisualizer:
         """
         # Nature 风格设置
         plt.rcParams.update({
-            'font.family': 'Arial',
+            'font.family': 'serif',
+            'font.serif': ['Times New Roman'],
             'font.size': 7,
             'axes.labelsize': 8,
             'axes.titlesize': 9,

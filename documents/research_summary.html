@@ -60,7 +60,7 @@
             padding: 10px 24px;
             font-family: Arial, sans-serif;
             font-weight: bold;
-            font-size: 16px;
+            font-size: 20px;
             color: #003366;
             border-bottom: 2px solid #000;
             text-align: center;
@@ -72,7 +72,7 @@
 
         /* 数据框 */
         .data-phase {
-            width: 520px;
+            width: 850px;
         }
 
         .data-row {
@@ -91,7 +91,7 @@
 
         .data-item-title {
             font-weight: bold;
-            font-size: 13px;
+            font-size: 17px;
             color: #003366;
             margin-bottom: 8px;
             padding-bottom: 6px;
@@ -99,7 +99,7 @@
         }
 
         .data-item-content {
-            font-size: 13px;
+            font-size: 17px;
             line-height: 1.6;
             color: #333;
         }
@@ -187,7 +187,7 @@
         }
 
         .model-content {
-            font-size: 14px;
+            font-size: 18px;
             line-height: 1.7;
         }
 
@@ -202,7 +202,7 @@
         .model-label {
             font-weight: bold;
             color: #003366;
-            font-size: 13px;
+            font-size: 17px;
             margin-bottom: 4px;
         }
 
@@ -213,6 +213,19 @@
 
         .model-text b {
             color: #000;
+        }
+
+        .parallel-arrows {
+            display: flex;
+            gap: 50px;
+            width: 850px;
+        }
+
+        .arrow-cell {
+            width: 400px;
+            display: flex;
+            justify-content: center;
+            height: 45px;
         }
 
     </style>
@@ -276,7 +289,7 @@
                     <div class="model-content">
                         <div class="model-section">
                             <div class="model-label">对比模型</div>
-                            <div class="model-text">LSTM / ConvLSTM / Transformer / <b>RG-Transformer</b></div>
+                            <div class="model-text">LSTM / ConvLSTM / Transformer / <b>GS-Transformer</b></div>
                         </div>
                         <div class="model-section">
                             <div class="model-label">核心创新</div>
@@ -310,6 +323,66 @@
                 </div>
             </div>
         </div>
+
+        <!-- 双箭头 -->
+        <div class="parallel-arrows">
+            <div class="arrow-cell"><div class="arrow-down"></div></div>
+            <div class="arrow-cell"><div class="arrow-down"></div></div>
+        </div>
+
+        <!-- 两个分析框 -->
+        <div class="parallel">
+            <div class="phase model-phase">
+                <div class="phase-head">SST 结果分析</div>
+                <div class="phase-body">
+                    <div class="model-content">
+                        <div class="model-section">
+                            <div class="model-label">分析方法</div>
+                            <div class="model-text">
+                                RMSE / MAE / R² 定量评估<br>
+                                空间误差分布可视化<br>
+                                多步预测衰减曲线分析
+                            </div>
+                        </div>
+                        <div class="model-section">
+                            <div class="model-label">分析内容</div>
+                            <div class="model-text">
+                                不同预测时长 (1-30天) 精度对比<br>
+                                季节性预测能力评估<br>
+                                区域性能差异分析 (热带/中纬度/极地)<br>
+                                各模型预测误差对比
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="phase model-phase">
+                <div class="phase-head">3D 温度场结果分析</div>
+                <div class="phase-body">
+                    <div class="model-content">
+                        <div class="model-section">
+                            <div class="model-label">分析方法</div>
+                            <div class="model-text">
+                                垂直剖面对比分析<br>
+                                逐深度层 RMSE 评估<br>
+                                温跃层结构还原度分析
+                            </div>
+                        </div>
+                        <div class="model-section">
+                            <div class="model-label">分析内容</div>
+                            <div class="model-text">
+                                不同深度层 (0-2000m) 重建精度<br>
+                                温跃层位置与强度还原评估<br>
+                                季节变化响应能力分析<br>
+                                各模型深度维度误差对比
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
     </div>
 </div>
 

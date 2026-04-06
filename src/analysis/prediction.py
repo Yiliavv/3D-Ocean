@@ -13,7 +13,8 @@ plt.style.use('seaborn-v0_8-whitegrid')
 sns.set_palette("deep")
 
 # Configure font settings
-rcParams['font.sans-serif'] = ['Arial', 'DejaVu Sans', 'Liberation Sans']
+rcParams['font.family'] = 'serif'
+rcParams['font.serif'] = ['Times New Roman']
 rcParams['axes.unicode_minus'] = False
 rcParams['font.size'] = 12
 rcParams['font.weight'] = 'normal'

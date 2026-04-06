@@ -238,7 +238,7 @@ class VisualizationStyle:
     name: str                              # 如 "agu", "ieee", "nature"
     
     # 字体设置
-    font_family: str = 'sans-serif'
+    font_family: str = 'serif'
     font_size: int = 10
     label_size: int = 11
     title_size: int = 12
@@ -270,6 +270,7 @@ class VisualizationStyle:
         """获取 matplotlib rc 参数"""
         return {
             'font.family': self.font_family,
+            'font.serif': ['Times New Roman'],
             'font.size': self.font_size,
             'axes.labelsize': self.label_size,
             'axes.titlesize': self.title_size,

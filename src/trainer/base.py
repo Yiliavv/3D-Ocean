@@ -183,7 +183,7 @@ class BaseTrainer:
             verbose=False,
         )
         
-        print(f"\n💾 Checkpoint: {CHECKPOINT_SAVE_PATH}/{self.trainer_uid}/{f'{self.model_class.__name__}'}\n")
+        print(f"\n[Checkpoint] {CHECKPOINT_SAVE_PATH}/{self.trainer_uid}/{f'{self.model_class.__name__}'}\n")
         
         return checkpoint_callback
     
@@ -216,10 +216,10 @@ class BaseTrainer:
         if self.trainer_params.get('compile_model', False):
             if hasattr(torch, 'compile'):
                 compile_mode = self.trainer_params.get('compile_mode', 'default')
-                print(f"🚀 编译模型 (模式: {compile_mode})...")
+                print(f"[Compile] (mode: {compile_mode})...")
                 self.model = torch.compile(self.model, mode=compile_mode)
             else:
-                print("⚠️  PyTorch版本 < 2.0, 模型编译不可用")
+                print("[WARN] PyTorch < 2.0, compile unavailable")
         
         epochs = self.trainer_params.get('epochs', 100)
         
@@ -244,7 +244,7 @@ class BaseTrainer:
         if accumulate_grad_batches > 1:
             trainer_config['accumulate_grad_batches'] = accumulate_grad_batches
             effective_batch = self.trainer_params.get('batch_size', 8) * accumulate_grad_batches
-            print(f"📊 梯度累积: {accumulate_grad_batches}x, 有效批量大小: {effective_batch}")
+            print(f"[Grad Accumulation] {accumulate_grad_batches}x, effective batch: {effective_batch}")
         
         # 梯度裁剪（防止梯度爆炸）
         gradient_clip_val = self.trainer_params.get('gradient_clip_val', 1.0)
@@ -266,7 +266,7 @@ class BaseTrainer:
                 verbose=True
             )
             callbacks.append(early_stopping)
-            print(f"⏱️ 早停策略: {early_stopping_patience} 轮无改善则停止")
+            print(f"[Early Stop] patience={early_stopping_patience} epochs")
         
         if callbacks:
             trainer_config['callbacks'] = callbacks
@@ -292,10 +292,10 @@ class BaseTrainer:
         
         # 训练（PyTorch Lightning 自动处理 checkpoint 恢复）
         if os.path.exists(ckpt_path):
-            print(f"\n🔄 使用 checkpoint: {ckpt_path}\n")
+            print(f"\n[Resume] checkpoint: {ckpt_path}\n")
             trainer.fit(self.model, train_loader, val_loader, ckpt_path=ckpt_path)
         else:
-            print(f"\n🔄 从头开始训练\n")
+            print(f"\n[Train] Starting from scratch\n")
             trainer.fit(self.model, train_loader, val_loader)
         
         train_time = time.time() - train_start
@@ -321,95 +321,95 @@ class BaseTrainer:
     def _print_optimization_summary(self):
         """打印优化配置摘要"""
         print("\n" + "="*60)
-        print("🚀 训练优化配置（V3 精度优化版）")
+        print("[Config] Training Optimization (V3)")
         print("="*60)
         
         # 系统信息
-        print(f"\n💻 系统: {platform.system()}")
+        print(f"\n[System] {platform.system()}")
         
         # GPU 信息
         if torch.cuda.is_available():
             gpu_name = torch.cuda.get_device_name(0)
             gpu_memory = torch.cuda.get_device_properties(0).total_memory / 1024**3
-            print(f"🎮 GPU: {gpu_name} ({gpu_memory:.1f} GB)")
+            print(f"[GPU] {gpu_name} ({gpu_memory:.1f} GB)")
         
         # Checkpoint 信息
         if self.use_checkpoint:
-            print(f"\n💾 Checkpoint:")
-            print(f"  • 启用: True")
-            print(f"  • 监控指标: {self.trainer_params.get('monitor', 'val_loss')}")
-            print(f"  • 保存最优: Top-{self.trainer_params.get('save_top_k', 3)}")
+            print(f"\n[Checkpoint]")
+            print(f"  - 启用: True")
+            print(f"  - 监控指标: {self.trainer_params.get('monitor', 'val_loss')}")
+            print(f"  - 保存最优: Top-{self.trainer_params.get('save_top_k', 3)}")
         
         # 数据加载优化
-        print("\n📦 数据加载:")
+        print("\n[DataLoader]")
         num_workers = self.trainer_params.get('num_workers', 8)
         batch_size = self.trainer_params.get('batch_size', 8)
-        print(f"  • batch_size: {batch_size}")
-        print(f"  • num_workers: {num_workers}")
-        print(f"  • pin_memory: {self.trainer_params.get('pin_memory', True)}")
+        print(f"  - batch_size: {batch_size}")
+        print(f"  - num_workers: {num_workers}")
+        print(f"  - pin_memory: {self.trainer_params.get('pin_memory', True)}")
         if num_workers > 0:
-            print(f"  • persistent_workers: {self.trainer_params.get('persistent_workers', True)}")
+            print(f"  - persistent_workers: {self.trainer_params.get('persistent_workers', True)}")
         
         # 梯度累积
         accumulate = self.trainer_params.get('accumulate_grad_batches', 1)
         if accumulate > 1:
-            print(f"\n📈 梯度累积:")
-            print(f"  • 累积步数: {accumulate}")
-            print(f"  • 有效批量: {batch_size * accumulate}")
+            print(f"\n[Grad Accumulation]")
+            print(f"  - 累积步数: {accumulate}")
+            print(f"  - 有效批量: {batch_size * accumulate}")
         
         # 训练优化
-        print("\n⚡ 训练配置:")
+        print("\n[Training Config]")
         precision = self.trainer_params.get('precision', '16-mixed')
-        print(f"  • precision: {precision}")
+        print(f"  - precision: {precision}")
         if precision == '16-mixed':
-            print(f"    ✅ 混合精度训练已启用 (FP16+FP32)")
+            print(f"    [OK] Mixed precision enabled (FP16+FP32)")
         
         if torch.cuda.is_available():
             matmul_precision = self.trainer_params.get('matmul_precision', 'high')
-            print(f"  • tensor_cores: {matmul_precision} precision")
-            print(f"    ✅ Tensor Cores 优化已启用 (RTX GPU)")
+            print(f"  - tensor_cores: {matmul_precision} precision")
+            print(f"    [OK] Tensor Cores enabled (RTX GPU)")
         
         # 梯度裁剪
         grad_clip = self.trainer_params.get('gradient_clip_val', 1.0)
         if grad_clip:
-            print(f"  • gradient_clip: {grad_clip}")
+            print(f"  - gradient_clip: {grad_clip}")
         
         # 模型参数信息
         if hasattr(self, 'model_params'):
-            print(f"\n🧠 模型配置:")
-            print(f"  • d_model: {self.model_params.get('d_model', 'N/A')}")
-            print(f"  • num_heads: {self.model_params.get('num_heads', 'N/A')}")
-            print(f"  • dim_feedforward: {self.model_params.get('dim_feedforward', 'N/A')}")
-            print(f"  • ffn_activation: {self.model_params.get('ffn_activation', 'gelu')}")
-            print(f"  • use_se_attention: {self.model_params.get('use_se_attention', False)}")
-            print(f"  • loss_type: {self.model_params.get('loss_type', 'mse')}")
+            print(f"\n[Model Config]")
+            print(f"  - d_model: {self.model_params.get('d_model', 'N/A')}")
+            print(f"  - num_heads: {self.model_params.get('num_heads', 'N/A')}")
+            print(f"  - dim_feedforward: {self.model_params.get('dim_feedforward', 'N/A')}")
+            print(f"  - ffn_activation: {self.model_params.get('ffn_activation', 'gelu')}")
+            print(f"  - use_se_attention: {self.model_params.get('use_se_attention', False)}")
+            print(f"  - loss_type: {self.model_params.get('loss_type', 'mse')}")
             
             if self.model_params.get('use_gradient_checkpointing', False):
-                print(f"  • gradient_checkpointing: ✅ 已启用")
+                print(f"  - gradient_checkpointing: enabled")
         
         # 学习率配置
-        print(f"\n📉 学习率配置:")
-        print(f"  • initial_lr: {self.model_params.get('learning_rate', 1e-4)}")
+        print(f"\n[Learning Rate]")
+        print(f"  - initial_lr: {self.model_params.get('learning_rate', 1e-4)}")
         if self.model_params.get('use_lr_scheduler', False):
-            print(f"  • scheduler: CosineAnnealingLR")
-            print(f"  • warmup_epochs: {self.model_params.get('warmup_epochs', 10)}")
-            print(f"  • min_lr: {self.model_params.get('min_lr', 1e-6)}")
+            print(f"  - scheduler: CosineAnnealingLR")
+            print(f"  - warmup_epochs: {self.model_params.get('warmup_epochs', 10)}")
+            print(f"  - min_lr: {self.model_params.get('min_lr', 1e-6)}")
         
         # 早停策略
         patience = self.trainer_params.get('early_stopping_patience', None)
         if patience:
-            print(f"\n⏱️ 早停策略:")
-            print(f"  • patience: {patience} epochs")
+            print(f"\n[Early Stop]")
+            print(f"  - patience: {patience} epochs")
         
         # 模型编译
         if self.trainer_params.get('compile_model', False):
-            print(f"\n🔧 模型编译:")
-            print(f"  • 已启用: {self.trainer_params.get('compile_mode', 'default')} 模式")
+            print(f"\n[Model Compile]")
+            print(f"  - 已启用: {self.trainer_params.get('compile_mode', 'default')} 模式")
         
         # Wandb 信息
         if self.wandb:
-            print(f"\n📊 Wandb:")
-            print(f"  • 已启用")
+            print(f"\n[Wandb]")
+            print(f"  - 已启用")
         
         print("="*60 + "\n")
 
@@ -511,9 +511,9 @@ class BasePrediction:
         if not os.path.exists(checkpoint_file):
             return False
         
-        print(f"📦 从本地 checkpoint 加载模型...")
-        print(f"  • Run ID: {run_id}")
-        print(f"  • 路径: {checkpoint_file}")
+        print(f"[Load] From local checkpoint...")
+        print(f"  - Run ID: {run_id}")
+        print(f"  - 路径: {checkpoint_file}")
         
         # 先创建模型实例（不加载权重），用于初始化延迟初始化的层
         temp_model = self.model_class(**self.model_params)
@@ -527,7 +527,7 @@ class BasePrediction:
             dummy_input = torch.zeros(1, seq_len - 1, width, height)
             try:
                 _ = temp_model.attention(dummy_input)
-                print(f"  • 已初始化延迟投影层")
+                print(f"  - 已初始化延迟投影层")
             except:
                 pass
         
@@ -543,7 +543,7 @@ class BasePrediction:
         self.model.eval()
         self.model_loaded = True
         
-        print(f"  ✅ 本地 checkpoint 加载成功")
+        print(f"  [OK] Local checkpoint loaded")
         return True
     
     def _load_model_from_wandb(self, run_id: str, version: str = 'latest'):
@@ -554,11 +554,11 @@ class BasePrediction:
         """
         from src.config.params import WANDB_PROJECT, WANDB_ENTITY
         
-        print(f"📦 从 wandb 加载模型...")
-        print(f"  • Run ID: {run_id}")
-        print(f"  • Version: {version}")
-        print(f"  • Project: {WANDB_PROJECT}")
-        print(f"  • Entity: {WANDB_ENTITY}")
+        print(f"[Load] From wandb...")
+        print(f"  - Run ID: {run_id}")
+        print(f"  - Version: {version}")
+        print(f"  - Project: {WANDB_PROJECT}")
+        print(f"  - Entity: {WANDB_ENTITY}")
         
         # 使用 wandb API（官方方法）
         api = wandb.Api()
@@ -572,9 +572,9 @@ class BasePrediction:
         checkpoint_file = f"{cache_dir}/{self.model_class.__name__}.ckpt"
         
         if os.path.exists(checkpoint_file):
-            print(f"  • 使用本地缓存: {checkpoint_file}")
+            print(f"  - 使用本地缓存: {checkpoint_file}")
         else:
-            print(f"  • 查找 Artifact: {artifact_full_path}")
+            print(f"  - 查找 Artifact: {artifact_full_path}")
             artifact = api.artifact(artifact_full_path)
             
             os.makedirs(cache_dir, exist_ok=True)
@@ -588,7 +588,7 @@ class BasePrediction:
             downloaded_ckpt = os.path.join(cache_dir, ckpt_files[0])
 
             if downloaded_ckpt != checkpoint_file:
-                print(f"  • 重命名文件: {ckpt_files[0]} -> {self.model_class.__name__}.ckpt")
+                print(f"  - 重命名文件: {ckpt_files[0]} -> {self.model_class.__name__}.ckpt")
                 os.rename(downloaded_ckpt, checkpoint_file)
         
         # 先创建模型实例（不加载权重），用于初始化延迟初始化的层
@@ -603,7 +603,7 @@ class BasePrediction:
             dummy_input = torch.zeros(1, seq_len - 1, width, height)
             try:
                 _ = temp_model.attention(dummy_input)
-                print(f"  • 已初始化延迟投影层")
+                print(f"  - 已初始化延迟投影层")
             except:
                 pass
         
@@ -619,7 +619,7 @@ class BasePrediction:
         self.model.eval()
         self.model_loaded = True
         
-        print(f"  ✅ wandb artifact 加载成功")
+        print(f"  [OK] Wandb artifact loaded")
     
     def _ensure_model_loaded(self):
         """
@@ -641,7 +641,7 @@ class BasePrediction:
         
         # 本地不存在，尝试从 wandb 加载
         if self.wandb:
-            print(f"  ⚠️ 本地 checkpoint 不存在，尝试从 wandb 加载...")
+            print(f"  [WARN] Local checkpoint not found, trying wandb...")
             self._load_model_from_wandb(self.run_id, self.wandb_version)
         else:
             raise FileNotFoundError(
@@ -677,7 +677,7 @@ class BasePrediction:
         pred_loader = DataLoader(pred_dataset, batch_size=1, shuffle=False)
         
         input, output = next(iter(pred_loader))
-        ssta = pred_dataset.read_ssta(offset)
+        ssta = pred_dataset.read_ssta(0)  # 使用 0，因为数据集已经用 offset 初始化
         
         # 将数据移动到模型所在的设备
         input = input.to(device)

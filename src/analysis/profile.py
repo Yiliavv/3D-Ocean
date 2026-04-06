@@ -14,8 +14,8 @@ from typing import Optional, Dict, List, Tuple, Union
 from matplotlib import rcParams
 
 # 设置Nature级别的图片参数
-rcParams['font.family'] = 'sans-serif'
-rcParams['font.sans-serif'] = ['DejaVu Sans', 'Liberation Sans', 'Arial', 'Helvetica']
+rcParams['font.family'] = 'serif'
+rcParams['font.serif'] = ['Times New Roman']
 rcParams['font.size'] = 10
 rcParams['axes.labelsize'] = 12
 rcParams['axes.titlesize'] = 12

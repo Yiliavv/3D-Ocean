@@ -363,8 +363,8 @@ class RegionalAnalysis:
         
         # ============ Nature 风格设置（增大字体以提高可读性） ============
         plt.rcParams.update({
-            'font.family': 'sans-serif',
-            'font.sans-serif': ['DejaVu Sans', 'Helvetica', 'Arial'],
+            'font.family': 'serif',
+            'font.serif': ['Times New Roman'],
             'font.size': 12,
             'axes.linewidth': 1.0,
             'axes.labelsize': 14,
@@ -697,8 +697,8 @@ class RegionalAnalysis:
         
         # ============ Nature 风格设置 ============
         plt.rcParams.update({
-            'font.family': 'sans-serif',
-            'font.sans-serif': ['DejaVu Sans', 'Helvetica', 'Arial'],
+            'font.family': 'serif',
+            'font.serif': ['Times New Roman'],
             'font.size': 7,
             'axes.linewidth': 0.5,
             'axes.labelsize': 7,

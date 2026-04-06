@@ -13,6 +13,9 @@ doc/Paper/*
 !doc/JGR/agujournaltemplate.tex
 !doc/JGR/agujournaltemplate-zh.tex
 !doc/JGR/references.bib
+!doc/Journal_of_Remote_Sensing/main.tex
+!doc/Journal_of_Remote_Sensing/main-zh.tex
+!doc/Journal_of_Remote_Sensing/simple.tex
 !doc/Paper/paper.tex
 
 out/

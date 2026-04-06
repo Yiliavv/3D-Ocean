@@ -14,6 +14,9 @@ import cartopy.io.shapereader as sreader
 import src.utils.log as l
 import src.config.params as parm
 
+matplotlib.rcParams['font.family'] = 'serif'
+matplotlib.rcParams['font.serif'] = ['Times New Roman']
+
 # 基础绘图方法
 
 def create_high_quality_figure():

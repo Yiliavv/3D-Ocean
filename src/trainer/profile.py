@@ -445,6 +445,7 @@ class ProfileTrainer:
         
         # 设置字体
         rcParams['font.family'] = 'serif'
+        rcParams['font.serif'] = ['Times New Roman']
         rcParams['font.size'] = 12
         
         # 定义模型样式
