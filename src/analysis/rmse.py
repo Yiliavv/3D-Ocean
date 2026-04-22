@@ -113,7 +113,12 @@ def plot_metrics():
     plt.rcParams['font.family'] = 'Times New Roman'
     plt.rcParams['axes.unicode_minus'] = False
     plt.rcParams['font.size'] = 16
-    plt.rcParams['axes.labelsize'] = 16
+    plt.rcParams['axes.labelsize'] = 14
+    plt.rcParams['xtick.labelsize'] = 14
+    plt.rcParams['ytick.labelsize'] = 14
+    plt.rcParams['axes.labelpad'] = 12
+    plt.rcParams['xtick.major.pad'] = 8
+    plt.rcParams['ytick.major.pad'] = 8
     
     # Create time series (8 months from 2024-10 to 2025-05)
     dates = []
@@ -172,13 +177,13 @@ def plot_metrics():
         lines.append(line[0])
     
     # Set title and labels
-    ax1.set_xlabel('Prediction Time (month)', fontsize=16, labelpad=10)
-    ax1.set_ylabel('Normalized Root Mean Square Error (NRMSE, °C)', fontsize=16, labelpad=10)
-    ax2.set_ylabel('Coefficient of Determination (R²)', fontsize=16, labelpad=10)
+    ax1.set_xlabel('Prediction Time (month)', fontsize=14, labelpad=12)
+    ax1.set_ylabel('Normalized Root Mean Square Error (NRMSE, °C)', fontsize=14, labelpad=12)
+    ax2.set_ylabel('Coefficient of Determination (R²)', fontsize=14, labelpad=12)
     
     # Set x-axis ticks
     ax1.set_xticks(x + width*2)
-    ax1.set_xticklabels(x_ticks, rotation=30, ha='right', fontsize=16)
+    ax1.set_xticklabels(x_ticks, rotation=30, ha='right', fontsize=14)
     
     # Beautify axes
     ax1.spines['top'].set_visible(False)

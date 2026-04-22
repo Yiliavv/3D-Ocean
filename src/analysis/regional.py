@@ -27,12 +27,15 @@ from src.plot.base import create_carto_ax
 plt.rcParams.update({
     'font.family': 'Times New Roman',
     'font.size': 16,
-    'axes.labelsize': 16,
+    'axes.labelsize': 14,
     'axes.titlesize': 16,
-    'xtick.labelsize': 16,
-    'ytick.labelsize': 16,
+    'xtick.labelsize': 14,
+    'ytick.labelsize': 14,
     'legend.fontsize': 16,
     'figure.titlesize': 16,
+    'axes.labelpad': 12,
+    'xtick.major.pad': 8,
+    'ytick.major.pad': 8,
     'axes.unicode_minus': False,
 })
 
@@ -375,15 +378,17 @@ class RegionalAnalysis:
         
         # ============ Nature 风格设置（增大字体以提高可读性） ============
         plt.rcParams.update({
-            'font.family': 'serif',
-            'font.serif': ['Times New Roman'],
+            'font.family': 'Times New Roman',
             'font.size': 12,
             'axes.linewidth': 1.0,
             'axes.labelsize': 14,
             'axes.titlesize': 16,
-            'xtick.labelsize': 12,
-            'ytick.labelsize': 12,
-            'legend.fontsize': 11,
+            'xtick.labelsize': 14,
+            'ytick.labelsize': 14,
+            'legend.fontsize': 14,
+            'axes.labelpad': 12,
+            'xtick.major.pad': 8,
+            'ytick.major.pad': 8,
             'figure.dpi': 300,
         })
         
@@ -473,8 +478,8 @@ class RegionalAnalysis:
         # 添加误差色标（地图右侧，位置优化）
         cbar_ax = fig.add_axes([0.88, 0.55, 0.015, 0.32])
         cbar = fig.colorbar(cf, cax=cbar_ax, orientation='vertical')
-        cbar.set_label('Prediction Error (°C)', fontsize=16, labelpad=8)
-        cbar.ax.tick_params(labelsize=16)
+        cbar.set_label('Prediction Error (°C)', fontsize=14, labelpad=12)
+        cbar.ax.tick_params(labelsize=14, pad=8)
         
         ax_map.set_title('')
         
@@ -520,8 +525,8 @@ class RegionalAnalysis:
         
         # 设置 X 轴
         ax_stats.set_xticks(x_pos)
-        ax_stats.set_xticklabels(sorted_names, fontsize=16, rotation=30, ha='right')
-        ax_stats.set_ylabel('RMSE (°C)', fontsize=16)
+        ax_stats.set_xticklabels(sorted_names, fontsize=14, rotation=30, ha='right')
+        ax_stats.set_ylabel('RMSE (°C)', fontsize=14, labelpad=12)
         ax_stats.set_xlim(-0.5, n_regions - 0.5)
         ax_stats.set_ylim(-0.15, max(sorted_rmse) * 1.2)
         
@@ -590,7 +595,7 @@ class RegionalAnalysis:
             im = ax.contourf(lon_grid, lat_grid, self.error, levels=levels,
                            cmap=cmap, extend='both', transform=ccrs.PlateCarree())
             cbar = plt.colorbar(im, ax=ax, orientation='vertical', shrink=0.7, pad=0.02)
-            cbar.set_label('Prediction Error (°C)', fontsize=16)
+            cbar.set_label('Prediction Error (°C)', fontsize=14, labelpad=12)
         
         # 绘制各区域边界框
         stats = self.compute_all_regions()
@@ -707,15 +712,17 @@ class RegionalAnalysis:
         
         # ============ Nature 风格设置 ============
         plt.rcParams.update({
-            'font.family': 'serif',
-            'font.serif': ['Times New Roman'],
-            'font.size': 7,
+            'font.family': 'Times New Roman',
+            'font.size': 14,
             'axes.linewidth': 0.5,
-            'axes.labelsize': 7,
-            'axes.titlesize': 8,
-            'xtick.labelsize': 6,
-            'ytick.labelsize': 6,
-            'legend.fontsize': 6,
+            'axes.labelsize': 14,
+            'axes.titlesize': 16,
+            'xtick.labelsize': 14,
+            'ytick.labelsize': 14,
+            'legend.fontsize': 14,
+            'axes.labelpad': 12,
+            'xtick.major.pad': 8,
+            'ytick.major.pad': 8,
             'lines.linewidth': 0.75,
             'patch.linewidth': 0.5,
         })
@@ -817,8 +824,8 @@ class RegionalAnalysis:
         cb1_y = pos_obs.y0 - 0.06  # 在地图下方，稍微往下
         cax1 = fig.add_axes([cb1_left, cb1_y, cb1_width, 0.012])
         cb1 = plt.colorbar(im_obs, cax=cax1, orientation='horizontal')
-        cb1.set_label('SST (°C)', fontsize=16, labelpad=2)
-        cb1.ax.tick_params(labelsize=16, length=2, width=0.5)
+        cb1.set_label('SST (°C)', fontsize=14, labelpad=12)
+        cb1.ax.tick_params(labelsize=14, length=2, width=0.5, pad=8)
         
         # c 的 colorbar - 与 c 对齐
         cb2_left = pos_err.x0
@@ -826,8 +833,8 @@ class RegionalAnalysis:
         cb2_y = pos_err.y0 - 0.04
         cax2 = fig.add_axes([cb2_left, cb2_y, cb2_width, 0.012])
         cb2 = plt.colorbar(im_err, cax=cax2, orientation='horizontal', extend='both')
-        cb2.set_label('Error (°C)', fontsize=16, labelpad=2)
-        cb2.ax.tick_params(labelsize=16, length=2, width=0.5)
+        cb2.set_label('Error (°C)', fontsize=14, labelpad=12)
+        cb2.ax.tick_params(labelsize=14, length=2, width=0.5, pad=8)
         
         # ========== (d) Scatter Plot with Density ==========
         ax_scatter = fig.add_subplot(gs[1, 0])
@@ -849,8 +856,8 @@ class RegionalAnalysis:
         ax_scatter.plot(lims, fit_fn(lims), color='#E74C3C', linewidth=0.75, 
                        label=f'Fit (y={coef[0]:.2f}x{coef[1]:+.2f})', zorder=10)
         
-        ax_scatter.set_xlabel('Observed (°C)', fontsize=16)
-        ax_scatter.set_ylabel('Predicted (°C)', fontsize=16)
+        ax_scatter.set_xlabel('Observed (°C)', fontsize=14, labelpad=12)
+        ax_scatter.set_ylabel('Predicted (°C)', fontsize=14, labelpad=12)
         ax_scatter.set_aspect('equal', adjustable='box')
         ax_scatter.legend(loc='lower right', fontsize=16, framealpha=0.9,
                          handlelength=1.5, borderpad=0.3)
@@ -869,8 +876,8 @@ class RegionalAnalysis:
         pos_scatter = ax_scatter.get_position()
         cax3 = fig.add_axes([pos_scatter.x1 + 0.008, pos_scatter.y0 + 0.02, 0.008, pos_scatter.height * 0.8])
         cb3 = plt.colorbar(h[3], cax=cax3, orientation='vertical')
-        cb3.set_label('Density', fontsize=16, labelpad=2)
-        cb3.ax.tick_params(labelsize=16, length=1.5, width=0.3)
+        cb3.set_label('Density', fontsize=14, labelpad=12)
+        cb3.ax.tick_params(labelsize=14, length=1.5, width=0.3, pad=8)
         
         # ========== (e) Error Histogram with KDE ==========
         ax_hist = fig.add_subplot(gs[1, 1])
@@ -892,8 +899,8 @@ class RegionalAnalysis:
         ax_hist.axvline(stats['bias'], color='#27AE60', linestyle='--', linewidth=0.75,
                        label=f'Bias={stats["bias"]:+.3f}')
         
-        ax_hist.set_xlabel('Error (°C)', fontsize=16)
-        ax_hist.set_ylabel('Density', fontsize=16)
+        ax_hist.set_xlabel('Error (°C)', fontsize=14, labelpad=12)
+        ax_hist.set_ylabel('Density', fontsize=14, labelpad=12)
         ax_hist.legend(loc='upper right', fontsize=16, framealpha=0.9,
                       handlelength=1.2, borderpad=0.3)
         

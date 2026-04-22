@@ -133,8 +133,8 @@ class Global:
         tick_labels = [f'{int(d/1000)}k' if d >= 1000 else str(d) for d in depths]
         cb.set_ticklabels(tick_labels)
 
-        cb.set_label(label='Depth (m)', fontsize=16)
-        cb.ax.tick_params(labelsize=16)
+        cb.set_label(label='Depth (m)', fontsize=14, labelpad=12)
+        cb.ax.tick_params(labelsize=14, pad=8)
         
     def _load_shapefile(self):
         shp_dict = {}

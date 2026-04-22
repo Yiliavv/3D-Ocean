@@ -11,12 +11,15 @@ from lightning.pytorch.loggers import WandbLogger
 plt.rcParams.update({
     'font.family': 'Times New Roman',
     'font.size': 16,
-    'axes.labelsize': 16,
+    'axes.labelsize': 14,
     'axes.titlesize': 16,
-    'xtick.labelsize': 16,
-    'ytick.labelsize': 16,
+    'xtick.labelsize': 14,
+    'ytick.labelsize': 14,
     'legend.fontsize': 16,
     'figure.titlesize': 16,
+    'axes.labelpad': 12,
+    'xtick.major.pad': 8,
+    'ytick.major.pad': 8,
     'axes.unicode_minus': False,
 })
 
@@ -158,8 +161,8 @@ class AttentionVisualizer:
             title_parts.append(f'Step {step}')
         
         ax_attn.set_title('')
-        ax_attn.set_xlabel('Key Position (To)', fontsize=16)
-        ax_attn.set_ylabel('Query Position (From)', fontsize=16)
+        ax_attn.set_xlabel('Key Position (To)', fontsize=14, labelpad=12)
+        ax_attn.set_ylabel('Query Position (From)', fontsize=14, labelpad=12)
         ax_attn.set_xticks(range(0, attn_np.shape[1], max(1, attn_np.shape[1] // 10)))
         ax_attn.set_yticks(range(0, attn_np.shape[0], max(1, attn_np.shape[0] // 10)))
         plt.tight_layout()
@@ -206,8 +209,8 @@ class AttentionVisualizer:
         if step is not None:
             title_input += f' - Step {step}'
         ax_input.set_title('')
-        ax_input.set_xlabel('Longitude', fontsize=16)
-        ax_input.set_ylabel('Latitude', fontsize=16)
+        ax_input.set_xlabel('Longitude', fontsize=14, labelpad=12)
+        ax_input.set_ylabel('Latitude', fontsize=14, labelpad=12)
         plt.tight_layout()
         
         log_key_input = 'attention/input_sst'
@@ -242,8 +245,8 @@ class AttentionVisualizer:
         if step is not None:
             title_output += f' - Step {step}'
         ax_output.set_title('')
-        ax_output.set_xlabel('Longitude', fontsize=16)
-        ax_output.set_ylabel('Latitude', fontsize=16)
+        ax_output.set_xlabel('Longitude', fontsize=14, labelpad=12)
+        ax_output.set_ylabel('Latitude', fontsize=14, labelpad=12)
         plt.tight_layout()
         
         log_key_output = 'attention/output_sst'
@@ -272,8 +275,8 @@ class AttentionVisualizer:
         fig_impact, ax_impact = plt.subplots(figsize=(10, 6))
         seq_len_impact = len(impact_np)
         ax_impact.bar(range(seq_len_impact), impact_np, color='steelblue', alpha=0.7)
-        ax_impact.set_xlabel('Time Step Index', fontsize=16)
-        ax_impact.set_ylabel('Attention Impact Factor', fontsize=16)
+        ax_impact.set_xlabel('Time Step Index', fontsize=14, labelpad=12)
+        ax_impact.set_ylabel('Attention Impact Factor', fontsize=14, labelpad=12)
         ax_impact.set_title('')
         ax_impact.set_xticks(range(seq_len_impact))
         ax_impact.grid(True, alpha=0.3, axis='y')

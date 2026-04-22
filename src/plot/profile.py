@@ -143,12 +143,12 @@ def plot_3d_temperature(temp, lon, lat, depth, step=1, cmap='jet', label='temper
     ax.set_xlim(lon[0], lon[1])
     ax.set_ylim(lat[0], lat[1])
     ax.set_zlim(-max(depth), -min(depth))
-    ax.set_xlabel('Longitude (°E)', fontsize=16)
-    ax.set_ylabel('Latitude (°N)', fontsize=16)
-    ax.set_zlabel('Depth (m)', fontsize=16)
+    ax.set_xlabel('Longitude (°E)', fontsize=14, labelpad=12)
+    ax.set_ylabel('Latitude (°N)', fontsize=14, labelpad=12)
+    ax.set_zlabel('Depth (m)', fontsize=14, labelpad=12)
     
     # 设置坐标轴刻度标签字体大小
-    ax.tick_params(axis='both', labelsize=16)
+    ax.tick_params(axis='both', labelsize=14, pad=8)
     
     # 添加色标
     if colorbar and contour_set:
@@ -266,12 +266,12 @@ def plot_3d_temperature_error(temp_error, lon, lat, depth, step=1,
     ax.set_xlim(lon[0], lon[1])
     ax.set_ylim(lat[0], lat[1])
     ax.set_zlim(-max(depth), -min(depth))
-    ax.set_xlabel('Longitude (°E)', fontsize=16)
-    ax.set_ylabel('Latitude (°N)', fontsize=16)
-    ax.set_zlabel('Depth (m)', fontsize=16)
+    ax.set_xlabel('Longitude (°E)', fontsize=14, labelpad=12)
+    ax.set_ylabel('Latitude (°N)', fontsize=14, labelpad=12)
+    ax.set_zlabel('Depth (m)', fontsize=14, labelpad=12)
     
     # 设置坐标轴刻度标签字体大小
-    ax.tick_params(axis='both', labelsize=16)
+    ax.tick_params(axis='both', labelsize=14, pad=8)
     
     # 添加色标
     cbar = plt.colorbar(_, ax=ax,

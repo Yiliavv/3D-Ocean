@@ -240,10 +240,10 @@ class VisualizationStyle:
     # 字体设置
     font_family: str = 'Times New Roman'
     font_size: int = 16
-    label_size: int = 16
+    label_size: int = 14
     title_size: int = 16
     legend_size: int = 16
-    tick_size: int = 16
+    tick_size: int = 14
     
     # 图表尺寸
     single_column_width: float = 3.35      # 英寸
@@ -280,6 +280,9 @@ class VisualizationStyle:
             'figure.dpi': self.dpi,
             'savefig.dpi': self.dpi,
             'figure.figsize': (self.double_column_width, self.default_height),
+            'axes.labelpad': 12,
+            'xtick.major.pad': 8,
+            'ytick.major.pad': 8,
         }
     
     def get_figure_size(self, width: str = 'double', aspect: float = 0.75) -> tuple:
@@ -361,7 +364,7 @@ STYLES: Dict[str, VisualizationStyle] = {
     'agu': VisualizationStyle(
         name='agu',
         font_size=16,
-        label_size=16,
+        label_size=14,
         title_size=16,
         single_column_width=3.35,  # 85mm
         double_column_width=6.69,  # 170mm
@@ -369,7 +372,7 @@ STYLES: Dict[str, VisualizationStyle] = {
     'ieee': VisualizationStyle(
         name='ieee',
         font_size=16,
-        label_size=16,
+        label_size=14,
         title_size=16,
         single_column_width=3.5,
         double_column_width=7.16,
@@ -377,7 +380,7 @@ STYLES: Dict[str, VisualizationStyle] = {
     'nature': VisualizationStyle(
         name='nature',
         font_size=16,
-        label_size=16,
+        label_size=14,
         title_size=16,
         single_column_width=3.5,
         double_column_width=7.0,

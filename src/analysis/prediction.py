@@ -17,11 +17,14 @@ rcParams['font.family'] = 'Times New Roman'
 rcParams['axes.unicode_minus'] = False
 rcParams['font.size'] = 16
 rcParams['font.weight'] = 'normal'
-rcParams['axes.labelsize'] = 16
+rcParams['axes.labelsize'] = 14
 rcParams['axes.titlesize'] = 16
-rcParams['xtick.labelsize'] = 16
-rcParams['ytick.labelsize'] = 16
+rcParams['xtick.labelsize'] = 14
+rcParams['ytick.labelsize'] = 14
 rcParams['legend.fontsize'] = 16
+rcParams['axes.labelpad'] = 12
+rcParams['xtick.major.pad'] = 8
+rcParams['ytick.major.pad'] = 8
 
 # Import additional modules
 from matplotlib.colors import LogNorm, Normalize, PowerNorm
@@ -549,8 +552,8 @@ def analyze_model_performance(uid=None):
         ax1.plot(epoch_range, smoothed_train, label=f'{english_labels[model_name]} (Training)', 
                 color=colors[model_name], linewidth=2.8, linestyle='--', alpha=0.7)
     
-    ax1.set_xlabel('Training Epochs', fontsize=16, fontweight='bold')
-    ax1.set_ylabel('Loss Value', fontsize=16, fontweight='bold')
+    ax1.set_xlabel('Training Epochs', fontsize=14, fontweight='bold', labelpad=12)
+    ax1.set_ylabel('Loss Value', fontsize=14, fontweight='bold', labelpad=12)
     ax1.set_title('')
     
     # Enhanced legend
@@ -564,7 +567,7 @@ def analyze_model_performance(uid=None):
     ax1.grid(True, alpha=0.3, linestyle='-', linewidth=0.6)
     ax1.set_yscale('log')
     ax1.set_xlim(1, epochs)
-    ax1.tick_params(axis='both', which='major', labelsize=16)
+    ax1.tick_params(axis='both', which='major', labelsize=14, pad=8)
     ax1.spines['top'].set_visible(False)
     ax1.spines['right'].set_visible(False)
     
@@ -614,18 +617,18 @@ def analyze_model_performance(uid=None):
                     bbox=dict(boxstyle='round,pad=0.2', facecolor='white', 
                              alpha=0.7, edgecolor='none'))
     
-    ax2.set_xlabel('Training Stage (Epoch Groups)', fontsize=16, fontweight='bold')
+    ax2.set_xlabel('Training Stage (Epoch Groups)', fontsize=14, fontweight='bold', labelpad=12)
     ax2.set_title('')
     
     ax2.set_yticks(range(len(model_list)))
-    ax2.set_yticklabels([english_labels[model] for model in model_list], fontsize=16)
+    ax2.set_yticklabels([english_labels[model] for model in model_list], fontsize=14)
     ax2.set_xticks(range(n_segments))
     ax2.set_xticklabels([f'{i*segment_size+1}-{(i+1)*segment_size}' for i in range(n_segments)],
-                       rotation=45, fontsize=16, ha='right')
+                       rotation=45, fontsize=14, ha='right')
     
     cbar = plt.colorbar(im, ax=ax2, shrink=0.8, pad=0.02)
-    cbar.set_label('Relative Loss Intensity\n(Normalized per Model)', fontsize=16, fontweight='bold')
-    cbar.ax.tick_params(labelsize=16)
+    cbar.set_label('Relative Loss Intensity\n(Normalized per Model)', fontsize=14, fontweight='bold', labelpad=12)
+    cbar.ax.tick_params(labelsize=14, pad=8)
     
     cbar.set_ticks([0, 0.25, 0.5, 0.75, 1.0])
     cbar.set_ticklabels(['Lowest', 'Low', 'Medium', 'High', 'Highest'])
@@ -678,10 +681,10 @@ def analyze_model_performance(uid=None):
                     bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.9, 
                              edgecolor='gray', linewidth=0.8))
     
-    ax3.set_ylabel('Final Loss Value (Last 10 Epochs)', fontsize=16, fontweight='bold')
+    ax3.set_ylabel('Final Loss Value (Last 10 Epochs)', fontsize=14, fontweight='bold', labelpad=12)
     ax3.set_title('')
     ax3.set_xticks(x)
-    ax3.set_xticklabels([english_labels[m] for m in models], fontsize=16)
+    ax3.set_xticklabels([english_labels[m] for m in models], fontsize=14)
     
     legend3 = ax3.legend(fontsize=16, loc='upper left', bbox_to_anchor=(0.02, 0.98),
                         frameon=True, fancybox=True, shadow=True)
@@ -693,7 +696,7 @@ def analyze_model_performance(uid=None):
     ax3.set_ylim(0, max(max(final_val_losses.values()), max(final_train_losses.values())) * 1.4)
     
     ax3.grid(True, alpha=0.3, axis='y', linestyle='-', linewidth=0.6)
-    ax3.tick_params(axis='both', which='major', labelsize=16)
+    ax3.tick_params(axis='both', which='major', labelsize=14, pad=8)
     ax3.spines['top'].set_visible(False)
     ax3.spines['right'].set_visible(False)
     
@@ -729,11 +732,11 @@ def analyze_model_performance(uid=None):
                     arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0.1', 
                                    color='gray', alpha=0.7))
     
-    ax4.set_xlabel('Convergence Rate (%)', fontsize=16, fontweight='bold')
-    ax4.set_ylabel('Stability Score', fontsize=16, fontweight='bold')
+    ax4.set_xlabel('Convergence Rate (%)', fontsize=14, fontweight='bold', labelpad=12)
+    ax4.set_ylabel('Stability Score', fontsize=14, fontweight='bold', labelpad=12)
     ax4.set_title('')
     ax4.grid(True, alpha=0.3, linestyle='-', linewidth=0.6)
-    ax4.tick_params(axis='both', which='major', labelsize=16)
+    ax4.tick_params(axis='both', which='major', labelsize=14, pad=8)
     ax4.spines['top'].set_visible(False)
     ax4.spines['right'].set_visible(False)
     

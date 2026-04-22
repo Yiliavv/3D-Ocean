@@ -16,16 +16,19 @@ from matplotlib import rcParams
 # 设置Nature级别的图片参数
 rcParams['font.family'] = 'Times New Roman'
 rcParams['font.size'] = 16
-rcParams['axes.labelsize'] = 16
+rcParams['axes.labelsize'] = 14
 rcParams['axes.titlesize'] = 16
-rcParams['xtick.labelsize'] = 16
-rcParams['ytick.labelsize'] = 16
+rcParams['xtick.labelsize'] = 14
+rcParams['ytick.labelsize'] = 14
 rcParams['legend.fontsize'] = 16
 rcParams['figure.dpi'] = 300
 rcParams['savefig.dpi'] = 300
 rcParams['savefig.bbox'] = 'tight'
 rcParams['savefig.pad_inches'] = 0.1
 rcParams['axes.unicode_minus'] = False  # 正确显示负号
+rcParams['axes.labelpad'] = 12
+rcParams['xtick.major.pad'] = 8
+rcParams['ytick.major.pad'] = 8
 
 
 def load_model_safely(model_path: Union[str, Path], 
@@ -251,8 +254,8 @@ class UNet3DNatureAnalyzer:
         ax3.plot(range(len(layers)), rf_sizes, 'o-', linewidth=2, 
                 markersize=8, color='#2E86AB')
         ax3.set_xticks(range(len(layers)))
-        ax3.set_xticklabels(layers, rotation=45, ha='right', fontsize=16)
-        ax3.set_ylabel('Receptive Field (pixels)', fontsize=16)
+        ax3.set_xticklabels(layers, rotation=45, ha='right', fontsize=14)
+        ax3.set_ylabel('Receptive Field (pixels)', fontsize=14, labelpad=12)
         ax3.grid(True, alpha=0.3)
         ax3.set_xlim(-0.5, len(layers)-0.5)
         
@@ -387,7 +390,7 @@ class UNet3DNatureAnalyzer:
             ax1.add_feature(cfeature.LAND, facecolor='gray', alpha=0.3)
             
             if i == 0:
-                ax1.set_ylabel('With Skip\nConnections', fontsize=16, fontweight='bold')
+                ax1.set_ylabel('With Skip\nConnections', fontsize=14, fontweight='bold', labelpad=12)
             ax1.set_title('')
             ax1.set_xticks([])
             ax1.set_yticks([])
@@ -402,7 +405,7 @@ class UNet3DNatureAnalyzer:
             ax2.add_feature(cfeature.LAND, facecolor='gray', alpha=0.3)
             
             if i == 0:
-                ax2.set_ylabel('Without Skip\nConnections', fontsize=16, fontweight='bold')
+                ax2.set_ylabel('Without Skip\nConnections', fontsize=14, fontweight='bold', labelpad=12)
             ax2.set_title('')
             ax2.set_xticks([])
             ax2.set_yticks([])
@@ -546,8 +549,8 @@ class UNet3DNatureAnalyzer:
                                cmap='RdYlBu_r', vmin=-2, vmax=30)
         ax_eq.contour(LON, DEP, vertical_section_eq, levels=10, 
                      colors='black', linewidths=0.3, alpha=0.3)
-        ax_eq.set_xlabel('Longitude (°E)', fontsize=16)
-        ax_eq.set_ylabel('Depth (m)', fontsize=16)
+        ax_eq.set_xlabel('Longitude (°E)', fontsize=14, labelpad=12)
+        ax_eq.set_ylabel('Depth (m)', fontsize=14, labelpad=12)
         ax_eq.set_title('')
         ax_eq.invert_yaxis()
         ax_eq.set_ylim(depths[-1], 0)
@@ -566,8 +569,8 @@ class UNet3DNatureAnalyzer:
                                 cmap='RdYlBu_r', vmin=-2, vmax=30)
         ax_pac.contour(LAT, DEP2, vertical_section_pac, levels=10,
                       colors='black', linewidths=0.3, alpha=0.3)
-        ax_pac.set_xlabel('Latitude (°N)', fontsize=16)
-        ax_pac.set_ylabel('Depth (m)', fontsize=16)
+        ax_pac.set_xlabel('Latitude (°N)', fontsize=14, labelpad=12)
+        ax_pac.set_ylabel('Depth (m)', fontsize=14, labelpad=12)
         ax_pac.set_title('')
         ax_pac.invert_yaxis()
         ax_pac.set_ylim(depths[-1], 0)
@@ -630,8 +633,8 @@ class UNet3DNatureAnalyzer:
             ax.plot(temperature_profile, depths, marker=marker, linestyle='-', 
                    linewidth=2, markersize=6, color=color, label=loc_name, alpha=0.85)
         
-        ax.set_xlabel('Temperature (°C)', fontsize=16)
-        ax.set_ylabel('Depth (m)', fontsize=16)
+        ax.set_xlabel('Temperature (°C)', fontsize=14, labelpad=12)
+        ax.set_ylabel('Depth (m)', fontsize=14, labelpad=12)
         ax.invert_yaxis()
         ax.set_ylim(depths[-1], 0)
         ax.set_xlim(-2, 32)

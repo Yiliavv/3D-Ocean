@@ -22,12 +22,15 @@ from src.dataset.Argo import Argo3DTemperatureDataset, ArgoDepthMap
 plt.rcParams.update({
     'font.family': 'Times New Roman',
     'font.size': 16,
-    'axes.labelsize': 16,
+    'axes.labelsize': 14,
     'axes.titlesize': 16,
-    'xtick.labelsize': 16,
-    'ytick.labelsize': 16,
+    'xtick.labelsize': 14,
+    'ytick.labelsize': 14,
     'legend.fontsize': 16,
     'figure.titlesize': 16,
+    'axes.labelpad': 12,
+    'xtick.major.pad': 8,
+    'ytick.major.pad': 8,
     'axes.unicode_minus': False,
 })
 
@@ -520,8 +523,8 @@ class ProfileTrainer:
                fontsize=16, va='center', color='#6A1B9A', style='italic')
         
         # 坐标轴设置
-        ax.set_xlabel('RMSE (°C)', fontsize=16, fontweight='bold')
-        ax.set_ylabel('Depth (m)', fontsize=16, fontweight='bold')
+        ax.set_xlabel('RMSE (°C)', fontsize=14, fontweight='bold', labelpad=12)
+        ax.set_ylabel('Depth (m)', fontsize=14, fontweight='bold', labelpad=12)
         ax.invert_yaxis()
         ax.set_xlim(0, max_rmse * 1.25)
         
@@ -701,8 +704,8 @@ class ProfileTrainer:
         # 居中且变短：width=0.4, left=(1-0.4)/2=0.3
         cbar_ax = plt.gcf().add_axes([0.3, 0.03, 0.4, 0.02]) 
         cb = plt.colorbar(sm, cax=cbar_ax, orientation='horizontal', label='Temperature (°C)')
-        cb.ax.tick_params(labelsize=16)
-        cb.set_label('Temperature (°C)', fontsize=16)
+        cb.ax.tick_params(labelsize=14, pad=8)
+        cb.set_label('Temperature (°C)', fontsize=14, labelpad=12)
         
         output_file = f'{save_path}/three_models_3d_prediction.png'
         plt.savefig(output_file, dpi=300, bbox_inches='tight')

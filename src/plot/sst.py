@@ -147,7 +147,7 @@ def plot_sst(sst, lon, lat, step=1, filename='sst.png', title=''):
                 label='temperature (°C)')
     
     # 设置坐标轴刻度标签字体大小
-    ax.tick_params(axis='both', which='major', labelsize=16)
+    ax.tick_params(axis='both', which='major', labelsize=14, pad=8)
     
     # 去掉网格
     ax.grid(False)
@@ -193,11 +193,11 @@ def plot_attention(attention, lon, lat, step=1, filename='attention.png', title=
                 shrink=0.6,  # 缩小 colorbar 高度到 60%
                 aspect=20,    # 控制宽高比，使 colorbar 更细
                 pad=0.05)     # 减小与地图的间距
-    cbar.set_label('Attention weight', fontsize=16)
-    cbar.ax.tick_params(labelsize=16)
+    cbar.set_label('Attention weight', fontsize=14, labelpad=12)
+    cbar.ax.tick_params(labelsize=14, pad=8)
     
     # 设置坐标轴刻度标签字体大小
-    ax.tick_params(axis='both', which='major', labelsize=16)
+    ax.tick_params(axis='both', which='major', labelsize=14, pad=8)
     
     # 去掉网格
     ax.grid(False)
@@ -252,7 +252,7 @@ def plot_sst_diff(sst_diff, lon, lat, step=1, filename='sst_diff.png', title='')
                 label='temperature error (°C)')
     
     # 设置坐标轴刻度标签字体大小
-    ax.tick_params(axis='both', which='major', labelsize=16)
+    ax.tick_params(axis='both', which='major', labelsize=14, pad=8)
     
     ax.grid(False)
     
@@ -416,7 +416,7 @@ def plot_nino(ssta, step=1):
     cbar = ax.figure.colorbar(ax.collections[0], ax=ax, 
                                orientation='horizontal',
                                pad=0.05, fraction=0.05, shrink=0.8)
-    cbar.set_label('SSTA (°C)', fontsize=16)
+    cbar.set_label('SSTA (°C)', fontsize=14, labelpad=12)
     
     # 绘制矩形边界框
     import matplotlib.patches as mpatches

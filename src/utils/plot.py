@@ -16,12 +16,15 @@ import src.config.params as parm
 
 matplotlib.rcParams['font.family'] = 'Times New Roman'
 matplotlib.rcParams['font.size'] = 16
-matplotlib.rcParams['axes.labelsize'] = 16
+matplotlib.rcParams['axes.labelsize'] = 14
 matplotlib.rcParams['axes.titlesize'] = 16
-matplotlib.rcParams['xtick.labelsize'] = 16
-matplotlib.rcParams['ytick.labelsize'] = 16
+matplotlib.rcParams['xtick.labelsize'] = 14
+matplotlib.rcParams['ytick.labelsize'] = 14
 matplotlib.rcParams['legend.fontsize'] = 16
 matplotlib.rcParams['figure.titlesize'] = 16
+matplotlib.rcParams['axes.labelpad'] = 12
+matplotlib.rcParams['xtick.major.pad'] = 8
+matplotlib.rcParams['ytick.major.pad'] = 8
 matplotlib.rcParams['axes.unicode_minus'] = False
 
 # 基础绘图方法

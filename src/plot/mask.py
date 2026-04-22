@@ -1,5 +1,7 @@
 # 海表温度掩码可视化函数
 
+import os
+
 import numpy as np
 from matplotlib import pyplot as plt
 from matplotlib import cm as cm_plt
@@ -9,9 +11,15 @@ import cartopy.feature as cfeature
 from cartopy.mpl import ticker as tk
 
 from src.plot.base import create_ax, create_carto_ax, apply_plot_style
-from src.plot.sst import _range
 
 apply_plot_style()
+
+
+def _range(range_values, step=1):
+    """
+    Generate coordinate samples from [start, end) by step.
+    """
+    return np.arange(range_values[0], range_values[1], step)
 
 
 def plot_mask_binary(mask_sst, lon, lat, step=1, filename='mask_binary.png', title='Mask Distribution'):
@@ -51,11 +59,11 @@ def plot_mask_binary(mask_sst, lon, lat, step=1, filename='mask_binary.png', tit
     ax.grid(True, alpha=0.4, linestyle='--', linewidth=0.8, color='#bdc3c7')
     
     # 设置坐标轴标签
-    ax.set_xlabel('Longitude (°E)', fontsize=16, fontweight='bold', color='#2c3e50')
-    ax.set_ylabel('Latitude (°N)', fontsize=16, fontweight='bold', color='#2c3e50')
+    ax.set_xlabel('Longitude (°E)', fontsize=14, fontweight='bold', color='#2c3e50', labelpad=12)
+    ax.set_ylabel('Latitude (°N)', fontsize=14, fontweight='bold', color='#2c3e50', labelpad=12)
     
     # 美化坐标轴
-    ax.tick_params(axis='both', which='major', labelsize=16,
+    ax.tick_params(axis='both', which='major', labelsize=14, pad=8,
                    colors='#2c3e50', width=1.5)
     
     # 设置坐标轴边框样式
@@ -68,7 +76,7 @@ def plot_mask_binary(mask_sst, lon, lat, step=1, filename='mask_binary.png', tit
                        pad=0.12, shrink=0.8, aspect=30)
     cbar.set_ticks([0.25, 0.75])
     cbar.set_ticklabels(['Invalid (NaN)', 'Valid (Not NaN)'])
-    cbar.ax.tick_params(labelsize=16, colors='#2c3e50')
+    cbar.ax.tick_params(labelsize=14, pad=8, colors='#2c3e50')
     
     # 美化颜色条边框
     cbar.outline.set_linewidth(1.5)
@@ -140,7 +148,7 @@ def plot_mask_geographic(mask_sst, lon, lat, step=1, filename='mask_geographic.p
     cbar = plt.colorbar(im, ax=ax, orientation='horizontal', pad=0.08, shrink=0.8)
     cbar.set_ticks([0.25, 0.75])
     cbar.set_ticklabels(['NaN', 'Not NaN'])
-    cbar.ax.tick_params(labelsize=16)
+    cbar.ax.tick_params(labelsize=14, pad=8)
 
     plt.tight_layout()
     
@@ -174,8 +182,8 @@ def plot_mask_statistics(mask_sst, lon, lat, filename='mask_statistics.png', tit
     
     ax3.plot(row_valid_ratio, lat_values, 'b', linewidth=2, marker='o', 
              markersize=3, color='#4472C4')
-    ax3.set_xlabel('Valid Data Ratio (%)', fontsize=16, fontweight='bold')
-    ax3.set_ylabel('Latitude (°N)', fontsize=16, fontweight='bold')
+    ax3.set_xlabel('Valid Data Ratio (%)', fontsize=14, fontweight='bold', labelpad=12)
+    ax3.set_ylabel('Latitude (°N)', fontsize=14, fontweight='bold', labelpad=12)
     ax3.set_title('')
     ax3.grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
     ax3.set_xlim(0, 100)
@@ -186,8 +194,8 @@ def plot_mask_statistics(mask_sst, lon, lat, filename='mask_statistics.png', tit
     
     ax4.plot(lon_values, col_valid_ratio, 'r', linewidth=2, marker='s', 
              markersize=3, color='#E15759')
-    ax4.set_xlabel('Longitude (°E)', fontsize=16, fontweight='bold')
-    ax4.set_ylabel('Valid Data Ratio (%)', fontsize=16, fontweight='bold')
+    ax4.set_xlabel('Longitude (°E)', fontsize=14, fontweight='bold', labelpad=12)
+    ax4.set_ylabel('Valid Data Ratio (%)', fontsize=14, fontweight='bold', labelpad=12)
     ax4.set_title('')
     ax4.grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
     ax4.set_ylim(0, 100)
@@ -269,7 +277,7 @@ def plot_mask_statistics(mask_sst, lon, lat, filename='mask_statistics.png', tit
         for spine in ax.spines.values():
             spine.set_linewidth(1)
             spine.set_color('black')
-        ax.tick_params(axis='both', which='major', labelsize=16)
+        ax.tick_params(axis='both', which='major', labelsize=14, pad=8)
 
 def plot_pred_error_statistics(pred_error, lon, lat, filename='pred_error_statistics.png', 
                               title='Prediction Error Statistics'):
@@ -348,7 +356,7 @@ def plot_pred_error_statistics(pred_error, lon, lat, filename='pred_error_statis
     ax2.set_xticks(x_positions)
     ax2.set_xticklabels(categories)
     
-    ax2.set_ylabel('Number of Points', fontsize=16, fontweight='bold')
+    ax2.set_ylabel('Number of Points', fontsize=14, fontweight='bold', labelpad=12)
     ax2.set_title('')
     ax2.grid(True, alpha=0.3, axis='y', linestyle='-', linewidth=0.5)
     
@@ -377,15 +385,15 @@ def plot_pred_error_statistics(pred_error, lon, lat, filename='pred_error_statis
     line1 = ax3.plot(row_mean_error, lat_values, linewidth=2, marker='o', 
                      markersize=3, color='#4472C4', label='Mean Error')
     ax3.axvline(x=0, color='black', linestyle='--', alpha=0.5, linewidth=1)
-    ax3.set_xlabel('Mean Error', fontsize=16, fontweight='bold', color='#4472C4')
-    ax3.set_ylabel('Latitude (°N)', fontsize=16, fontweight='bold')
+    ax3.set_xlabel('Mean Error', fontsize=14, fontweight='bold', color='#4472C4', labelpad=12)
+    ax3.set_ylabel('Latitude (°N)', fontsize=14, fontweight='bold', labelpad=12)
     ax3.tick_params(axis='x', labelcolor='#4472C4')
     ax3.set_xlim(-1.5, 1.5)
     
     # 绘制RMSE（顶部x轴）
     line2 = ax3_top.plot(row_rmse, lat_values, linewidth=2, marker='s', 
                          markersize=3, color='#E15759', label='RMSE')
-    ax3_top.set_xlabel('RMSE', fontsize=16, fontweight='bold', color='#E15759')
+    ax3_top.set_xlabel('RMSE', fontsize=14, fontweight='bold', color='#E15759', labelpad=12)
     ax3_top.tick_params(axis='x', labelcolor='#E15759')
     ax3_top.set_xlim(0, 2.0)
     
@@ -395,7 +403,7 @@ def plot_pred_error_statistics(pred_error, lon, lat, filename='pred_error_statis
     # 添加图例
     lines1 = line1 + line2
     labels1 = [l.get_label() for l in lines1]
-    ax3.legend(lines1, labels1, loc='upper right', fontsize=16)
+    ax3.legend(lines1, labels1, loc='upper right', fontsize=14)
     
     # 4. 按经度统计平均误差和RMSE
     col_mean_error = np.nanmean(pred_error, axis=0)
@@ -409,15 +417,15 @@ def plot_pred_error_statistics(pred_error, lon, lat, filename='pred_error_statis
     line3 = ax4.plot(lon_values, col_mean_error, linewidth=2, marker='o', 
                      markersize=3, color='#4472C4', label='Mean Error')
     ax4.axhline(y=0, color='black', linestyle='--', alpha=0.5, linewidth=1)
-    ax4.set_xlabel('Longitude (°E)', fontsize=16, fontweight='bold')
-    ax4.set_ylabel('Mean Error', fontsize=16, fontweight='bold', color='#4472C4')
+    ax4.set_xlabel('Longitude (°E)', fontsize=14, fontweight='bold', labelpad=12)
+    ax4.set_ylabel('Mean Error', fontsize=14, fontweight='bold', color='#4472C4', labelpad=12)
     ax4.tick_params(axis='y', labelcolor='#4472C4')
     ax4.set_ylim(-1.5, 1.5)
     
     # 绘制RMSE
     line4 = ax4_twin.plot(lon_values, col_rmse, linewidth=2, marker='s', 
                           markersize=3, color='#E15759', label='RMSE')
-    ax4_twin.set_ylabel('RMSE', fontsize=16, fontweight='bold', color='#E15759')
+    ax4_twin.set_ylabel('RMSE', fontsize=14, fontweight='bold', color='#E15759', labelpad=12)
     ax4_twin.tick_params(axis='y', labelcolor='#E15759')
     ax4_twin.set_ylim(0, 2.0)
     
@@ -427,7 +435,7 @@ def plot_pred_error_statistics(pred_error, lon, lat, filename='pred_error_statis
     # 添加图例
     lines2 = line3 + line4
     labels2 = [l.get_label() for l in lines2]
-    ax4.legend(lines2, labels2, loc='upper right', fontsize=16)
+    ax4.legend(lines2, labels2, loc='upper right', fontsize=14)
     
     # 设置整体标题
     plt.suptitle('')
@@ -506,4 +514,175 @@ def plot_pred_error_statistics(pred_error, lon, lat, filename='pred_error_statis
         for spine in ax.spines.values():
             spine.set_linewidth(1)
             spine.set_color('black')
-        ax.tick_params(axis='both', which='major', labelsize=16)
+        ax.tick_params(axis='both', which='major', labelsize=14, pad=8)
+
+
+def _sort_lon_to_0_360(lon, field_2d):
+    """
+    Convert longitude from [-180, 180] to [0, 360] and sort accordingly.
+    """
+    lon_360 = np.where(lon < 0, lon + 360, lon)
+    sort_idx = np.argsort(lon_360)
+    return lon_360[sort_idx], field_2d[:, sort_idx]
+
+
+def _create_output_path(filename, output_dir=None):
+    """
+    Build and ensure output path for figure export.
+    """
+    export_dir = output_dir or 'out'
+    os.makedirs(export_dir, exist_ok=True)
+    return os.path.join(export_dir, filename)
+
+
+def plot_era5_oisst_argo_raw_processed(
+    filename='era5_oisst_argo_raw_processed.png',
+    output_dir=None,
+    month_index=0,
+    resolution=1,
+):
+    """
+    Plot a 3x2 comparison panel: ERA5/OISST/Argo raw vs processed SST.
+    """
+    from src.dataset.ERA5 import ERA5SSTMonthlyDataset
+    from src.dataset.OISST import OISSTMonthlyDataset
+    from src.dataset.Argo import Argo3DTemperatureDataset
+
+    apply_plot_style()
+
+    # Processed datasets use the shared target domain for direct comparison.
+    target_lon = [-180, 180]
+    target_lat = [-80, 80]
+
+    era5_ds = ERA5SSTMonthlyDataset(seq_len=1, lon=target_lon, lat=target_lat, resolution=resolution)
+    oisst_ds = OISSTMonthlyDataset(seq_len=1, lon=target_lon, lat=target_lat, resolution=resolution)
+    argo_ds = Argo3DTemperatureDataset(lon=[0, 360], lat=target_lat, depth=[0, 1], resolution=resolution)
+
+    # Processed views (dataset-standard output)
+    era5_processed = era5_ds.__read_sst__(month_index)
+    oisst_processed = oisst_ds.__read_sst__(month_index)
+    argo_processed, _ = argo_ds[month_index]
+
+    # Raw views (direct source grids)
+    era5_raw = era5_ds._sst_data[month_index, :, :] - 273.15
+    era5_lon_raw, era5_raw = _sort_lon_to_0_360(era5_ds._lon_data.copy(), era5_raw)
+    era5_lat_raw = era5_ds._lat_data.copy()
+
+    oisst_raw = oisst_ds._sst_data[month_index, :, :].copy()
+    oisst_lon_raw, oisst_raw = _sort_lon_to_0_360(oisst_ds._lon_data.copy(), oisst_raw)
+    oisst_lat_raw = oisst_ds._lat_data.copy()
+
+    argo_temp = argo_ds.data[month_index]['temp'].copy()
+    argo_temp[argo_temp > 99] = np.nan
+    argo_raw = np.transpose(argo_temp, (1, 0, 2))[:, :, 0]
+    argo_lon_raw = np.arange(0, 360, resolution)
+    argo_lat_raw = np.arange(-80, 80, resolution)
+
+    lon_processed = np.arange(target_lon[0], target_lon[1], resolution)
+    lat_processed = np.arange(target_lat[0], target_lat[1], resolution)
+
+    panel_data = [
+        ('ERA5', era5_raw, era5_lon_raw, era5_lat_raw, era5_processed, lon_processed, lat_processed),
+        ('OISST', oisst_raw, oisst_lon_raw, oisst_lat_raw, oisst_processed, lon_processed, lat_processed),
+        ('Argo', argo_raw, argo_lon_raw, argo_lat_raw, argo_processed, argo_lon_raw, argo_lat_raw),
+    ]
+
+    fig, axes = plt.subplots(
+        3,
+        2,
+        figsize=(12, 10),
+        subplot_kw={'projection': ccrs.PlateCarree()},
+    )
+
+    subpanel_labels = ['a', 'b', 'c', 'd', 'e', 'f']
+    color_mesh = None
+    label_idx = 0
+
+    for row_idx, (dataset_name, raw_data, raw_lon, raw_lat, proc_data, proc_lon, proc_lat) in enumerate(panel_data):
+        for col_idx in range(2):
+            ax = axes[row_idx, col_idx]
+            ax.add_feature(cfeature.LAND, facecolor='0.9', zorder=2)
+            ax.coastlines(linewidth=0.4)
+            ax.set_global()
+
+            if col_idx == 0:
+                data = raw_data
+                lon = raw_lon
+                lat = raw_lat
+            else:
+                data = proc_data
+                lon = proc_lon
+                lat = proc_lat
+
+            color_mesh = ax.pcolormesh(
+                lon,
+                lat,
+                data,
+                cmap='RdYlBu_r',
+                vmin=0,
+                vmax=32,
+                transform=ccrs.PlateCarree(),
+                shading='auto',
+            )
+
+            ax.set_ylabel(dataset_name, fontsize=14, labelpad=12)
+            ax.tick_params(labelsize=14, pad=8)
+            ax.set_title('')
+            ax.text(
+                0.01,
+                0.99,
+                subpanel_labels[label_idx],
+                transform=ax.transAxes,
+                ha='left',
+                va='top',
+                fontsize=14,
+                fontweight='bold',
+            )
+            label_idx += 1
+
+    cbar = fig.colorbar(
+        color_mesh,
+        ax=axes.ravel().tolist(),
+        orientation='vertical',
+        fraction=0.022,
+        pad=0.02,
+    )
+    cbar.set_label('SST (°C)', fontsize=14, labelpad=12)
+    cbar.ax.tick_params(labelsize=14, pad=8)
+
+    fig.tight_layout()
+    save_path = _create_output_path(filename, output_dir)
+    fig.savefig(save_path, dpi=300, bbox_inches='tight')
+
+    return fig, save_path
+
+
+def plot_seasonal_analysis_figures(
+    filename_a='season_pattern_a.png',
+    filename_b='season_pattern_b.png',
+    output_dir=None,
+    resolution=1,
+):
+    """
+    Generate and export the two seasonal-analysis figures in one call.
+    """
+    from src.dataset.ERA5 import ERA5SSTMonthlyDataset
+    from src.analysis.season import SeasonalityAnalysis
+
+    apply_plot_style()
+
+    dataset = ERA5SSTMonthlyDataset(
+        seq_len=1,
+        lon=[-180, 180],
+        lat=[-80, 80],
+        resolution=resolution,
+    )
+    analyzer = SeasonalityAnalysis(dataset)
+    fig_a, fig_b = analyzer.plot_seasonal_patterns()
+
+    save_path_a = _create_output_path(filename_a, output_dir)
+    save_path_b = _create_output_path(filename_b, output_dir)
+    fig_a.savefig(save_path_a, dpi=300, bbox_inches='tight')
+    fig_b.savefig(save_path_b, dpi=300, bbox_inches='tight')
+
+    return (fig_a, fig_b), (save_path_a, save_path_b)

@@ -7,6 +7,7 @@ from cartopy import feature as cfeat
 
 PLOT_FONT_FAMILY = 'Times New Roman'
 PLOT_FONT_SIZE = 16
+PLOT_AXIS_FONT_SIZE = 14
 
 
 def apply_plot_style():
@@ -16,12 +17,15 @@ def apply_plot_style():
     plt.rcParams.update({
         'font.family': PLOT_FONT_FAMILY,
         'font.size': PLOT_FONT_SIZE,
-        'axes.labelsize': PLOT_FONT_SIZE,
+        'axes.labelsize': PLOT_AXIS_FONT_SIZE,
         'axes.titlesize': PLOT_FONT_SIZE,
-        'xtick.labelsize': PLOT_FONT_SIZE,
-        'ytick.labelsize': PLOT_FONT_SIZE,
+        'xtick.labelsize': PLOT_AXIS_FONT_SIZE,
+        'ytick.labelsize': PLOT_AXIS_FONT_SIZE,
         'legend.fontsize': PLOT_FONT_SIZE,
         'figure.titlesize': PLOT_FONT_SIZE,
+        'axes.labelpad': 12,
+        'xtick.major.pad': 8,
+        'ytick.major.pad': 8,
         'axes.unicode_minus': False,
     })
 

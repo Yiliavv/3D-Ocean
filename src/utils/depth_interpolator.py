@@ -15,12 +15,15 @@ import matplotlib.pyplot as plt
 plt.rcParams.update({
     'font.family': 'Times New Roman',
     'font.size': 16,
-    'axes.labelsize': 16,
+    'axes.labelsize': 14,
     'axes.titlesize': 16,
-    'xtick.labelsize': 16,
-    'ytick.labelsize': 16,
+    'xtick.labelsize': 14,
+    'ytick.labelsize': 14,
     'legend.fontsize': 16,
     'figure.titlesize': 16,
+    'axes.labelpad': 12,
+    'xtick.major.pad': 8,
+    'ytick.major.pad': 8,
     'axes.unicode_minus': False,
 })
 
@@ -282,11 +285,11 @@ class DepthInterpolator:
                alpha=0.8)
         
         # 设置标签和标题
-        ax.set_xlabel('Temperature (°C)', fontsize=16)
-        ax.set_ylabel('Depth (m)', fontsize=16)
+        ax.set_xlabel('Temperature (°C)', fontsize=14, labelpad=12)
+        ax.set_ylabel('Depth (m)', fontsize=14, labelpad=12)
         ax.set_title('')
         ax.grid(True, alpha=0.3, linestyle='--')
-        ax.legend(fontsize=16)
+        ax.legend(fontsize=14)
         
         # 反转y轴（深度向下）
         ax.invert_yaxis()

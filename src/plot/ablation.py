@@ -77,12 +77,15 @@ class AblationVisualizer:
         plt.rcParams.update({
             'font.family': 'Times New Roman',
             'font.size': 16,
-            'axes.labelsize': 16,
+            'axes.labelsize': 14,
             'axes.titlesize': 16,
-            'xtick.labelsize': 16,
-            'ytick.labelsize': 16,
+            'xtick.labelsize': 14,
+            'ytick.labelsize': 14,
             'legend.fontsize': 16,
             'figure.titlesize': 16,
+            'axes.labelpad': 12,
+            'xtick.major.pad': 8,
+            'ytick.major.pad': 8,
             'axes.spines.top': False,
             'axes.spines.right': False,
             'axes.grid': True,
@@ -679,11 +682,14 @@ class AblationVisualizer:
         plt.rcParams.update({
             'font.family': 'Times New Roman',
             'font.size': 16,
-            'axes.labelsize': 16,
+            'axes.labelsize': 14,
             'axes.titlesize': 16,
             'legend.fontsize': 16,
-            'xtick.labelsize': 16,
-            'ytick.labelsize': 16,
+            'xtick.labelsize': 14,
+            'ytick.labelsize': 14,
+            'axes.labelpad': 12,
+            'xtick.major.pad': 8,
+            'ytick.major.pad': 8,
             'axes.linewidth': 0.5,
             'xtick.major.width': 0.5,
             'ytick.major.width': 0.5,
@@ -791,7 +797,7 @@ class AblationVisualizer:
         
         ax_b.set_yticks(y_pos)
         ax_b.set_yticklabels([display_names.get(v, v) for v in components_sorted])
-        ax_b.set_xlabel('RMSE Degradation (%)', fontsize=16)
+        ax_b.set_xlabel('RMSE Degradation (%)', fontsize=14, labelpad=12)
         ax_b.axvline(x=0, color='#333333', linestyle='-', linewidth=0.8)
         ax_b.set_xlim(-2, max(contributions_sorted) * 1.5)
         

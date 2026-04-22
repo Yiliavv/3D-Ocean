@@ -16,12 +16,15 @@ from src.plot.sst import COLOR_MAP_ERROR
 plt.rcParams.update({
     'font.family': 'Times New Roman',
     'font.size': 16,
-    'axes.labelsize': 16,
+    'axes.labelsize': 14,
     'axes.titlesize': 16,
-    'xtick.labelsize': 16,
-    'ytick.labelsize': 16,
+    'xtick.labelsize': 14,
+    'ytick.labelsize': 14,
     'legend.fontsize': 16,
     'figure.titlesize': 16,
+    'axes.labelpad': 12,
+    'xtick.major.pad': 8,
+    'ytick.major.pad': 8,
     'axes.unicode_minus': False,
 })
 
@@ -223,7 +226,7 @@ class SphericalHarmonicAnalysis:
         # Add colorbar
         cbar = plt.colorbar(im, ax=ax, orientation='horizontal', 
                            pad=0.05, fraction=0.05, shrink=0.8)
-        cbar.set_label('Spherical Harmonic Value', fontsize=16)
+        cbar.set_label('Spherical Harmonic Value', fontsize=14, labelpad=12)
         
         # Set grid lines
         ax.gridlines(draw_labels=True, dms=True, x_inline=False, y_inline=False,
@@ -318,8 +321,8 @@ class SphericalHarmonicAnalysis:
         energies = [energy_by_degree[d] for d in degrees]
         
         ax4.semilogy(degrees, energies, 'bo-', linewidth=2, markersize=6)
-        ax4.set_xlabel('Spherical Harmonic Degree', fontsize=16)
-        ax4.set_ylabel('Energy (Log Scale)', fontsize=16)
+        ax4.set_xlabel('Spherical Harmonic Degree', fontsize=14, labelpad=12)
+        ax4.set_ylabel('Energy (Log Scale)', fontsize=14, labelpad=12)
         ax4.set_title('')
         ax4.grid(True, alpha=0.3)
         
@@ -336,15 +339,15 @@ class SphericalHarmonicAnalysis:
         # Add colorbars
         cbar1 = plt.colorbar(im1, ax=ax1, orientation='horizontal', 
                             pad=0.05, fraction=0.05, shrink=0.8)
-        cbar1.set_label('Temperature (°C)', fontsize=16)
+        cbar1.set_label('Temperature (°C)', fontsize=14, labelpad=12)
         
         cbar2 = plt.colorbar(im2, ax=ax2, orientation='horizontal', 
                             pad=0.05, fraction=0.05, shrink=0.8)
-        cbar2.set_label('Temperature (°C)', fontsize=16)
+        cbar2.set_label('Temperature (°C)', fontsize=14, labelpad=12)
         
         cbar3 = plt.colorbar(im3, ax=ax3, orientation='horizontal', 
                             pad=0.05, fraction=0.05, shrink=0.8)
-        cbar3.set_label('Error (°C)', fontsize=16)
+        cbar3.set_label('Error (°C)', fontsize=14, labelpad=12)
         
         plt.suptitle('')
         
