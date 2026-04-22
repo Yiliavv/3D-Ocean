@@ -14,8 +14,15 @@ import cartopy.io.shapereader as sreader
 import src.utils.log as l
 import src.config.params as parm
 
-matplotlib.rcParams['font.family'] = 'serif'
-matplotlib.rcParams['font.serif'] = ['Times New Roman']
+matplotlib.rcParams['font.family'] = 'Times New Roman'
+matplotlib.rcParams['font.size'] = 16
+matplotlib.rcParams['axes.labelsize'] = 16
+matplotlib.rcParams['axes.titlesize'] = 16
+matplotlib.rcParams['xtick.labelsize'] = 16
+matplotlib.rcParams['ytick.labelsize'] = 16
+matplotlib.rcParams['legend.fontsize'] = 16
+matplotlib.rcParams['figure.titlesize'] = 16
+matplotlib.rcParams['axes.unicode_minus'] = False
 
 # 基础绘图方法
 
@@ -143,7 +150,7 @@ class Carto:
         :param kwargs: 传递给 set_title 的其他参数
         """
         for ax in self._get_target_axes(ax_indices):
-            ax.set_title(title, **kwargs)
+            ax.set_title('', **kwargs)
             
 class BathCarto(Carto):
     """
@@ -233,7 +240,7 @@ def plot_cdac_argo_data_one_day(one_day_data, figure: plt.Figure = None, ax: plt
     gl = ax.gridlines(draw_labels=True)
     gl.xlocator = plt.MaxNLocator(18)
     gl.ylocator = plt.MaxNLocator(18)
-    ax.set_title('CDCA Argo Data One Day Float Position Distribution', pad=20)
+    ax.set_title('')
 
     # 提取经纬度坐标
     lon = []
@@ -267,7 +274,7 @@ def plot_cdac_float_temperature_profile(float_data, figure: plt.Figure = None, a
     if ax is None:
         ax = figure.add_subplot(111)
 
-    ax.set_title('CDCA Argo Data Profile')
+    ax.set_title('')
     ax.set_xlabel('Temperature (°C)')
     ax.set_ylabel('Pressure (dbar)')
 
@@ -300,7 +307,7 @@ def plot_cdac_argo_data_one_day_temperature_profile(one_day_data, figure: plt.Fi
     if ax is None:
         ax = figure.add_subplot(111)
 
-    ax.set_title('CDCA Argo Data One Day Profile')
+    ax.set_title('')
     ax.set_xlabel('Temperature (°C)')
     ax.set_ylabel('Pressure (dbar)')
 
@@ -332,7 +339,7 @@ def plot_cdac_argo_data_one_day_salinity_profile(one_day_data, figure: plt.Figur
     if ax is None:
         ax = figure.add_subplot(111)
 
-    ax.set_title('CDCA Argo Data One Day Profile')
+    ax.set_title('')
     ax.set_xlabel('Salinity (PSU)')
     ax.set_ylabel('Pressure (dbar)')
 
@@ -360,7 +367,7 @@ def plot_cdac_mld_profile(mld, figure: plt.Figure = None, ax: plt.Axes = None):
     if ax is None:
         ax = figure.add_subplot(111)
 
-    ax.set_title('Argo Data MLD')
+    ax.set_title('')
 
     mld = np.array(mld)
     mld_num = [i for i in range(len(mld))]
@@ -384,7 +391,7 @@ def plot_cdac_mld_distribution(mld, positions, figure: plt.Figure = None, ax: pl
     if ax is None:
         ax = figure.add_subplot(111, projection=ccrs.PlateCarree())
 
-    ax.set_title('Argo Data MLD')
+    ax.set_title('')
     ax.set_extent([parm.LON_RANGE[0], parm.LON_RANGE[1], parm.LAT_RANGE[0], parm.LAT_RANGE[1]], crs=ccrs.PlateCarree())
     ax.stock_img()
     ax.coastlines()
@@ -451,7 +458,7 @@ def plot_argo_float_temperature_profile(temperatures, float_lon, float_lat, figu
     if ax is None:
         ax = figure.add_subplot(111)
 
-    ax.set_title('Argo Data Profile')
+    ax.set_title('')
     ax.set_xlabel('Temperature (°C)')
     ax.set_ylabel('Depth (m)')
 
@@ -486,7 +493,7 @@ def plot_argo_mld(mld, figure: plt.Figure = None, ax: plt.Axes = None):
     if ax is None:
         ax = figure.add_subplot(111, projection=ccrs.PlateCarree())
 
-    ax.set_title('Argo Data MLD')
+    ax.set_title('')
     ax.set_extent([parm.LON_RANGE[0], parm.LON_RANGE[1], parm.LAT_RANGE[0], parm.LAT_RANGE[1]], crs=ccrs.PlateCarree())
     ax.stock_img()
     ax.coastlines()
@@ -552,7 +559,7 @@ def plot_sst_distribution(sst, title='Sea Surface Temperature (°C)', figure: pl
     if ax is None:
         ax = figure.add_subplot(111, projection=ccrs.PlateCarree())
 
-    ax.set_title(title)
+    ax.set_title('')
     # 设置地图刻度
     ax.set_xticks(np.arange(150, 170, 5), crs=ccrs.PlateCarree())
     ax.set_yticks(np.arange(20, 40, 5), crs=ccrs.PlateCarree())
@@ -582,7 +589,7 @@ def plot_sst_distribution_compare(sst1, sst2, title='Sea Surface Temperature (°
     """
     plt.style.use('_mpl-gallery')
     figure, (ax1, ax2) = plt.subplots(1, 2, figsize=(16, 8), subplot_kw={'projection': ccrs.PlateCarree()})
-    figure.suptitle(title)
+    figure.suptitle('')
     plt.subplots_adjust(left=0.1, right=0.9, top=0.9, bottom=0.1, wspace=0.3)
 
     # 设置地图刻度
@@ -598,11 +605,11 @@ def plot_sst_distribution_compare(sst1, sst2, title='Sea Surface Temperature (°
     lon, lat = np.meshgrid(lon, lat)
     levels = np.arange(min(np.nanmin(sst1), np.nanmin(sst2)), max(np.nanmax(sst1), np.nanmax(sst2)), 0.05)
     contour1 = ax1.contourf(lon, lat, sst1, cmap='coolwarm', transform=ccrs.PlateCarree(),levels=levels)
-    ax1.set_title('SST1')
+    ax1.set_title('')
 
     # 绘制第二个海表温度
     contour2 = ax2.contourf(lon, lat, sst2, cmap='coolwarm', transform=ccrs.PlateCarree(),levels=levels)
-    ax2.set_title('SST2')
+    ax2.set_title('')
 
     # 添加共享颜色条
     cbar = figure.colorbar(contour1, ax=[ax1, ax2], orientation='horizontal', pad=0.05, fraction=0.05)
@@ -639,7 +646,7 @@ def plot_temperature_profile_compare(argo_profile, ear_profile, title="", figrue
     # 增加图例
     ax.legend()
 
-    plt.title(title, pad=20)
+    plt.title('')
     plt.show()
 
     return figrue, ax
@@ -704,7 +711,7 @@ def plot_compared_profile_for_predicted(origin, predicted):
     lon = np.arange(160, 180)
     lat = 5
 
-    figure.suptitle('Profile compare in Latitude {}°S'.format(19 - lat))
+    figure.suptitle('')
 
     X, Y = np.meshgrid(lon, deeps)
 
@@ -715,10 +722,10 @@ def plot_compared_profile_for_predicted(origin, predicted):
     predicted_in_lon = np.transpose(predicted[:, lat, :], (1, 0))
 
     contour1 = ax1.contourf(X, Y, origin_in_lon, cmap='coolwarm', levels=20)
-    ax1.set_title('Origin')
+    ax1.set_title('')
 
     contour2 = ax2.contourf(X, Y, predicted_in_lon, cmap='coolwarm', levels=20)
-    ax2.set_title('Predicted')
+    ax2.set_title('')
 
     # 添加共享颜色条
     figure.colorbar(contour1, ax=[ax1, ax2], orientation='horizontal', pad=0.05, fraction=0.05)
@@ -750,7 +757,7 @@ def plot_compared_profile_for_predicted_with_different(low_, high_):
     high_lon = np.arange(160, 180, 0.5)
     high_lat = low_lat * 2 + 1
 
-    figure.suptitle('Profile compare in Latitude {}°S'.format(20 - low_lat - 1))
+    figure.suptitle('')
 
     low_X, low_Y = np.meshgrid(low_lon, deeps)
     high_X, high_Y = np.meshgrid(high_lon, deeps)
@@ -760,10 +767,10 @@ def plot_compared_profile_for_predicted_with_different(low_, high_):
     high_in_lon = np.transpose(high_[:, high_lat, :], (1, 0))
 
     contour1 = ax1.contourf(low_X, low_Y, low_in_lon, cmap='coolwarm', levels=50)
-    ax1.set_title('Low Resolution Origin')
+    ax1.set_title('')
 
     contour2 = ax2.contourf(high_X, high_Y, high_in_lon, cmap='coolwarm', levels=50)
-    ax2.set_title('High Resolution Predicted')
+    ax2.set_title('')
 
     # 添加共享颜色条
     figure.colorbar(contour1, ax=[ax1, ax2], orientation='horizontal', pad=0.05, fraction=0.05)

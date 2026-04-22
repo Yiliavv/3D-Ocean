@@ -6,9 +6,11 @@ from matplotlib import pyplot as plt
 from matplotlib.colors import LinearSegmentedColormap
 
 from src.utils.log import Log
-from src.plot.base import create_3d_ax, create_shared_3d_axes, create_ax
+from src.plot.base import create_3d_ax, create_shared_3d_axes, create_ax, apply_plot_style
 from src.plot.sst import _range
 from src.utils.depth_interpolator import DepthInterpolator
+
+apply_plot_style()
 
 # 创建3维温度场误差的自定义色标：深蓝（负误差）-> 浅白（零误差）-> 深红（正误差）
 # 使用与2D海表温度误差图相同的配色方案，保持视觉一致性
@@ -141,12 +143,12 @@ def plot_3d_temperature(temp, lon, lat, depth, step=1, cmap='jet', label='temper
     ax.set_xlim(lon[0], lon[1])
     ax.set_ylim(lat[0], lat[1])
     ax.set_zlim(-max(depth), -min(depth))
-    ax.set_xlabel('Longitude (°E)', fontsize=6)
-    ax.set_ylabel('Latitude (°N)', fontsize=6)
-    ax.set_zlabel('Depth (m)', fontsize=6)
+    ax.set_xlabel('Longitude (°E)', fontsize=16)
+    ax.set_ylabel('Latitude (°N)', fontsize=16)
+    ax.set_zlabel('Depth (m)', fontsize=16)
     
     # 设置坐标轴刻度标签字体大小
-    ax.tick_params(axis='both', labelsize=5)
+    ax.tick_params(axis='both', labelsize=16)
     
     # 添加色标
     if colorbar and contour_set:
@@ -264,12 +266,12 @@ def plot_3d_temperature_error(temp_error, lon, lat, depth, step=1,
     ax.set_xlim(lon[0], lon[1])
     ax.set_ylim(lat[0], lat[1])
     ax.set_zlim(-max(depth), -min(depth))
-    ax.set_xlabel('Longitude (°E)', fontsize=6)
-    ax.set_ylabel('Latitude (°N)', fontsize=6)
-    ax.set_zlabel('Depth (m)', fontsize=6)
+    ax.set_xlabel('Longitude (°E)', fontsize=16)
+    ax.set_ylabel('Latitude (°N)', fontsize=16)
+    ax.set_zlabel('Depth (m)', fontsize=16)
     
     # 设置坐标轴刻度标签字体大小
-    ax.tick_params(axis='both', labelsize=5)
+    ax.tick_params(axis='both', labelsize=16)
     
     # 添加色标
     cbar = plt.colorbar(_, ax=ax,
@@ -279,7 +281,7 @@ def plot_3d_temperature_error(temp_error, lon, lat, depth, step=1,
                         label='Temperature Error (°C)')
     
     # 设置标题
-    ax.set_title(title, fontsize=12, fontweight='bold', pad=20)
+    ax.set_title('')
     
     # 保存图像
     plt.savefig(f'{ERROR_SAVE_PATH}/{filename}', dpi=300, bbox_inches='tight')
@@ -356,4 +358,4 @@ def plot_profile_rmses(rmses_profile, dates):
         ax.set_xlabel('depth (F)')
         ax.set_ylabel('rmse (°C)')
         
-        plt.title(area)
+        plt.title('')

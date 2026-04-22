@@ -4,7 +4,9 @@ from numpy import meshgrid, arange
 from cmocean import cm
 from matplotlib import pyplot as plt
 
-from src.plot.base import create_ax, create_axes
+from src.plot.base import create_ax, create_axes, apply_plot_style
+
+apply_plot_style()
 
 def plot_mld(mld, lon, lat):
     """
@@ -42,7 +44,8 @@ def plot_mld_rmse(mld_rmse, lon, lat, title):
     """
     
     ax = create_axes(3, 1, 'all')
-    plt.title(title)
+    # Keep figures title-free per visualization convention.
+    plt.title('')
     
     lon_indices = arange(lon[0], lon[1], 1)
     lat_indices = arange(lat[0], lat[1], 1)

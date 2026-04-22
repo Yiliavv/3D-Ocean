@@ -110,11 +110,10 @@ R2 = {
 
 def plot_metrics():
     # Set font for English
-    plt.rcParams['font.family'] = 'serif'
-    plt.rcParams['font.serif'] = ['Times New Roman']
+    plt.rcParams['font.family'] = 'Times New Roman'
     plt.rcParams['axes.unicode_minus'] = False
-    plt.rcParams['font.size'] = 12
-    plt.rcParams['axes.labelsize'] = 14
+    plt.rcParams['font.size'] = 16
+    plt.rcParams['axes.labelsize'] = 16
     
     # Create time series (8 months from 2024-10 to 2025-05)
     dates = []
@@ -179,7 +178,7 @@ def plot_metrics():
     
     # Set x-axis ticks
     ax1.set_xticks(x + width*2)
-    ax1.set_xticklabels(x_ticks, rotation=30, ha='right', fontsize=13)
+    ax1.set_xticklabels(x_ticks, rotation=30, ha='right', fontsize=16)
     
     # Beautify axes
     ax1.spines['top'].set_visible(False)
@@ -200,7 +199,7 @@ def plot_metrics():
               bbox_to_anchor=(0.52, 0),
               ncol=5,
               frameon=False,
-              fontsize=14)
+              fontsize=16)
     
     # Adjust layout
     plt.subplots_adjust(bottom=0.15, right=0.95, left=0.1)

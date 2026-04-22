@@ -14,14 +14,13 @@ from typing import Optional, Dict, List, Tuple, Union
 from matplotlib import rcParams
 
 # 设置Nature级别的图片参数
-rcParams['font.family'] = 'serif'
-rcParams['font.serif'] = ['Times New Roman']
-rcParams['font.size'] = 10
-rcParams['axes.labelsize'] = 12
-rcParams['axes.titlesize'] = 12
-rcParams['xtick.labelsize'] = 10
-rcParams['ytick.labelsize'] = 10
-rcParams['legend.fontsize'] = 10
+rcParams['font.family'] = 'Times New Roman'
+rcParams['font.size'] = 16
+rcParams['axes.labelsize'] = 16
+rcParams['axes.titlesize'] = 16
+rcParams['xtick.labelsize'] = 16
+rcParams['ytick.labelsize'] = 16
+rcParams['legend.fontsize'] = 16
 rcParams['figure.dpi'] = 300
 rcParams['savefig.dpi'] = 300
 rcParams['savefig.bbox'] = 'tight'
@@ -204,7 +203,7 @@ class UNet3DNatureAnalyzer:
         # (a) Architecture diagram
         ax1 = fig.add_subplot(gs[0, :])
         ax1.text(0.5, 0.9, '(a) U-Net Architecture', transform=ax1.transAxes,
-                fontsize=12, fontweight='bold', ha='center')
+                fontsize=16, fontweight='bold', ha='center')
         
         # 简化的架构图
         architecture_text = """
@@ -214,13 +213,13 @@ class UNet3DNatureAnalyzer:
                           Skip Connections (Concat)
         """
         ax1.text(0.5, 0.5, architecture_text, transform=ax1.transAxes,
-                fontfamily='monospace', fontsize=9, ha='center', va='center')
+                fontfamily='monospace', fontsize=16, ha='center', va='center')
         ax1.axis('off')
         
         # (b) Parameters statistics
         ax2 = fig.add_subplot(gs[1, 0])
         ax2.text(0.05, 0.95, '(b) Parameter Distribution', transform=ax2.transAxes,
-                fontsize=11, fontweight='bold')
+                fontsize=16, fontweight='bold')
         
         # 计算参数
         def count_params(module):
@@ -244,7 +243,7 @@ class UNet3DNatureAnalyzer:
         # (c) Receptive field
         ax3 = fig.add_subplot(gs[1, 1])
         ax3.text(0.05, 0.95, '(c) Receptive Field', transform=ax3.transAxes,
-                fontsize=11, fontweight='bold')
+                fontsize=16, fontweight='bold')
         
         layers = ['Input', 'Inc', 'Down1', 'Down2', 'Down3', 'Down4\n(Bottleneck)']
         rf_sizes = [1, 5, 15, 35, 75, 155]
@@ -252,8 +251,8 @@ class UNet3DNatureAnalyzer:
         ax3.plot(range(len(layers)), rf_sizes, 'o-', linewidth=2, 
                 markersize=8, color='#2E86AB')
         ax3.set_xticks(range(len(layers)))
-        ax3.set_xticklabels(layers, rotation=45, ha='right', fontsize=9)
-        ax3.set_ylabel('Receptive Field (pixels)', fontsize=10)
+        ax3.set_xticklabels(layers, rotation=45, ha='right', fontsize=16)
+        ax3.set_ylabel('Receptive Field (pixels)', fontsize=16)
         ax3.grid(True, alpha=0.3)
         ax3.set_xlim(-0.5, len(layers)-0.5)
         
@@ -320,7 +319,7 @@ class UNet3DNatureAnalyzer:
             
             ax.coastlines(linewidth=0.3)
             ax.add_feature(cfeature.LAND, facecolor='lightgray', alpha=0.2)
-            ax.set_title(layer_name, fontsize=9, fontweight='bold')
+            ax.set_title('')
             ax.set_xticks([])
             ax.set_yticks([])
             
@@ -388,8 +387,8 @@ class UNet3DNatureAnalyzer:
             ax1.add_feature(cfeature.LAND, facecolor='gray', alpha=0.3)
             
             if i == 0:
-                ax1.set_ylabel('With Skip\nConnections', fontsize=10, fontweight='bold')
-            ax1.set_title(f'({chr(97+i)}) {depth_name}', fontsize=10)
+                ax1.set_ylabel('With Skip\nConnections', fontsize=16, fontweight='bold')
+            ax1.set_title('')
             ax1.set_xticks([])
             ax1.set_yticks([])
             
@@ -403,8 +402,8 @@ class UNet3DNatureAnalyzer:
             ax2.add_feature(cfeature.LAND, facecolor='gray', alpha=0.3)
             
             if i == 0:
-                ax2.set_ylabel('Without Skip\nConnections', fontsize=10, fontweight='bold')
-            ax2.set_title(f'({chr(102+i)}) {depth_name}', fontsize=10)
+                ax2.set_ylabel('Without Skip\nConnections', fontsize=16, fontweight='bold')
+            ax2.set_title('')
             ax2.set_xticks([])
             ax2.set_yticks([])
         
@@ -459,7 +458,7 @@ class UNet3DNatureAnalyzer:
             if i == 4:
                 ax.add_feature(cfeature.LAND, facecolor='gray', alpha=0.5)
             
-            ax.set_title(title, fontsize=10, fontweight='bold')
+            ax.set_title('')
             ax.set_xticks([])
             ax.set_yticks([])
             
@@ -507,7 +506,7 @@ class UNet3DNatureAnalyzer:
                         vmin=-2, vmax=30)
         ax0.coastlines(linewidth=0.3)
         ax0.add_feature(cfeature.LAND, facecolor='gray', alpha=0.3)
-        ax0.set_title('(a) Input SST', fontsize=10, fontweight='bold')
+        ax0.set_title('')
         ax0.set_xticks([])
         ax0.set_yticks([])
         plt.colorbar(im0, ax=ax0, orientation='horizontal', pad=0.02, fraction=0.05)
@@ -525,7 +524,7 @@ class UNet3DNatureAnalyzer:
                           vmin=-2, vmax=30)
             ax.coastlines(linewidth=0.3)
             ax.add_feature(cfeature.LAND, facecolor='gray', alpha=0.3)
-            ax.set_title(f'({chr(98+i)}) {d_label}', fontsize=10, fontweight='bold')
+            ax.set_title('')
             ax.set_xticks([])
             ax.set_yticks([])
             plt.colorbar(im, ax=ax, orientation='horizontal', pad=0.02, fraction=0.05)
@@ -547,10 +546,9 @@ class UNet3DNatureAnalyzer:
                                cmap='RdYlBu_r', vmin=-2, vmax=30)
         ax_eq.contour(LON, DEP, vertical_section_eq, levels=10, 
                      colors='black', linewidths=0.3, alpha=0.3)
-        ax_eq.set_xlabel('Longitude (°E)', fontsize=10)
-        ax_eq.set_ylabel('Depth (m)', fontsize=10)
-        ax_eq.set_title('(f) Equatorial Vertical Section (Lat = 0°)', 
-                       fontsize=10, fontweight='bold')
+        ax_eq.set_xlabel('Longitude (°E)', fontsize=16)
+        ax_eq.set_ylabel('Depth (m)', fontsize=16)
+        ax_eq.set_title('')
         ax_eq.invert_yaxis()
         ax_eq.set_ylim(depths[-1], 0)
         plt.colorbar(im_eq, ax=ax_eq, orientation='vertical', 
@@ -568,10 +566,9 @@ class UNet3DNatureAnalyzer:
                                 cmap='RdYlBu_r', vmin=-2, vmax=30)
         ax_pac.contour(LAT, DEP2, vertical_section_pac, levels=10,
                       colors='black', linewidths=0.3, alpha=0.3)
-        ax_pac.set_xlabel('Latitude (°N)', fontsize=10)
-        ax_pac.set_ylabel('Depth (m)', fontsize=10)
-        ax_pac.set_title('(g) Meridional Section (Lon = 0°)', 
-                        fontsize=10, fontweight='bold')
+        ax_pac.set_xlabel('Latitude (°N)', fontsize=16)
+        ax_pac.set_ylabel('Depth (m)', fontsize=16)
+        ax_pac.set_title('')
         ax_pac.invert_yaxis()
         ax_pac.set_ylim(depths[-1], 0)
         plt.colorbar(im_pac, ax=ax_pac, orientation='vertical',
@@ -633,15 +630,15 @@ class UNet3DNatureAnalyzer:
             ax.plot(temperature_profile, depths, marker=marker, linestyle='-', 
                    linewidth=2, markersize=6, color=color, label=loc_name, alpha=0.85)
         
-        ax.set_xlabel('Temperature (°C)', fontsize=12)
-        ax.set_ylabel('Depth (m)', fontsize=12)
+        ax.set_xlabel('Temperature (°C)', fontsize=16)
+        ax.set_ylabel('Depth (m)', fontsize=16)
         ax.invert_yaxis()
         ax.set_ylim(depths[-1], 0)
         ax.set_xlim(-2, 32)
         ax.grid(True, alpha=0.3, linestyle='--')
         
         # 添加图例
-        ax.legend(loc='lower right', fontsize=9, framealpha=0.95, 
+        ax.legend(loc='lower right', fontsize=16, framealpha=0.95,
                  ncol=1, borderaxespad=1)
         
         # 添加典型温度结构标注
@@ -649,11 +646,11 @@ class UNet3DNatureAnalyzer:
         ax.axhspan(100, 500, alpha=0.05, color='blue', label='_Thermocline')
         
         # 添加文字标注
-        ax.text(28, 50, 'Mixed\nLayer', fontsize=9, ha='center', va='center', 
+        ax.text(28, 50, 'Mixed\nLayer', fontsize=16, ha='center', va='center',
                color='gray', style='italic')
-        ax.text(28, 300, 'Thermocline', fontsize=9, ha='center', va='center', 
+        ax.text(28, 300, 'Thermocline', fontsize=16, ha='center', va='center',
                color='gray', style='italic')
-        ax.text(28, 1000, 'Deep\nWater', fontsize=9, ha='center', va='center', 
+        ax.text(28, 1000, 'Deep\nWater', fontsize=16, ha='center', va='center',
                color='gray', style='italic')
         
         plt.tight_layout()

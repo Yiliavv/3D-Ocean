@@ -14,8 +14,10 @@ from cartopy import crs as ccrs
 from config import area
 
 from src.utils.log import Log
-from src.plot.base import create_axes, create_carto_ax, create_carto_axes
+from src.plot.base import create_axes, create_carto_ax, create_carto_axes, apply_plot_style
 from src.config.params import PREDICT_SAVE_PATH
+
+apply_plot_style()
 
 COLOR_MAP_PROFILE = cm.thermal
 COLOR_MAP_SST = cm_plt.jet
@@ -145,12 +147,12 @@ def plot_sst(sst, lon, lat, step=1, filename='sst.png', title=''):
                 label='temperature (°C)')
     
     # 设置坐标轴刻度标签字体大小
-    ax.tick_params(axis='both', which='major', labelsize=12)
+    ax.tick_params(axis='both', which='major', labelsize=16)
     
     # 去掉网格
     ax.grid(False)
     
-    plt.title(title, fontsize=16)
+    plt.title('')
     
     plt.savefig(f'{PREDICT_SAVE_PATH}/{filename}')
     
@@ -191,16 +193,16 @@ def plot_attention(attention, lon, lat, step=1, filename='attention.png', title=
                 shrink=0.6,  # 缩小 colorbar 高度到 60%
                 aspect=20,    # 控制宽高比，使 colorbar 更细
                 pad=0.05)     # 减小与地图的间距
-    cbar.set_label('Attention weight', fontsize=6)
-    cbar.ax.tick_params(labelsize=6)
+    cbar.set_label('Attention weight', fontsize=16)
+    cbar.ax.tick_params(labelsize=16)
     
     # 设置坐标轴刻度标签字体大小
-    ax.tick_params(axis='both', which='major', labelsize=6)
+    ax.tick_params(axis='both', which='major', labelsize=16)
     
     # 去掉网格
     ax.grid(False)
     
-    plt.title(title, fontsize=6)
+    plt.title('')
     
     return ax
 
@@ -250,11 +252,11 @@ def plot_sst_diff(sst_diff, lon, lat, step=1, filename='sst_diff.png', title='')
                 label='temperature error (°C)')
     
     # 设置坐标轴刻度标签字体大小
-    ax.tick_params(axis='both', which='major', labelsize=12)
+    ax.tick_params(axis='both', which='major', labelsize=16)
     
     ax.grid(False)
     
-    plt.title(title, fontsize=16)
+    plt.title('')
     plt.savefig(f'{ERROR_SAVE_PATH}/{filename}')
     
     return ax
@@ -289,7 +291,7 @@ def plot_sst_l(sst, lon, lat, step=1):
     
     
     # 在深色等高线上标注数值
-    ax.clabel(contour_lines_major, inline=True, fontsize=5, fmt='%d')
+    ax.clabel(contour_lines_major, inline=True, fontsize=16, fmt='%d')
     
     # 去掉网格
     ax.grid(False)
@@ -414,7 +416,7 @@ def plot_nino(ssta, step=1):
     cbar = ax.figure.colorbar(ax.collections[0], ax=ax, 
                                orientation='horizontal',
                                pad=0.05, fraction=0.05, shrink=0.8)
-    cbar.set_label('SSTA (°C)', fontsize=12)
+    cbar.set_label('SSTA (°C)', fontsize=16)
     
     # 绘制矩形边界框
     import matplotlib.patches as mpatches
@@ -453,7 +455,7 @@ def plot_nino(ssta, step=1):
     ax.text(nino34_center_lon, nino34_center_lat, 
             f'NINO3.4\n{nino34_index:.2f}°C', 
             transform=projection, 
-            fontsize=12, 
+            fontsize=16, 
             fontweight='bold',
             color='red',
             ha='center',
@@ -466,16 +468,15 @@ def plot_nino(ssta, step=1):
     ax.text(nino3_center_lon, nino3_center_lat, 
             f'NINO3\n{nino3_index:.2f}°C', 
             transform=projection, 
-            fontsize=12, 
+            fontsize=16, 
             fontweight='bold',
             color='blue',
             ha='center',
             va='center',
             bbox=dict(boxstyle='round,pad=0.5', facecolor='white', alpha=0.8, edgecolor='blue'))
     
-    # 添加标题
-    ax.set_title('NINO Regions and Sea Surface Temperature Anomaly', 
-                 fontsize=14, fontweight='bold', pad=15)
+    # Keep figures title-free per visualization convention.
+    ax.set_title('')
     
     return ax
     
@@ -487,7 +488,7 @@ def plot_sst_month(sst, ax, levels, lon, lat):
     ax.contour(sst, colors='black', alpha=0.5, linewidths=0.2, linestyles='--', levels=30)
     contour_lines = ax.contour(sst, colors='black', linewidths=0.5)
     
-    ax.clabel(contour_lines, inline=True, colors='black', fontsize=5, fmt='%d', manual=False)
+    ax.clabel(contour_lines, inline=True, colors='black', fontsize=16, fmt='%d', manual=False)
     
     return _
 

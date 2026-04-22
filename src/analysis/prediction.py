@@ -13,11 +13,15 @@ plt.style.use('seaborn-v0_8-whitegrid')
 sns.set_palette("deep")
 
 # Configure font settings
-rcParams['font.family'] = 'serif'
-rcParams['font.serif'] = ['Times New Roman']
+rcParams['font.family'] = 'Times New Roman'
 rcParams['axes.unicode_minus'] = False
-rcParams['font.size'] = 12
+rcParams['font.size'] = 16
 rcParams['font.weight'] = 'normal'
+rcParams['axes.labelsize'] = 16
+rcParams['axes.titlesize'] = 16
+rcParams['xtick.labelsize'] = 16
+rcParams['ytick.labelsize'] = 16
+rcParams['legend.fontsize'] = 16
 
 # Import additional modules
 from matplotlib.colors import LogNorm, Normalize, PowerNorm
@@ -298,12 +302,12 @@ def analyze_cross_parameter_performance():
             if plot_data[0][i] != float('inf'):
                 label1 = f'{plot_data[0][i]:.3f}' if plot_data[0][i] <= 1 else f'{plot_data[0][i]:.2f}'
                 ax1.text(bar1.get_x() + bar1.get_width()/2, bar1.get_height() * 1.05,
-                        label1, ha='center', va='bottom', fontweight='bold', fontsize=10)
+                        label1, ha='center', va='bottom', fontweight='bold', fontsize=16)
             
             if plot_data[1][i] != float('inf'):
                 label2 = f'{plot_data[1][i]:.3f}' if plot_data[1][i] <= 1 else f'{plot_data[1][i]:.2f}'
                 ax1.text(bar2.get_x() + bar2.get_width()/2, bar2.get_height() * 1.05,
-                        label2, ha='center', va='bottom', fontweight='bold', fontsize=10)
+                        label2, ha='center', va='bottom', fontweight='bold', fontsize=16)
     else:
         # Single parameter set
         bars = ax1.bar(x, plot_data[0], width, 
@@ -315,10 +319,10 @@ def analyze_cross_parameter_performance():
             if plot_data[0][i] != float('inf'):
                 label = f'{plot_data[0][i]:.3f}' if plot_data[0][i] <= 1 else f'{plot_data[0][i]:.2f}'
                 ax1.text(bar.get_x() + bar.get_width()/2, bar.get_height() * 1.05,
-                        label, ha='center', va='bottom', fontweight='bold', fontsize=10)
+                        label, ha='center', va='bottom', fontweight='bold', fontsize=16)
     
     ax1.set_ylabel('Final Validation Loss', fontweight='bold')
-    ax1.set_title('Model Performance Comparison', fontweight='bold', fontsize=14)
+    ax1.set_title('')
     ax1.set_xticks(x)
     ax1.set_xticklabels(models, fontweight='bold')
     ax1.legend(frameon=True, fancybox=True, shadow=True)
@@ -355,7 +359,7 @@ def analyze_cross_parameter_performance():
     ax2.legend(handles=legend_elements, loc='upper right', frameon=True, fancybox=True, shadow=True)
     ax2.set_xlabel('Training Epochs', fontweight='bold')
     ax2.set_ylabel('Validation Loss', fontweight='bold')
-    ax2.set_title('Training Dynamics', fontweight='bold', fontsize=14)
+    ax2.set_title('')
     ax2.set_yscale('log')
     ax2.grid(True, alpha=0.3)
     
@@ -396,7 +400,7 @@ def analyze_cross_parameter_performance():
         ax4.text(0.5, 0.5, 'No performance data available', 
                 ha='center', va='center', transform=ax4.transAxes,
                 fontsize=16, fontweight='bold')
-        ax4.set_title('Performance Matrix - No Data Available', fontweight='bold', fontsize=16)
+        ax4.set_title('')
     else:
         performance_matrix = np.array(performance_matrix)
         
@@ -405,9 +409,9 @@ def analyze_cross_parameter_performance():
         
         # Customize the heatmap
         ax4.set_xticks(range(len(metric_names)))
-        ax4.set_xticklabels(metric_names, fontweight='bold', fontsize=12)
+        ax4.set_xticklabels(metric_names, fontweight='bold', fontsize=16)
         ax4.set_yticks(range(len(row_labels)))
-        ax4.set_yticklabels(row_labels, fontweight='bold', fontsize=11)
+        ax4.set_yticklabels(row_labels, fontweight='bold', fontsize=16)
         
         # Add performance scores as text with uniform white background and black text
         for i in range(len(row_labels)):
@@ -415,13 +419,12 @@ def analyze_cross_parameter_performance():
                 score = performance_matrix[i, j]
                 text = f'{score:.2f}'
                     
-                ax4.text(j, i, text, ha="center", va="center", 
-                        color='black', fontweight='bold', fontsize=11,
+                ax4.text(j, i, text, ha="center", va="center",
+                        color='black', fontweight='bold', fontsize=16,
                         bbox=dict(boxstyle='round,pad=0.15', facecolor='white', 
                                  alpha=0.9, edgecolor='gray', linewidth=0.5))
         
-        ax4.set_title('Comprehensive Performance Matrix (Normalized Scores)', 
-                     fontweight='bold', fontsize=16, pad=20)
+        ax4.set_title('')
         
         # Remove colorbar completely
         
@@ -459,8 +462,7 @@ def analyze_cross_parameter_performance():
     fig.patch.set_facecolor('#f8f9fa')
     
     title_suffix = "Comprehensive Evaluation" if comparison_mode else "Single Parameter Set Analysis"
-    plt.suptitle(f'Sea Surface Temperature Model Performance Analysis\nCross-Parameter {title_suffix}', 
-                 fontsize=18, fontweight='bold', y=0.98)
+    plt.suptitle('')
     
     plt.tight_layout(rect=[0, 0, 1, 0.96])
     
@@ -547,13 +549,13 @@ def analyze_model_performance(uid=None):
         ax1.plot(epoch_range, smoothed_train, label=f'{english_labels[model_name]} (Training)', 
                 color=colors[model_name], linewidth=2.8, linestyle='--', alpha=0.7)
     
-    ax1.set_xlabel('Training Epochs', fontsize=15, fontweight='bold')
-    ax1.set_ylabel('Loss Value', fontsize=15, fontweight='bold')
-    ax1.set_title('Training Loss vs Validation Loss Comparison', fontsize=17, fontweight='bold', pad=30)
+    ax1.set_xlabel('Training Epochs', fontsize=16, fontweight='bold')
+    ax1.set_ylabel('Loss Value', fontsize=16, fontweight='bold')
+    ax1.set_title('')
     
     # Enhanced legend
-    legend1 = ax1.legend(frameon=True, fancybox=True, shadow=True, ncol=2, 
-                        fontsize=13, loc='upper right', bbox_to_anchor=(0.98, 0.98))
+    legend1 = ax1.legend(frameon=True, fancybox=True, shadow=True, ncol=2,
+                        fontsize=16, loc='upper right', bbox_to_anchor=(0.98, 0.98))
     legend1.get_frame().set_facecolor('white')
     legend1.get_frame().set_alpha(0.95)
     legend1.get_frame().set_edgecolor('gray')
@@ -562,7 +564,7 @@ def analyze_model_performance(uid=None):
     ax1.grid(True, alpha=0.3, linestyle='-', linewidth=0.6)
     ax1.set_yscale('log')
     ax1.set_xlim(1, epochs)
-    ax1.tick_params(axis='both', which='major', labelsize=12)
+    ax1.tick_params(axis='both', which='major', labelsize=16)
     ax1.spines['top'].set_visible(False)
     ax1.spines['right'].set_visible(False)
     
@@ -607,24 +609,23 @@ def analyze_model_performance(uid=None):
                 text = f'{loss_val:.3f}'
             
             text_color = 'white' if heatmap_data_normalized[i, j] > 0.5 else 'black'
-            ax2.text(j, i, text, ha='center', va='center', 
-                    fontsize=10, fontweight='bold', color=text_color,
+            ax2.text(j, i, text, ha='center', va='center',
+                    fontsize=16, fontweight='bold', color=text_color,
                     bbox=dict(boxstyle='round,pad=0.2', facecolor='white', 
                              alpha=0.7, edgecolor='none'))
     
-    ax2.set_xlabel('Training Stage (Epoch Groups)', fontsize=15, fontweight='bold')
-    ax2.set_title('Validation Loss Distribution During Training\n(Normalized by Model for Better Contrast)', 
-                 fontsize=17, fontweight='bold', pad=30)
+    ax2.set_xlabel('Training Stage (Epoch Groups)', fontsize=16, fontweight='bold')
+    ax2.set_title('')
     
     ax2.set_yticks(range(len(model_list)))
-    ax2.set_yticklabels([english_labels[model] for model in model_list], fontsize=13)
+    ax2.set_yticklabels([english_labels[model] for model in model_list], fontsize=16)
     ax2.set_xticks(range(n_segments))
-    ax2.set_xticklabels([f'{i*segment_size+1}-{(i+1)*segment_size}' for i in range(n_segments)], 
-                       rotation=45, fontsize=11, ha='right')
+    ax2.set_xticklabels([f'{i*segment_size+1}-{(i+1)*segment_size}' for i in range(n_segments)],
+                       rotation=45, fontsize=16, ha='right')
     
     cbar = plt.colorbar(im, ax=ax2, shrink=0.8, pad=0.02)
-    cbar.set_label('Relative Loss Intensity\n(Normalized per Model)', fontsize=13, fontweight='bold')
-    cbar.ax.tick_params(labelsize=11)
+    cbar.set_label('Relative Loss Intensity\n(Normalized per Model)', fontsize=16, fontweight='bold')
+    cbar.ax.tick_params(labelsize=16)
     
     cbar.set_ticks([0, 0.25, 0.5, 0.75, 1.0])
     cbar.set_ticklabels(['Lowest', 'Low', 'Medium', 'High', 'Highest'])
@@ -672,17 +673,17 @@ def analyze_model_performance(uid=None):
         for bar in bars:
             height = bar.get_height()
             ax3.text(bar.get_x() + bar.get_width()/2., height + height*0.03,
-                    f'{height:.3f}', ha='center', va='bottom', 
-                    fontweight='bold', fontsize=12, 
+                    f'{height:.3f}', ha='center', va='bottom',
+                    fontweight='bold', fontsize=16,
                     bbox=dict(boxstyle='round,pad=0.3', facecolor='white', alpha=0.9, 
                              edgecolor='gray', linewidth=0.8))
     
-    ax3.set_ylabel('Final Loss Value (Last 10 Epochs)', fontsize=15, fontweight='bold')
-    ax3.set_title('Model Final Performance Comparison', fontsize=17, fontweight='bold', pad=30)
+    ax3.set_ylabel('Final Loss Value (Last 10 Epochs)', fontsize=16, fontweight='bold')
+    ax3.set_title('')
     ax3.set_xticks(x)
-    ax3.set_xticklabels([english_labels[m] for m in models], fontsize=13)
+    ax3.set_xticklabels([english_labels[m] for m in models], fontsize=16)
     
-    legend3 = ax3.legend(fontsize=13, loc='upper left', bbox_to_anchor=(0.02, 0.98), 
+    legend3 = ax3.legend(fontsize=16, loc='upper left', bbox_to_anchor=(0.02, 0.98),
                         frameon=True, fancybox=True, shadow=True)
     legend3.get_frame().set_facecolor('white')
     legend3.get_frame().set_alpha(0.95)
@@ -692,7 +693,7 @@ def analyze_model_performance(uid=None):
     ax3.set_ylim(0, max(max(final_val_losses.values()), max(final_train_losses.values())) * 1.4)
     
     ax3.grid(True, alpha=0.3, axis='y', linestyle='-', linewidth=0.6)
-    ax3.tick_params(axis='both', which='major', labelsize=12)
+    ax3.tick_params(axis='both', which='major', labelsize=16)
     ax3.spines['top'].set_visible(False)
     ax3.spines['right'].set_visible(False)
     
@@ -720,19 +721,19 @@ def analyze_model_performance(uid=None):
                          s=500, alpha=0.8, edgecolors='black', linewidth=2.8)
     
     for i, model in enumerate(models):
-        ax4.annotate(english_labels[model], (conv_rates[i], stab_scores[i]), 
+        ax4.annotate(english_labels[model], (conv_rates[i], stab_scores[i]),
                     xytext=(10, 10), textcoords='offset points',
-                    fontsize=13, fontweight='bold',
+                    fontsize=16, fontweight='bold',
                     bbox=dict(boxstyle='round,pad=0.4', facecolor='white', alpha=0.9, 
                              edgecolor='gray', linewidth=1.0),
                     arrowprops=dict(arrowstyle='->', connectionstyle='arc3,rad=0.1', 
                                    color='gray', alpha=0.7))
     
-    ax4.set_xlabel('Convergence Rate (%)', fontsize=15, fontweight='bold')
-    ax4.set_ylabel('Stability Score', fontsize=15, fontweight='bold')
-    ax4.set_title('Model Convergence vs Stability Analysis', fontsize=17, fontweight='bold', pad=30)
+    ax4.set_xlabel('Convergence Rate (%)', fontsize=16, fontweight='bold')
+    ax4.set_ylabel('Stability Score', fontsize=16, fontweight='bold')
+    ax4.set_title('')
     ax4.grid(True, alpha=0.3, linestyle='-', linewidth=0.6)
-    ax4.tick_params(axis='both', which='major', labelsize=12)
+    ax4.tick_params(axis='both', which='major', labelsize=16)
     ax4.spines['top'].set_visible(False)
     ax4.spines['right'].set_visible(False)
     

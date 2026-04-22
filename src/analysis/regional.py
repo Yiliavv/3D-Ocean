@@ -24,6 +24,18 @@ from cmocean import cm
 
 from src.plot.base import create_carto_ax
 
+plt.rcParams.update({
+    'font.family': 'Times New Roman',
+    'font.size': 16,
+    'axes.labelsize': 16,
+    'axes.titlesize': 16,
+    'xtick.labelsize': 16,
+    'ytick.labelsize': 16,
+    'legend.fontsize': 16,
+    'figure.titlesize': 16,
+    'axes.unicode_minus': False,
+})
+
 
 # 定义关键海洋区域 (Nature 学术配色方案 - 8种高区分度颜色)
 OCEAN_REGIONS = {
@@ -210,7 +222,7 @@ class RegionalAnalysis:
                 'region': region['name'],
                 'region_cn': region['name_cn'],
                 'valid': False,
-                'message': '该区域无有效数据'
+            'message': 'No valid data in this region'
             }
         
         # 基本统计
@@ -455,17 +467,16 @@ class RegionalAnalysis:
                           transform=ccrs.PlateCarree(), zorder=11)
             
             ax_map.text(center_lon, center_lat, short_names.get(region_key, ''),
-                       ha='center', va='center', fontsize=10, fontweight='bold',
+                       ha='center', va='center', fontsize=16, fontweight='bold',
                        color='white', transform=ccrs.PlateCarree(), zorder=12)
         
         # 添加误差色标（地图右侧，位置优化）
         cbar_ax = fig.add_axes([0.88, 0.55, 0.015, 0.32])
         cbar = fig.colorbar(cf, cax=cbar_ax, orientation='vertical')
-        cbar.set_label('Prediction Error (°C)', fontsize=11, labelpad=8)
-        cbar.ax.tick_params(labelsize=9)
+        cbar.set_label('Prediction Error (°C)', fontsize=16, labelpad=8)
+        cbar.ax.tick_params(labelsize=16)
         
-        ax_map.set_title('(a) Regional prediction performance overview', 
-                        fontsize=13, fontweight='bold', loc='left', pad=8)
+        ax_map.set_title('')
         
         # ============ (b) 下方：水平统计图 ============
         ax_stats = fig.add_subplot(gs[1])
@@ -498,19 +509,19 @@ class RegionalAnalysis:
             
             # 在圆点上方显示 R² 值
             ax_stats.text(i, rmse_val + 0.08, f'{r2_val:.2f}', ha='center', va='bottom',
-                         fontsize=11, fontweight='bold', color='#333333')
+                         fontsize=16, fontweight='bold', color='#333333')
         
         # 添加全球平均参考线
         ax_stats.axhline(y=global_rmse, color='#D32F2F', linestyle='--', 
                         linewidth=2.0, alpha=0.8, zorder=1)
-        ax_stats.text(n_regions - 0.5, global_rmse + 0.03, f'Global: {global_rmse:.3f}°C', 
-                     ha='right', va='bottom', fontsize=11, color='#D32F2F', 
+        ax_stats.text(n_regions - 0.5, global_rmse + 0.03, f'Global: {global_rmse:.3f}°C',
+                     ha='right', va='bottom', fontsize=16, color='#D32F2F',
                      fontweight='bold')
         
         # 设置 X 轴
         ax_stats.set_xticks(x_pos)
-        ax_stats.set_xticklabels(sorted_names, fontsize=10, rotation=30, ha='right')
-        ax_stats.set_ylabel('RMSE (°C)', fontsize=12)
+        ax_stats.set_xticklabels(sorted_names, fontsize=16, rotation=30, ha='right')
+        ax_stats.set_ylabel('RMSE (°C)', fontsize=16)
         ax_stats.set_xlim(-0.5, n_regions - 0.5)
         ax_stats.set_ylim(-0.15, max(sorted_rmse) * 1.2)
         
@@ -528,10 +539,9 @@ class RegionalAnalysis:
         for i, bias_val in enumerate(sorted_bias):
             bias_color = '#C62828' if bias_val > 0 else '#1565C0'
             ax_stats.text(i, -0.08, f'{bias_val:+.2f}', ha='center', va='top',
-                         fontsize=9, color=bias_color, fontweight='medium')
+                         fontsize=16, color=bias_color, fontweight='medium')
         
-        ax_stats.set_title('(b) Regional prediction performance ranking (sorted by RMSE)', 
-                          fontsize=13, fontweight='bold', loc='left', pad=8)
+        ax_stats.set_title('')
         
         # 调整整体布局
         plt.subplots_adjust(left=0.06, right=0.86, top=0.95, bottom=0.15, hspace=0.35)
@@ -580,7 +590,7 @@ class RegionalAnalysis:
             im = ax.contourf(lon_grid, lat_grid, self.error, levels=levels,
                            cmap=cmap, extend='both', transform=ccrs.PlateCarree())
             cbar = plt.colorbar(im, ax=ax, orientation='vertical', shrink=0.7, pad=0.02)
-            cbar.set_label('预测误差 (°C)', fontsize=12)
+            cbar.set_label('Prediction Error (°C)', fontsize=16)
         
         # 绘制各区域边界框
         stats = self.compute_all_regions()
@@ -614,13 +624,13 @@ class RegionalAnalysis:
             
             if region_key in stats and stats[region_key]['valid']:
                 rmse = stats[region_key]['rmse']
-                label_text = f"{region_info['name_cn']}\nRMSE={rmse:.3f}°C"
+                label_text = f"{region_info['name']}\nRMSE={rmse:.3f}°C"
             else:
-                label_text = region_info['name_cn']
+                label_text = region_info['name']
             
             ax.text(center_lon, center_lat, label_text,
                    transform=ccrs.PlateCarree(),
-                   fontsize=9, fontweight='bold',
+                   fontsize=16, fontweight='bold',
                    ha='center', va='center',
                    color=color,
                    bbox=dict(boxstyle='round,pad=0.3', facecolor='white', 
@@ -633,7 +643,7 @@ class RegionalAnalysis:
         gl.top_labels = False
         gl.right_labels = False
         
-        ax.set_title('海洋关键区域预测误差分布', fontsize=16, fontweight='bold', pad=15)
+        ax.set_title('')
         
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor='white')
@@ -747,9 +757,9 @@ class RegionalAnalysis:
         gl.top_labels = gl.right_labels = False
         gl.xlabel_style = gl.ylabel_style = {'size': 5}
         
-        ax_obs.text(0.02, 0.98, 'a', transform=ax_obs.transAxes, fontsize=9, 
+        ax_obs.text(0.02, 0.98, 'a', transform=ax_obs.transAxes, fontsize=16,
                    fontweight='bold', va='top')
-        ax_obs.set_title('Observed', fontsize=7, pad=3)
+        ax_obs.set_title('')
         
         # ========== (b) Predicted SST ==========
         ax_pred = fig.add_subplot(gs[0, 1], projection=ccrs.PlateCarree())
@@ -767,9 +777,9 @@ class RegionalAnalysis:
         gl2.top_labels = gl2.right_labels = gl2.left_labels = False
         gl2.xlabel_style = {'size': 5}
         
-        ax_pred.text(0.02, 0.98, 'b', transform=ax_pred.transAxes, fontsize=9, 
+        ax_pred.text(0.02, 0.98, 'b', transform=ax_pred.transAxes, fontsize=16,
                     fontweight='bold', va='top')
-        ax_pred.set_title('Predicted', fontsize=7, pad=3)
+        ax_pred.set_title('')
         
         # ========== (c) Prediction Error ==========
         ax_err = fig.add_subplot(gs[0, 2], projection=ccrs.PlateCarree())
@@ -788,9 +798,9 @@ class RegionalAnalysis:
         gl3.top_labels = gl3.right_labels = gl3.left_labels = False
         gl3.xlabel_style = {'size': 5}
         
-        ax_err.text(0.02, 0.98, 'c', transform=ax_err.transAxes, fontsize=9, 
+        ax_err.text(0.02, 0.98, 'c', transform=ax_err.transAxes, fontsize=16,
                    fontweight='bold', va='top')
-        ax_err.set_title(f'Error (RMSE={stats["rmse"]:.3f}°C)', fontsize=7, pad=3)
+        ax_err.set_title('')
         
         # 绘制完所有地图后，获取实际位置来放置 colorbar
         fig.canvas.draw()
@@ -807,8 +817,8 @@ class RegionalAnalysis:
         cb1_y = pos_obs.y0 - 0.06  # 在地图下方，稍微往下
         cax1 = fig.add_axes([cb1_left, cb1_y, cb1_width, 0.012])
         cb1 = plt.colorbar(im_obs, cax=cax1, orientation='horizontal')
-        cb1.set_label('SST (°C)', fontsize=6, labelpad=2)
-        cb1.ax.tick_params(labelsize=5, length=2, width=0.5)
+        cb1.set_label('SST (°C)', fontsize=16, labelpad=2)
+        cb1.ax.tick_params(labelsize=16, length=2, width=0.5)
         
         # c 的 colorbar - 与 c 对齐
         cb2_left = pos_err.x0
@@ -816,8 +826,8 @@ class RegionalAnalysis:
         cb2_y = pos_err.y0 - 0.04
         cax2 = fig.add_axes([cb2_left, cb2_y, cb2_width, 0.012])
         cb2 = plt.colorbar(im_err, cax=cax2, orientation='horizontal', extend='both')
-        cb2.set_label('Error (°C)', fontsize=6, labelpad=2)
-        cb2.ax.tick_params(labelsize=5, length=2, width=0.5)
+        cb2.set_label('Error (°C)', fontsize=16, labelpad=2)
+        cb2.ax.tick_params(labelsize=16, length=2, width=0.5)
         
         # ========== (d) Scatter Plot with Density ==========
         ax_scatter = fig.add_subplot(gs[1, 0])
@@ -839,19 +849,19 @@ class RegionalAnalysis:
         ax_scatter.plot(lims, fit_fn(lims), color='#E74C3C', linewidth=0.75, 
                        label=f'Fit (y={coef[0]:.2f}x{coef[1]:+.2f})', zorder=10)
         
-        ax_scatter.set_xlabel('Observed (°C)', fontsize=7)
-        ax_scatter.set_ylabel('Predicted (°C)', fontsize=7)
+        ax_scatter.set_xlabel('Observed (°C)', fontsize=16)
+        ax_scatter.set_ylabel('Predicted (°C)', fontsize=16)
         ax_scatter.set_aspect('equal', adjustable='box')
-        ax_scatter.legend(loc='lower right', fontsize=5, framealpha=0.9, 
+        ax_scatter.legend(loc='lower right', fontsize=16, framealpha=0.9,
                          handlelength=1.5, borderpad=0.3)
         
         # 统计信息
-        ax_scatter.text(0.03, 0.97, f'R²={stats["r2"]:.3f}\nN={stats["pixel_count"]:,}', 
-                       transform=ax_scatter.transAxes, fontsize=6, va='top',
+        ax_scatter.text(0.03, 0.97, f'R²={stats["r2"]:.3f}\nN={stats["pixel_count"]:,}',
+                       transform=ax_scatter.transAxes, fontsize=16, va='top',
                        bbox=dict(boxstyle='round,pad=0.2', facecolor='white', 
                                 alpha=0.8, linewidth=0.3))
         
-        ax_scatter.text(0.02, 1.02, 'd', transform=ax_scatter.transAxes, fontsize=9, 
+        ax_scatter.text(0.02, 1.02, 'd', transform=ax_scatter.transAxes, fontsize=16,
                        fontweight='bold', va='bottom')
         
         # d 的密度 colorbar - 放在图的右侧而不是下方，避免与 x 轴重合
@@ -859,8 +869,8 @@ class RegionalAnalysis:
         pos_scatter = ax_scatter.get_position()
         cax3 = fig.add_axes([pos_scatter.x1 + 0.008, pos_scatter.y0 + 0.02, 0.008, pos_scatter.height * 0.8])
         cb3 = plt.colorbar(h[3], cax=cax3, orientation='vertical')
-        cb3.set_label('Density', fontsize=5, labelpad=2)
-        cb3.ax.tick_params(labelsize=4, length=1.5, width=0.3)
+        cb3.set_label('Density', fontsize=16, labelpad=2)
+        cb3.ax.tick_params(labelsize=16, length=1.5, width=0.3)
         
         # ========== (e) Error Histogram with KDE ==========
         ax_hist = fig.add_subplot(gs[1, 1])
@@ -882,12 +892,12 @@ class RegionalAnalysis:
         ax_hist.axvline(stats['bias'], color='#27AE60', linestyle='--', linewidth=0.75,
                        label=f'Bias={stats["bias"]:+.3f}')
         
-        ax_hist.set_xlabel('Error (°C)', fontsize=7)
-        ax_hist.set_ylabel('Density', fontsize=7)
-        ax_hist.legend(loc='upper right', fontsize=5, framealpha=0.9, 
+        ax_hist.set_xlabel('Error (°C)', fontsize=16)
+        ax_hist.set_ylabel('Density', fontsize=16)
+        ax_hist.legend(loc='upper right', fontsize=16, framealpha=0.9,
                       handlelength=1.2, borderpad=0.3)
         
-        ax_hist.text(0.02, 1.02, 'e', transform=ax_hist.transAxes, fontsize=9, 
+        ax_hist.text(0.02, 1.02, 'e', transform=ax_hist.transAxes, fontsize=16,
                     fontweight='bold', va='bottom')
         
         # ========== (f) Taylor Diagram Style Metrics ==========
@@ -908,11 +918,11 @@ class RegionalAnalysis:
         y_start = 0.85
         for i, (name, val, unit) in enumerate(metrics):
             y = y_start - i * 0.12
-            ax_metrics.text(0.05, y, name, fontsize=7, fontweight='bold', 
+            ax_metrics.text(0.05, y, name, fontsize=16, fontweight='bold',
                            transform=ax_metrics.transAxes, va='center')
-            ax_metrics.text(0.45, y, val, fontsize=7, transform=ax_metrics.transAxes, 
+            ax_metrics.text(0.45, y, val, fontsize=16, transform=ax_metrics.transAxes,
                            va='center', ha='right', family='monospace')
-            ax_metrics.text(0.48, y, unit, fontsize=6, transform=ax_metrics.transAxes, 
+            ax_metrics.text(0.48, y, unit, fontsize=16, transform=ax_metrics.transAxes,
                            va='center', color='#666666')
         
         # 分隔线
@@ -922,18 +932,18 @@ class RegionalAnalysis:
                           linewidth=0.5, transform=ax_metrics.transAxes)
         
         # 区域信息
-        ax_metrics.text(0.05, 0.05, f'{region_info["name"]}', fontsize=7, 
+        ax_metrics.text(0.05, 0.05, f'{region_info["name"]}', fontsize=16,
                        fontweight='bold', transform=ax_metrics.transAxes)
         ax_metrics.text(0.05, -0.02, 
                        f'{region_info["lon"][0]}°~{region_info["lon"][1]}°E, '
                        f'{region_info["lat"][0]}°~{region_info["lat"][1]}°N',
-                       fontsize=5, color='#666666', transform=ax_metrics.transAxes)
+                       fontsize=16, color='#666666', transform=ax_metrics.transAxes)
         
-        ax_metrics.text(0.02, 1.02, 'f', transform=ax_metrics.transAxes, fontsize=9, 
+        ax_metrics.text(0.02, 1.02, 'f', transform=ax_metrics.transAxes, fontsize=16,
                        fontweight='bold', va='bottom')
         
         # 总标题
-        fig.suptitle(f'{region_info["name"]}', fontsize=9, fontweight='bold', y=0.96)
+        fig.suptitle('')
         
         if save_path:
             plt.savefig(save_path, dpi=300, bbox_inches='tight', facecolor='white',

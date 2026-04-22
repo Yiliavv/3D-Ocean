@@ -33,8 +33,8 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 # 配置 matplotlib 中文支持
-plt.rcParams['font.family'] = 'serif'
-plt.rcParams['font.serif'] = ['Times New Roman']
+plt.rcParams['font.family'] = 'Times New Roman'
+plt.rcParams['font.size'] = 16
 plt.rcParams['axes.unicode_minus'] = False
 
 
@@ -75,15 +75,32 @@ class AblationVisualizer:
         
         # 额外设置
         plt.rcParams.update({
+            'font.family': 'Times New Roman',
+            'font.size': 16,
+            'axes.labelsize': 16,
+            'axes.titlesize': 16,
+            'xtick.labelsize': 16,
+            'ytick.labelsize': 16,
+            'legend.fontsize': 16,
+            'figure.titlesize': 16,
             'axes.spines.top': False,
             'axes.spines.right': False,
             'axes.grid': True,
             'grid.alpha': 0.3,
             'text.usetex': False,  # 禁用 LaTeX（兼容性）
         })
+
+    def _clear_all_titles(self, fig: plt.Figure):
+        """
+        Clear figure and axes titles to keep title-free plots.
+        """
+        fig.suptitle('')
+        for ax in fig.axes:
+            ax.set_title('')
     
     def _save_figure(self, fig: plt.Figure, name: str):
         """保存图表到多种格式"""
+        self._clear_all_titles(fig)
         for fmt in self.save_formats:
             output_path = self.output_dir / f"{name}.{fmt}"
             fig.savefig(
@@ -156,9 +173,9 @@ class AblationVisualizer:
         ax.set_ylabel(metric)
         
         if title:
-            ax.set_title(title)
+            ax.set_title('')
         else:
-            ax.set_title(f'{metric} Comparison Across Ablation Variants')
+            ax.set_title('')
         
         # 添加数值标签
         for bar, (_, row) in zip(bars, grouped.iterrows()):
@@ -170,7 +187,7 @@ class AblationVisualizer:
                 textcoords='offset points',
                 ha='center',
                 va='bottom',
-                fontsize=self.style.tick_size
+                fontsize=16
             )
         
         plt.tight_layout()
@@ -249,7 +266,7 @@ class AblationVisualizer:
         ax.set_yticks(y)
         ax.set_yticklabels(df['component'])
         ax.set_xlabel('RMSE Increase (%)')
-        ax.set_title('Component Contribution Analysis')
+        ax.set_title('')
         
         # 添加零线
         ax.axvline(x=0, color='gray', linestyle='--', linewidth=0.8)
@@ -263,7 +280,7 @@ class AblationVisualizer:
                 xy=(x_pos, bar.get_y() + bar.get_height() / 2),
                 va='center',
                 ha='left' if width > 0 else 'right',
-                fontsize=self.style.tick_size
+                fontsize=16
             )
         
         plt.tight_layout()
@@ -303,7 +320,7 @@ class AblationVisualizer:
             aspect='auto',
             origin='lower'
         )
-        axes[0].set_title('Ground Truth')
+        axes[0].set_title('')
         plt.colorbar(im1, ax=axes[0], label='SST (°C)')
         
         # 预测值
@@ -313,7 +330,7 @@ class AblationVisualizer:
             aspect='auto',
             origin='lower'
         )
-        axes[1].set_title('Prediction')
+        axes[1].set_title('')
         plt.colorbar(im2, ax=axes[1], label='SST (°C)')
         
         # 误差图
@@ -326,7 +343,7 @@ class AblationVisualizer:
             vmin=-vmax,
             vmax=vmax
         )
-        axes[2].set_title(f'Error ({variant_name})')
+        axes[2].set_title('')
         plt.colorbar(im3, ax=axes[2], label='Error (°C)')
         
         # 设置标签
@@ -334,7 +351,7 @@ class AblationVisualizer:
             ax.set_xlabel('Longitude')
             ax.set_ylabel('Latitude')
         
-        fig.suptitle(f'Prediction Error Analysis: {variant_name}', y=1.02)
+        fig.suptitle('')
         
         plt.tight_layout()
         self._save_figure(fig, figname)
@@ -407,9 +424,9 @@ class AblationVisualizer:
         # 图例
         lines1, labels1 = ax1.get_legend_handles_labels()
         lines2, labels2 = ax2.get_legend_handles_labels()
-        ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper right')
+        ax1.legend(lines1 + lines2, labels1 + labels2, loc='upper right', fontsize=16)
         
-        ax1.set_title(f'Sensitivity Analysis: {param_name}')
+        ax1.set_title('')
         
         plt.tight_layout()
         self._save_figure(fig, figname)
@@ -463,10 +480,10 @@ class AblationVisualizer:
             for j in range(len(param1_vals)):
                 text = ax.text(j, i, f'{matrix[i, j]:.3f}',
                              ha='center', va='center', color='white',
-                             fontsize=self.style.tick_size)
+                             fontsize=16)
         
         plt.colorbar(im, ax=ax, label=metric)
-        ax.set_title(f'{metric} vs {param1_name} × {param2_name}')
+        ax.set_title('')
         
         plt.tight_layout()
         self._save_figure(fig, figname)
@@ -539,8 +556,8 @@ class AblationVisualizer:
         
         ax.set_xlabel(f'Training Time (s)')
         ax.set_ylabel('RMSE')
-        ax.set_title('Accuracy vs Efficiency Trade-off')
-        ax.legend(loc='upper right', fontsize=self.style.legend_size)
+        ax.set_title('')
+        ax.legend(loc='upper right', fontsize=16)
         
         plt.tight_layout()
         self._save_figure(fig, figname)
@@ -630,7 +647,7 @@ class AblationVisualizer:
             explode=[0.02] * len(sizes)
         )
         
-        ax.set_title('Component Contribution Breakdown')
+        ax.set_title('')
         
         plt.tight_layout()
         self._save_figure(fig, figname)
@@ -660,14 +677,13 @@ class AblationVisualizer:
         """
         # Nature 风格设置
         plt.rcParams.update({
-            'font.family': 'serif',
-            'font.serif': ['Times New Roman'],
-            'font.size': 7,
-            'axes.labelsize': 8,
-            'axes.titlesize': 9,
-            'legend.fontsize': 6,
-            'xtick.labelsize': 7,
-            'ytick.labelsize': 7,
+            'font.family': 'Times New Roman',
+            'font.size': 16,
+            'axes.labelsize': 16,
+            'axes.titlesize': 16,
+            'legend.fontsize': 16,
+            'xtick.labelsize': 16,
+            'ytick.labelsize': 16,
             'axes.linewidth': 0.5,
             'xtick.major.width': 0.5,
             'ytick.major.width': 0.5,
@@ -737,7 +753,7 @@ class AblationVisualizer:
         ax_a.set_xticklabels([display_names.get(v, v) for v in variant_order], rotation=45, ha='right')
         ax_a.legend(loc='upper right', frameon=False)
         ax_a.set_ylim(0, max(rmse_means) * 1.3)
-        ax_a.text(-0.15, 1.05, 'a', transform=ax_a.transAxes, fontsize=11, fontweight='bold')
+        ax_a.text(-0.15, 1.05, 'a', transform=ax_a.transAxes, fontsize=16, fontweight='bold')
         
         # 添加 baseline 参考线
         baseline_rmse = rmse_means[0]
@@ -771,20 +787,20 @@ class AblationVisualizer:
             x_pos = bar.get_width() + 1.0
             ax_b.text(x_pos, bar.get_y() + bar.get_height()/2, 
                      f'+{val:.1f}%',
-                     va='center', ha='left', fontsize=7, fontweight='bold', color='#333333')
+                     va='center', ha='left', fontsize=16, fontweight='bold', color='#333333')
         
         ax_b.set_yticks(y_pos)
         ax_b.set_yticklabels([display_names.get(v, v) for v in components_sorted])
-        ax_b.set_xlabel('RMSE Degradation (%)', fontsize=8)
+        ax_b.set_xlabel('RMSE Degradation (%)', fontsize=16)
         ax_b.axvline(x=0, color='#333333', linestyle='-', linewidth=0.8)
         ax_b.set_xlim(-2, max(contributions_sorted) * 1.5)
         
         # 添加说明文字
         ax_b.text(0.98, 0.02, 'Higher = more important', 
-                 transform=ax_b.transAxes, fontsize=5, ha='right', va='bottom',
+                 transform=ax_b.transAxes, fontsize=16, ha='right', va='bottom',
                  style='italic', color='#666666')
         
-        ax_b.text(-0.15, 1.05, 'b', transform=ax_b.transAxes, fontsize=11, fontweight='bold')
+        ax_b.text(-0.15, 1.05, 'b', transform=ax_b.transAxes, fontsize=16, fontweight='bold')
         
         # ===== (c) 训练效率对比 =====
         ax_c = fig.add_subplot(gs[1, 0])
@@ -797,14 +813,14 @@ class AblationVisualizer:
             # 添加数值标签
             for bar, val in zip(bars, time_means):
                 ax_c.text(bar.get_x() + bar.get_width()/2, bar.get_height() + 5,
-                         f'{val:.0f}s', ha='center', va='bottom', fontsize=6)
+                         f'{val:.0f}s', ha='center', va='bottom', fontsize=16)
             
             ax_c.set_ylabel('Training Time (s)')
             ax_c.set_xticks(x)
             ax_c.set_xticklabels([display_names.get(v, v) for v in variant_order], rotation=45, ha='right')
             ax_c.set_ylim(0, max(time_means) * 1.2)
         
-        ax_c.text(-0.15, 1.05, 'c', transform=ax_c.transAxes, fontsize=11, fontweight='bold')
+        ax_c.text(-0.15, 1.05, 'c', transform=ax_c.transAxes, fontsize=16, fontweight='bold')
         
         # ===== (d) 精度-效率权衡散点图 =====
         ax_d = fig.add_subplot(gs[1, 1])
@@ -840,7 +856,7 @@ class AblationVisualizer:
                     (time_val, rmse_val),
                     xytext=offset, 
                     textcoords='offset points',
-                    fontsize=6, 
+                    fontsize=16,
                     alpha=0.9,
                     bbox=dict(boxstyle='round,pad=0.2', facecolor='white', alpha=0.7, edgecolor='none'),
                     arrowprops=dict(arrowstyle='-', color='gray', alpha=0.5, lw=0.5)
@@ -854,12 +870,12 @@ class AblationVisualizer:
             ax_d.axvline(x=250, color='#2166AC', linestyle=':', linewidth=0.8, alpha=0.4)
             
             # 标注理想区域
-            ax_d.text(50, 1.05, 'Ideal\nregion', fontsize=6, color='#2166AC', alpha=0.7, 
+            ax_d.text(50, 1.05, 'Ideal\nregion', fontsize=16, color='#2166AC', alpha=0.7,
                      ha='center', va='center')
             ax_d.fill_between([0, 250], [1.0, 1.0], [baseline_rmse, baseline_rmse], 
                              alpha=0.08, color='#2166AC')
         
-        ax_d.text(-0.15, 1.05, 'd', transform=ax_d.transAxes, fontsize=11, fontweight='bold')
+        ax_d.text(-0.15, 1.05, 'd', transform=ax_d.transAxes, fontsize=16, fontweight='bold')
         
         # 保存图表
         self._save_figure(fig, figname)

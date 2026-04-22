@@ -13,6 +13,18 @@ import torch.nn as nn
 from scipy.special import lpmn, factorial
 from src.plot.sst import COLOR_MAP_ERROR
 
+plt.rcParams.update({
+    'font.family': 'Times New Roman',
+    'font.size': 16,
+    'axes.labelsize': 16,
+    'axes.titlesize': 16,
+    'xtick.labelsize': 16,
+    'ytick.labelsize': 16,
+    'legend.fontsize': 16,
+    'figure.titlesize': 16,
+    'axes.unicode_minus': False,
+})
+
 class SphericalHarmonicAnalysis:
     """Sea Surface Temperature Spherical Harmonic Expansion Analysis Class"""
     
@@ -206,13 +218,12 @@ class SphericalHarmonicAnalysis:
                   transform=ccrs.PlateCarree())
         
         # Set title and labels
-        ax.set_title(f'Spherical Harmonic Y_{l}^{m} (Degree={l}, Order={m})', 
-                    fontsize=16, fontweight='bold', pad=20)
+        ax.set_title('')
         
         # Add colorbar
         cbar = plt.colorbar(im, ax=ax, orientation='horizontal', 
                            pad=0.05, fraction=0.05, shrink=0.8)
-        cbar.set_label('Spherical Harmonic Value', fontsize=12)
+        cbar.set_label('Spherical Harmonic Value', fontsize=16)
         
         # Set grid lines
         ax.gridlines(draw_labels=True, dms=True, x_inline=False, y_inline=False,
@@ -307,9 +318,9 @@ class SphericalHarmonicAnalysis:
         energies = [energy_by_degree[d] for d in degrees]
         
         ax4.semilogy(degrees, energies, 'bo-', linewidth=2, markersize=6)
-        ax4.set_xlabel('Spherical Harmonic Degree', fontsize=12)
-        ax4.set_ylabel('Energy (Log Scale)', fontsize=12)
-        ax4.set_title('Spherical Harmonic Expansion Energy Spectrum', fontsize=14, fontweight='bold')
+        ax4.set_xlabel('Spherical Harmonic Degree', fontsize=16)
+        ax4.set_ylabel('Energy (Log Scale)', fontsize=16)
+        ax4.set_title('')
         ax4.grid(True, alpha=0.3)
         
         # Add statistics
@@ -319,23 +330,23 @@ class SphericalHarmonicAnalysis:
         
         stats_text = f'RMSE: {rmse:.3f}°C\nMAE: {mae:.3f}°C\nMax Error: {max_error:.3f}°C'
         ax4.text(0.02, 0.98, stats_text, transform=ax4.transAxes, 
-                fontsize=10, verticalalignment='top',
+                fontsize=16, verticalalignment='top',
                 bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
         
         # Add colorbars
         cbar1 = plt.colorbar(im1, ax=ax1, orientation='horizontal', 
                             pad=0.05, fraction=0.05, shrink=0.8)
-        cbar1.set_label('Temperature (°C)', fontsize=10)
+        cbar1.set_label('Temperature (°C)', fontsize=16)
         
         cbar2 = plt.colorbar(im2, ax=ax2, orientation='horizontal', 
                             pad=0.05, fraction=0.05, shrink=0.8)
-        cbar2.set_label('Temperature (°C)', fontsize=10)
+        cbar2.set_label('Temperature (°C)', fontsize=16)
         
         cbar3 = plt.colorbar(im3, ax=ax3, orientation='horizontal', 
                             pad=0.05, fraction=0.05, shrink=0.8)
-        cbar3.set_label('Error (°C)', fontsize=10)
+        cbar3.set_label('Error (°C)', fontsize=16)
         
-        plt.suptitle('Sea Surface Temperature Spherical Harmonic Expansion Analysis', fontsize=18, fontweight='bold', y=0.95)
+        plt.suptitle('')
         
         return fig
     
@@ -378,13 +389,12 @@ class SphericalHarmonicAnalysis:
                                levels=15, cmap='RdBu_r', 
                                transform=ccrs.PlateCarree(), extend='both')
                 
-                ax.set_title(f'Y_{l}^{m}', fontsize=12, fontweight='bold')
+                ax.set_title('')
                 ax.gridlines(alpha=0.3, linestyle='--')
                 
                 plot_idx += 1
         
-        plt.suptitle(f'Spherical Harmonic Visualization (Degrees 0-{max_degree})', 
-                    fontsize=16, fontweight='bold', y=0.95)
+        plt.suptitle('')
         
         return fig
 

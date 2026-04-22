@@ -238,12 +238,12 @@ class VisualizationStyle:
     name: str                              # 如 "agu", "ieee", "nature"
     
     # 字体设置
-    font_family: str = 'serif'
-    font_size: int = 10
-    label_size: int = 11
-    title_size: int = 12
-    legend_size: int = 9
-    tick_size: int = 9
+    font_family: str = 'Times New Roman'
+    font_size: int = 16
+    label_size: int = 16
+    title_size: int = 16
+    legend_size: int = 16
+    tick_size: int = 16
     
     # 图表尺寸
     single_column_width: float = 3.35      # 英寸
@@ -360,25 +360,25 @@ ABLATION_VARIANTS: Dict[str, AblationConfig] = {
 STYLES: Dict[str, VisualizationStyle] = {
     'agu': VisualizationStyle(
         name='agu',
-        font_size=10,
-        label_size=11,
-        title_size=12,
+        font_size=16,
+        label_size=16,
+        title_size=16,
         single_column_width=3.35,  # 85mm
         double_column_width=6.69,  # 170mm
     ),
     'ieee': VisualizationStyle(
         name='ieee',
-        font_size=8,
-        label_size=9,
-        title_size=10,
+        font_size=16,
+        label_size=16,
+        title_size=16,
         single_column_width=3.5,
         double_column_width=7.16,
     ),
     'nature': VisualizationStyle(
         name='nature',
-        font_size=7,
-        label_size=8,
-        title_size=9,
+        font_size=16,
+        label_size=16,
+        title_size=16,
         single_column_width=3.5,
         double_column_width=7.0,
     ),

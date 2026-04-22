@@ -5,6 +5,29 @@ from matplotlib import pyplot as plt
 from cartopy import crs as ccrs
 from cartopy import feature as cfeat
 
+PLOT_FONT_FAMILY = 'Times New Roman'
+PLOT_FONT_SIZE = 16
+
+
+def apply_plot_style():
+    """
+    Apply a unified plotting style to all figures.
+    """
+    plt.rcParams.update({
+        'font.family': PLOT_FONT_FAMILY,
+        'font.size': PLOT_FONT_SIZE,
+        'axes.labelsize': PLOT_FONT_SIZE,
+        'axes.titlesize': PLOT_FONT_SIZE,
+        'xtick.labelsize': PLOT_FONT_SIZE,
+        'ytick.labelsize': PLOT_FONT_SIZE,
+        'legend.fontsize': PLOT_FONT_SIZE,
+        'figure.titlesize': PLOT_FONT_SIZE,
+        'axes.unicode_minus': False,
+    })
+
+
+apply_plot_style()
+
 def create_base_figure():
     """
     创建固定 dpi 为 2400 的高分辨率画布

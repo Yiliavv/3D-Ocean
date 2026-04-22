@@ -10,6 +10,20 @@ from typing import Literal
 from src.dataset.Argo import ArgoDepthMap
 from src.utils.log import Log
 
+import matplotlib.pyplot as plt
+
+plt.rcParams.update({
+    'font.family': 'Times New Roman',
+    'font.size': 16,
+    'axes.labelsize': 16,
+    'axes.titlesize': 16,
+    'xtick.labelsize': 16,
+    'ytick.labelsize': 16,
+    'legend.fontsize': 16,
+    'figure.titlesize': 16,
+    'axes.unicode_minus': False,
+})
+
 
 class DepthInterpolator:
     """
@@ -242,7 +256,7 @@ class DepthInterpolator:
     def plot_comparison(self, 
                        original_profile: np.ndarray,
                        interpolated_profile: np.ndarray,
-                       title: str = "Temperature Profile Comparison"):
+                       title: str = ""):
         """
         绘制单个位置的原始剖面和插值剖面对比图
         
@@ -251,8 +265,6 @@ class DepthInterpolator:
             interpolated_profile: 插值后的温度剖面 [n_target_depth]
             title: 图表标题
         """
-        import matplotlib.pyplot as plt
-        
         fig, ax = plt.subplots(figsize=(8, 10))
         
         # 绘制原始数据（散点）
@@ -270,11 +282,11 @@ class DepthInterpolator:
                alpha=0.8)
         
         # 设置标签和标题
-        ax.set_xlabel('Temperature (°C)', fontsize=12)
-        ax.set_ylabel('Depth (m)', fontsize=12)
-        ax.set_title(title, fontsize=14, fontweight='bold')
+        ax.set_xlabel('Temperature (°C)', fontsize=16)
+        ax.set_ylabel('Depth (m)', fontsize=16)
+        ax.set_title('')
         ax.grid(True, alpha=0.3, linestyle='--')
-        ax.legend(fontsize=10)
+        ax.legend(fontsize=16)
         
         # 反转y轴（深度向下）
         ax.invert_yaxis()

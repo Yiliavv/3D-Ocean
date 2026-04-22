@@ -19,6 +19,18 @@ from src.config.constants import deep
 from src.config.params import MODEL_SAVE_PATH
 from src.dataset.Argo import Argo3DTemperatureDataset, ArgoDepthMap
 
+plt.rcParams.update({
+    'font.family': 'Times New Roman',
+    'font.size': 16,
+    'axes.labelsize': 16,
+    'axes.titlesize': 16,
+    'xtick.labelsize': 16,
+    'ytick.labelsize': 16,
+    'legend.fontsize': 16,
+    'figure.titlesize': 16,
+    'axes.unicode_minus': False,
+})
+
 
 class ProfileTrainer:
     """
@@ -444,9 +456,8 @@ class ProfileTrainer:
             return
         
         # 设置字体
-        rcParams['font.family'] = 'serif'
-        rcParams['font.serif'] = ['Times New Roman']
-        rcParams['font.size'] = 12
+        rcParams['font.family'] = 'Times New Roman'
+        rcParams['font.size'] = 16
         
         # 定义模型样式
         styles = {
@@ -501,16 +512,16 @@ class ProfileTrainer:
         ax.axhspan(200, 400, alpha=0.05, color='#9C27B0', zorder=0)
         
         # 深度层标注（右侧）
-        ax.text(max_rmse * 1.02, 50, 'Mixed Layer\n(0-100m)', 
-               fontsize=9, va='center', color='#1565C0', style='italic')
-        ax.text(max_rmse * 1.02, 150, 'Thermocline\n(100-200m)', 
-               fontsize=9, va='center', color='#E65100', style='italic')
-        ax.text(max_rmse * 1.02, 300, 'Deep Layer\n(>200m)', 
-               fontsize=9, va='center', color='#6A1B9A', style='italic')
+        ax.text(max_rmse * 1.02, 50, 'Mixed Layer\n(0-100m)',
+               fontsize=16, va='center', color='#1565C0', style='italic')
+        ax.text(max_rmse * 1.02, 150, 'Thermocline\n(100-200m)',
+               fontsize=16, va='center', color='#E65100', style='italic')
+        ax.text(max_rmse * 1.02, 300, 'Deep Layer\n(>200m)',
+               fontsize=16, va='center', color='#6A1B9A', style='italic')
         
         # 坐标轴设置
-        ax.set_xlabel('RMSE (°C)', fontsize=14, fontweight='bold')
-        ax.set_ylabel('Depth (m)', fontsize=14, fontweight='bold')
+        ax.set_xlabel('RMSE (°C)', fontsize=16, fontweight='bold')
+        ax.set_ylabel('Depth (m)', fontsize=16, fontweight='bold')
         ax.invert_yaxis()
         ax.set_xlim(0, max_rmse * 1.25)
         
@@ -519,7 +530,7 @@ class ProfileTrainer:
         ax.set_axisbelow(True)
         
         # 图例
-        legend = ax.legend(loc='lower right', fontsize=11, 
+        legend = ax.legend(loc='lower right', fontsize=16,
                           framealpha=0.95, fancybox=True)
         legend.get_frame().set_edgecolor('#CCCCCC')
         
@@ -535,7 +546,7 @@ class ProfileTrainer:
                 ax.annotate(f'{result["overall_rmse"]:.2f}°C',
                            xy=(rmse[label_idx], depths[label_idx]),
                            xytext=(15, 0), textcoords='offset points',
-                           fontsize=10, fontweight='bold',
+                           fontsize=16, fontweight='bold',
                            color=style['color'],
                            bbox=dict(boxstyle='round,pad=0.2', 
                                    facecolor='white', alpha=0.8,
@@ -638,7 +649,7 @@ class ProfileTrainer:
         temp_true_transposed = np.transpose(temp_true, (1, 0, 2))
         plot_3d_temperature(temp_true_transposed, lon, lat, depths, step=step,
                            label='Temperature (°C)', ax=axes[0], colorbar=False)
-        axes[0].set_title('Argo (Ground Truth)', fontsize=6, fontweight='bold', pad=10)
+        axes[0].set_title('')
         
         # 2. 绘制各模型预测
         model_info = {
@@ -663,8 +674,7 @@ class ProfileTrainer:
                 plot_3d_temperature(pred_transposed, lon, lat, 
                                    list(self.results[name]['depths']), 
                                    step=step, label='Temperature (°C)', ax=axes[plot_idx], colorbar=False)
-                axes[plot_idx].set_title(f'{model_info[name]} (RMSE: {rmse:.3f}°C)', 
-                         fontsize=6, fontweight='bold', pad=10)
+                axes[plot_idx].set_title('')
                 plot_idx += 1
         
         # 隐藏多余的子图
@@ -691,8 +701,8 @@ class ProfileTrainer:
         # 居中且变短：width=0.4, left=(1-0.4)/2=0.3
         cbar_ax = plt.gcf().add_axes([0.3, 0.03, 0.4, 0.02]) 
         cb = plt.colorbar(sm, cax=cbar_ax, orientation='horizontal', label='Temperature (°C)')
-        cb.ax.tick_params(labelsize=6)
-        cb.set_label('Temperature (°C)', fontsize=7)
+        cb.ax.tick_params(labelsize=16)
+        cb.set_label('Temperature (°C)', fontsize=16)
         
         output_file = f'{save_path}/three_models_3d_prediction.png'
         plt.savefig(output_file, dpi=300, bbox_inches='tight')

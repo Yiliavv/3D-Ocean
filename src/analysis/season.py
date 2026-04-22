@@ -69,9 +69,8 @@ class SeasonalityAnalysis:
         """Plot visualizations of seasonal patterns as two separate figures"""
         # Apply a professional-looking style
         sns.set_style("whitegrid")
-        plt.rcParams['font.family'] = 'serif'
-        plt.rcParams['font.serif'] = ['Times New Roman']
-        plt.rcParams['font.size'] = 10
+        plt.rcParams['font.family'] = 'Times New Roman'
+        plt.rcParams['font.size'] = 16
         
         # Figure 1: Time-series plot
         fig1, ax1 = plt.subplots(1, 1, figsize=(10, 6), dpi=1200)
@@ -80,9 +79,9 @@ class SeasonalityAnalysis:
         # 12-month rolling mean for smoother trend view
         rolling_mean = self.df['sst'].rolling(window=12, center=True).mean()
         ax1.plot(self.df.index, rolling_mean, label="12-month Rolling Mean", color="#d62728", linewidth=2)
-        ax1.legend(fontsize=14)
-        ax1.set_xlabel('Time (month)', fontsize=14)
-        ax1.set_ylabel('Temperature (°C)', fontsize=14)
+        ax1.legend(fontsize=16)
+        ax1.set_xlabel('Time (month)', fontsize=16)
+        ax1.set_ylabel('Temperature (°C)', fontsize=16)
         
         # 优化横坐标显示 - 按月份显示，从2004年1月开始
         ax1.set_xlim(pd.Timestamp('2004-01-01'), self.df.index[-1])  # 设置x轴范围从2004年1月开始
@@ -109,8 +108,8 @@ class SeasonalityAnalysis:
         
         decomposition = seasonal_decompose(self.df['sst'], period=12)
         ax2.plot(decomposition.seasonal, color="#ff7f0e")
-        ax2.set_xlabel('Time (month)', fontsize=14)
-        ax2.set_ylabel('Temperature (°C)', fontsize=14)
+        ax2.set_xlabel('Time (month)', fontsize=16)
+        ax2.set_ylabel('Temperature (°C)', fontsize=16)
         
         # 优化横坐标显示 - 按月份显示，从2004年1月开始
         ax2.set_xlim(pd.Timestamp('2004-01-01'), self.df.index[-1])  # 设置x轴范围从2004年1月开始

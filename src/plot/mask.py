@@ -8,10 +8,13 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from cartopy.mpl import ticker as tk
 
-from src.plot.base import create_ax, create_carto_ax
+from src.plot.base import create_ax, create_carto_ax, apply_plot_style
 from src.plot.sst import _range
 
-def plot_mask_binary(mask_sst, lon, lat, step=1, filename='mask_binary.png', title='海表温度掩码分布'):
+apply_plot_style()
+
+
+def plot_mask_binary(mask_sst, lon, lat, step=1, filename='mask_binary.png', title='Mask Distribution'):
     """
     绘制二值化掩码图 - 黑白对比显示有效/无效区域
     
@@ -48,11 +51,11 @@ def plot_mask_binary(mask_sst, lon, lat, step=1, filename='mask_binary.png', tit
     ax.grid(True, alpha=0.4, linestyle='--', linewidth=0.8, color='#bdc3c7')
     
     # 设置坐标轴标签
-    ax.set_xlabel('经度 (°E)', fontsize=14, fontweight='bold', color='#2c3e50')
-    ax.set_ylabel('纬度 (°N)', fontsize=14, fontweight='bold', color='#2c3e50')
+    ax.set_xlabel('Longitude (°E)', fontsize=16, fontweight='bold', color='#2c3e50')
+    ax.set_ylabel('Latitude (°N)', fontsize=16, fontweight='bold', color='#2c3e50')
     
     # 美化坐标轴
-    ax.tick_params(axis='both', which='major', labelsize=11, 
+    ax.tick_params(axis='both', which='major', labelsize=16,
                    colors='#2c3e50', width=1.5)
     
     # 设置坐标轴边框样式
@@ -64,15 +67,15 @@ def plot_mask_binary(mask_sst, lon, lat, step=1, filename='mask_binary.png', tit
     cbar = fig.colorbar(im, ax=ax, orientation='horizontal', 
                        pad=0.12, shrink=0.8, aspect=30)
     cbar.set_ticks([0.25, 0.75])
-    cbar.set_ticklabels(['NaN (无效数据)', 'Not NaN (有效数据)'])
-    cbar.ax.tick_params(labelsize=12, colors='#2c3e50')
+    cbar.set_ticklabels(['Invalid (NaN)', 'Valid (Not NaN)'])
+    cbar.ax.tick_params(labelsize=16, colors='#2c3e50')
     
     # 美化颜色条边框
     cbar.outline.set_linewidth(1.5)
     cbar.outline.set_color('#34495e')
     
     # 设置现代化标题
-    plt.title(title, fontsize=16, fontweight='bold', color='#2c3e50', pad=25)
+    plt.title('')
     
     # 设置背景色
     fig.patch.set_facecolor('white')
@@ -84,7 +87,7 @@ def plot_mask_binary(mask_sst, lon, lat, step=1, filename='mask_binary.png', tit
     
     return ax
 
-def plot_mask_geographic(mask_sst, lon, lat, step=1, filename='mask_geographic.png', title='海表温度掩码地理分布'):
+def plot_mask_geographic(mask_sst, lon, lat, step=1, filename='mask_geographic.png', title='Mask Geographic Distribution'):
     """
     绘制带地理投影的掩码图 - 在地图投影上显示掩码分布
     
@@ -137,13 +140,13 @@ def plot_mask_geographic(mask_sst, lon, lat, step=1, filename='mask_geographic.p
     cbar = plt.colorbar(im, ax=ax, orientation='horizontal', pad=0.08, shrink=0.8)
     cbar.set_ticks([0.25, 0.75])
     cbar.set_ticklabels(['NaN', 'Not NaN'])
-    cbar.ax.tick_params(labelsize=11)
+    cbar.ax.tick_params(labelsize=16)
 
     plt.tight_layout()
     
     return ax
 
-def plot_mask_statistics(mask_sst, lon, lat, filename='mask_statistics.png', title='Statistics of Mask'):
+def plot_mask_statistics(mask_sst, lon, lat, filename='mask_statistics.png', title='Mask Statistics'):
     """
     绘制掩码统计信息图 - 显示有效/无效数据的统计信息
     
@@ -171,9 +174,9 @@ def plot_mask_statistics(mask_sst, lon, lat, filename='mask_statistics.png', tit
     
     ax3.plot(row_valid_ratio, lat_values, 'b', linewidth=2, marker='o', 
              markersize=3, color='#4472C4')
-    ax3.set_xlabel('Valid Data Ratio (%)', fontsize=11, fontweight='bold')
-    ax3.set_ylabel('Latitude (°N)', fontsize=11, fontweight='bold')
-    ax3.set_title('Valid Data Distribution by Latitude', fontsize=12, fontweight='bold', pad=15)
+    ax3.set_xlabel('Valid Data Ratio (%)', fontsize=16, fontweight='bold')
+    ax3.set_ylabel('Latitude (°N)', fontsize=16, fontweight='bold')
+    ax3.set_title('')
     ax3.grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
     ax3.set_xlim(0, 100)
     
@@ -183,14 +186,14 @@ def plot_mask_statistics(mask_sst, lon, lat, filename='mask_statistics.png', tit
     
     ax4.plot(lon_values, col_valid_ratio, 'r', linewidth=2, marker='s', 
              markersize=3, color='#E15759')
-    ax4.set_xlabel('Longitude (°E)', fontsize=11, fontweight='bold')
-    ax4.set_ylabel('Valid Data Ratio (%)', fontsize=11, fontweight='bold')
-    ax4.set_title('Valid Data Distribution by Longitude', fontsize=12, fontweight='bold', pad=15)
+    ax4.set_xlabel('Longitude (°E)', fontsize=16, fontweight='bold')
+    ax4.set_ylabel('Valid Data Ratio (%)', fontsize=16, fontweight='bold')
+    ax4.set_title('')
     ax4.grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
     ax4.set_ylim(0, 100)
     
     # 设置整体标题
-    plt.suptitle(title, fontsize=14, fontweight='bold', y=0.95)
+    plt.suptitle('')
     
     # 调整子图布局，为底部统计信息留出空间，并增加子图间距
     plt.tight_layout()
@@ -227,8 +230,8 @@ def plot_mask_statistics(mask_sst, lon, lat, filename='mask_statistics.png', tit
     stats_panel.add_patch(top_bar)
     
     # 添加卡片标题
-    stats_panel.text(0.5, 0.9, 'Data Coverage Statistics', 
-                     ha='center', va='center', fontsize=12, 
+    stats_panel.text(0.5, 0.9, 'Data Coverage Statistics',
+                     ha='center', va='center', fontsize=16,
                      fontweight='bold', color='#2c3e50')
     
     # 统计信息内容，分两列显示
@@ -247,14 +250,14 @@ def plot_mask_statistics(mask_sst, lon, lat, filename='mask_statistics.png', tit
     # 左列统计信息
     y_positions = [0.65, 0.45, 0.25]
     for i, stat in enumerate(left_stats):
-        stats_panel.text(0.05, y_positions[i], stat, 
-                        ha='left', va='center', fontsize=10, 
+        stats_panel.text(0.05, y_positions[i], stat,
+                        ha='left', va='center', fontsize=16,
                         color='#495057', family='monospace')
     
     # 右列统计信息
     for i, stat in enumerate(right_stats):
-        stats_panel.text(0.52, y_positions[i], stat, 
-                        ha='left', va='center', fontsize=10, 
+        stats_panel.text(0.52, y_positions[i], stat,
+                        ha='left', va='center', fontsize=16,
                         color='#495057', family='monospace')
     
     # 添加分隔线
@@ -266,7 +269,7 @@ def plot_mask_statistics(mask_sst, lon, lat, filename='mask_statistics.png', tit
         for spine in ax.spines.values():
             spine.set_linewidth(1)
             spine.set_color('black')
-        ax.tick_params(axis='both', which='major', labelsize=9)
+        ax.tick_params(axis='both', which='major', labelsize=16)
 
 def plot_pred_error_statistics(pred_error, lon, lat, filename='pred_error_statistics.png', 
                               title='Prediction Error Statistics'):
@@ -319,16 +322,16 @@ def plot_pred_error_statistics(pred_error, lon, lat, filename='pred_error_statis
             non_zero_colors.append(colors[i])
     
     if non_zero_sizes:
-        wedges, texts, autotexts = ax1.pie(non_zero_sizes, labels=non_zero_labels, 
+        wedges, texts, autotexts = ax1.pie(non_zero_sizes, labels=non_zero_labels,
                                           colors=non_zero_colors, autopct='%1.1f%%', 
-                                          startangle=90, textprops={'fontsize': 10})
+                                          startangle=90, textprops={'fontsize': 16})
         
         # 设置饼图文本颜色为白色以增强对比度
         for autotext in autotexts:
             autotext.set_color('white')
             autotext.set_fontweight('bold')
     
-    ax1.set_title('Error Sign Distribution', fontsize=12, fontweight='bold', pad=15)
+    ax1.set_title('')
     
     # 2. 柱状图显示误差统计 - 简洁风格
     categories = ['Positive', 'Negative', 'Zero']
@@ -345,8 +348,8 @@ def plot_pred_error_statistics(pred_error, lon, lat, filename='pred_error_statis
     ax2.set_xticks(x_positions)
     ax2.set_xticklabels(categories)
     
-    ax2.set_ylabel('Number of Points', fontsize=11, fontweight='bold')
-    ax2.set_title('Error Count by Sign', fontsize=12, fontweight='bold', pad=15)
+    ax2.set_ylabel('Number of Points', fontsize=16, fontweight='bold')
+    ax2.set_title('')
     ax2.grid(True, alpha=0.3, axis='y', linestyle='-', linewidth=0.5)
     
     # 在柱状图上添加数值标签
@@ -355,7 +358,7 @@ def plot_pred_error_statistics(pred_error, lon, lat, filename='pred_error_statis
             height = bar.get_height()
             ax2.text(bar.get_x() + bar.get_width()/2., height + max(counts)*0.01,
                     f'{count:,}', ha='center', va='bottom', 
-                    fontsize=10, fontweight='bold')
+                    fontsize=16, fontweight='bold')
     
     # 设置y轴上限，为标签留出空间
     max_count = max(counts) if max(counts) > 0 else 1
@@ -374,25 +377,25 @@ def plot_pred_error_statistics(pred_error, lon, lat, filename='pred_error_statis
     line1 = ax3.plot(row_mean_error, lat_values, linewidth=2, marker='o', 
                      markersize=3, color='#4472C4', label='Mean Error')
     ax3.axvline(x=0, color='black', linestyle='--', alpha=0.5, linewidth=1)
-    ax3.set_xlabel('Mean Error', fontsize=11, fontweight='bold', color='#4472C4')
-    ax3.set_ylabel('Latitude (°N)', fontsize=11, fontweight='bold')
+    ax3.set_xlabel('Mean Error', fontsize=16, fontweight='bold', color='#4472C4')
+    ax3.set_ylabel('Latitude (°N)', fontsize=16, fontweight='bold')
     ax3.tick_params(axis='x', labelcolor='#4472C4')
     ax3.set_xlim(-1.5, 1.5)
     
     # 绘制RMSE（顶部x轴）
     line2 = ax3_top.plot(row_rmse, lat_values, linewidth=2, marker='s', 
                          markersize=3, color='#E15759', label='RMSE')
-    ax3_top.set_xlabel('RMSE', fontsize=11, fontweight='bold', color='#E15759')
+    ax3_top.set_xlabel('RMSE', fontsize=16, fontweight='bold', color='#E15759')
     ax3_top.tick_params(axis='x', labelcolor='#E15759')
     ax3_top.set_xlim(0, 2.0)
     
-    ax3.set_title('Mean Error & RMSE by Latitude', fontsize=12, fontweight='bold', pad=25)
+    ax3.set_title('')
     ax3.grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
     
     # 添加图例
     lines1 = line1 + line2
     labels1 = [l.get_label() for l in lines1]
-    ax3.legend(lines1, labels1, loc='upper right', fontsize=9)
+    ax3.legend(lines1, labels1, loc='upper right', fontsize=16)
     
     # 4. 按经度统计平均误差和RMSE
     col_mean_error = np.nanmean(pred_error, axis=0)
@@ -406,28 +409,28 @@ def plot_pred_error_statistics(pred_error, lon, lat, filename='pred_error_statis
     line3 = ax4.plot(lon_values, col_mean_error, linewidth=2, marker='o', 
                      markersize=3, color='#4472C4', label='Mean Error')
     ax4.axhline(y=0, color='black', linestyle='--', alpha=0.5, linewidth=1)
-    ax4.set_xlabel('Longitude (°E)', fontsize=11, fontweight='bold')
-    ax4.set_ylabel('Mean Error', fontsize=11, fontweight='bold', color='#4472C4')
+    ax4.set_xlabel('Longitude (°E)', fontsize=16, fontweight='bold')
+    ax4.set_ylabel('Mean Error', fontsize=16, fontweight='bold', color='#4472C4')
     ax4.tick_params(axis='y', labelcolor='#4472C4')
     ax4.set_ylim(-1.5, 1.5)
     
     # 绘制RMSE
     line4 = ax4_twin.plot(lon_values, col_rmse, linewidth=2, marker='s', 
                           markersize=3, color='#E15759', label='RMSE')
-    ax4_twin.set_ylabel('RMSE', fontsize=11, fontweight='bold', color='#E15759')
+    ax4_twin.set_ylabel('RMSE', fontsize=16, fontweight='bold', color='#E15759')
     ax4_twin.tick_params(axis='y', labelcolor='#E15759')
     ax4_twin.set_ylim(0, 2.0)
     
-    ax4.set_title('Mean Error & RMSE by Longitude', fontsize=12, fontweight='bold', pad=15)
+    ax4.set_title('')
     ax4.grid(True, alpha=0.3, linestyle='-', linewidth=0.5)
     
     # 添加图例
     lines2 = line3 + line4
     labels2 = [l.get_label() for l in lines2]
-    ax4.legend(lines2, labels2, loc='upper right', fontsize=9)
+    ax4.legend(lines2, labels2, loc='upper right', fontsize=16)
     
     # 设置整体标题
-    plt.suptitle(title, fontsize=14, fontweight='bold', y=0.95)
+    plt.suptitle('')
     
     # 调整子图布局，为底部统计信息留出空间，并增加子图间距
     plt.tight_layout()
@@ -464,8 +467,8 @@ def plot_pred_error_statistics(pred_error, lon, lat, filename='pred_error_statis
     stats_panel.add_patch(top_bar)
     
     # 添加卡片标题
-    stats_panel.text(0.5, 0.9, 'Prediction Error Statistics', 
-                     ha='center', va='center', fontsize=12, 
+    stats_panel.text(0.5, 0.9, 'Prediction Error Statistics',
+                     ha='center', va='center', fontsize=16,
                      fontweight='bold', color='#2c3e50')
     
     # 统计信息内容，分两列显示
@@ -484,14 +487,14 @@ def plot_pred_error_statistics(pred_error, lon, lat, filename='pred_error_statis
     # 左列统计信息
     y_positions = [0.65, 0.45, 0.25]
     for i, stat in enumerate(left_stats):
-        stats_panel.text(0.05, y_positions[i], stat, 
-                        ha='left', va='center', fontsize=10, 
+        stats_panel.text(0.05, y_positions[i], stat,
+                        ha='left', va='center', fontsize=16,
                         color='#495057', family='monospace')
     
     # 右列统计信息
     for i, stat in enumerate(right_stats):
-        stats_panel.text(0.52, y_positions[i], stat, 
-                        ha='left', va='center', fontsize=10, 
+        stats_panel.text(0.52, y_positions[i], stat,
+                        ha='left', va='center', fontsize=16,
                         color='#495057', family='monospace')
     
     # 添加分隔线
@@ -503,4 +506,4 @@ def plot_pred_error_statistics(pred_error, lon, lat, filename='pred_error_statis
         for spine in ax.spines.values():
             spine.set_linewidth(1)
             spine.set_color('black')
-        ax.tick_params(axis='both', which='major', labelsize=9)
+        ax.tick_params(axis='both', which='major', labelsize=16)
