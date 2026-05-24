@@ -8,6 +8,13 @@ from cartopy import feature as cfeat
 PLOT_FONT_FAMILY = 'Times New Roman'
 PLOT_FONT_SIZE = 16
 PLOT_AXIS_FONT_SIZE = 14
+PLOT_PANEL_LABEL_BBOX = {
+    'boxstyle': 'round',
+    'facecolor': 'white',
+    'alpha': 0.8,
+    'edgecolor': 'none',
+    'linewidth': 0,
+}
 
 
 def apply_plot_style():
@@ -31,6 +38,22 @@ def apply_plot_style():
 
 
 apply_plot_style()
+
+
+def add_panel_label(ax, label, x=0.97, y=0.95, fontsize=16):
+    """
+    Add a unified panel label style, e.g. (a), (b), ...
+    """
+    ax.text(
+        x,
+        y,
+        label,
+        transform=ax.transAxes,
+        fontsize=fontsize,
+        ha='right',
+        va='top',
+        bbox=PLOT_PANEL_LABEL_BBOX.copy(),
+    )
 
 def create_base_figure():
     """

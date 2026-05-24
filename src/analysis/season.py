@@ -8,6 +8,7 @@ from statsmodels.tsa.seasonal import seasonal_decompose
 import seaborn as sns
 
 from src.dataset.ERA5 import ERA5SSTMonthlyDataset
+from src.plot.base import add_panel_label
 
 class SeasonalityAnalysis:
     def __init__(self, dataset: ERA5SSTMonthlyDataset):
@@ -86,7 +87,7 @@ class SeasonalityAnalysis:
         rolling_mean = self.df['sst'].rolling(window=12, center=True).mean()
         ax1.plot(self.df.index, rolling_mean, label="12-month Rolling Mean", color="#d62728", linewidth=2)
         ax1.legend(fontsize=16)
-        ax1.set_xlabel('Time (month)', fontsize=14, labelpad=12)
+        ax1.set_xlabel('Time (year)', fontsize=14, labelpad=12)
         ax1.set_ylabel('Temperature (°C)', fontsize=14, labelpad=12)
         
         # 优化横坐标显示 - 按月份显示，从2004年1月开始
@@ -104,8 +105,7 @@ class SeasonalityAnalysis:
         ax1.grid(True, linestyle="--", alpha=0.5)
         
         # 添加子图标签 (a)
-        ax1.text(0.97, 0.97, '(a)', transform=ax1.transAxes, fontsize=16,
-                ha='right', va='top', bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+        add_panel_label(ax1, '(a)')
         
         plt.tight_layout()
         
@@ -114,7 +114,7 @@ class SeasonalityAnalysis:
         
         decomposition = seasonal_decompose(self.df['sst'], period=12)
         ax2.plot(decomposition.seasonal, color="#ff7f0e")
-        ax2.set_xlabel('Time (month)', fontsize=14, labelpad=12)
+        ax2.set_xlabel('Time (year)', fontsize=14, labelpad=12)
         ax2.set_ylabel('Temperature (°C)', fontsize=14, labelpad=12)
         
         # 优化横坐标显示 - 按月份显示，从2004年1月开始
@@ -132,8 +132,7 @@ class SeasonalityAnalysis:
         ax2.grid(True, linestyle="--", alpha=0.5)
         
         # 添加子图标签 (b)
-        ax2.text(0.97, 0.97, '(b)', transform=ax2.transAxes, fontsize=16,
-                ha='right', va='top', bbox=dict(boxstyle='round', facecolor='white', alpha=0.8))
+        add_panel_label(ax2, '(b)')
         
         plt.tight_layout()
         

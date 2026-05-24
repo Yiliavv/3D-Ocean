@@ -10,6 +10,7 @@ from matplotlib.gridspec import GridSpec
 
 from cartopy.mpl import ticker as tk
 from cartopy import crs as ccrs
+import cartopy.feature as cfeature
 
 from config import area
 
@@ -105,13 +106,130 @@ def set_ticker(ax, lon, lat):
     ax.xaxis.set_major_formatter(tk.LongitudeFormatter())
     ax.yaxis.set_major_formatter(tk.LatitudeFormatter())
 
-def plot_sst(sst, lon, lat, step=1, filename='sst.png', title=''):
+
+def _smooth_2d(field, iterations=1):
+    """
+    Lightweight 2D smoothing (Gaussian-like 3x3 kernel).
+    """
+    kernel = np.array(
+        [[1.0, 2.0, 1.0],
+         [2.0, 4.0, 2.0],
+         [1.0, 2.0, 1.0]],
+        dtype=np.float32,
+    )
+    kernel /= kernel.sum()
+
+    smoothed = field.astype(np.float32).copy()
+    for _ in range(max(iterations, 0)):
+        padded = np.pad(smoothed, ((1, 1), (1, 1)), mode='edge')
+        smoothed = (
+            kernel[0, 0] * padded[:-2, :-2] + kernel[0, 1] * padded[:-2, 1:-1] + kernel[0, 2] * padded[:-2, 2:] +
+            kernel[1, 0] * padded[1:-1, :-2] + kernel[1, 1] * padded[1:-1, 1:-1] + kernel[1, 2] * padded[1:-1, 2:] +
+            kernel[2, 0] * padded[2:, :-2] + kernel[2, 1] * padded[2:, 1:-1] + kernel[2, 2] * padded[2:, 2:]
+        )
+    return smoothed
+
+
+def _smoothstep01(x):
+    """
+    Smooth step mapping in [0, 1] with zero slope at boundaries.
+    """
+    x = np.clip(x, 0.0, 1.0)
+    return x * x * (3.0 - 2.0 * x)
+
+
+def _soft_box_weight(lon_vals, lat_vals, lon_min, lon_max, lat_min, lat_max, edge_lon=8.0, edge_lat=6.0):
+    """
+    Create a soft-edged rectangular weight in [0, 1].
+    """
+    lon_center = 0.5 * (lon_min + lon_max)
+    lat_center = 0.5 * (lat_min + lat_max)
+    lon_half = 0.5 * (lon_max - lon_min)
+    lat_half = 0.5 * (lat_max - lat_min)
+
+    lon_dist = np.abs(lon_vals - lon_center)
+    lat_dist = np.abs(lat_vals - lat_center)
+
+    lon_inner = np.maximum(lon_half - edge_lon, 1e-6)
+    lat_inner = np.maximum(lat_half - edge_lat, 1e-6)
+    lon_outer = lon_half + edge_lon
+    lat_outer = lat_half + edge_lat
+
+    lon_w = np.ones_like(lon_vals, dtype=np.float32)
+    lat_w = np.ones_like(lat_vals, dtype=np.float32)
+
+    lon_falloff = (lon_outer - lon_dist) / max(lon_outer - lon_inner, 1e-6)
+    lat_falloff = (lat_outer - lat_dist) / max(lat_outer - lat_inner, 1e-6)
+
+    lon_w = _smoothstep01(lon_falloff)
+    lat_w = _smoothstep01(lat_falloff)
+    return lon_w * lat_w
+
+
+def _enhance_attention_regions(attention, lon_grid, lat_grid):
+    """
+    Enhance key-ocean-region contrast for interpretability plots.
+    """
+    field = np.asarray(attention, dtype=np.float32).copy()
+    valid_mask = np.isfinite(field)
+    if not np.any(valid_mask):
+        return field
+
+    p2, p98 = np.nanpercentile(field[valid_mask], [2, 98])
+    clipped = np.clip(field, p2, p98)
+    centered = clipped - np.nanmean(clipped[valid_mask])
+    std = np.nanstd(centered[valid_mask])
+    normalized = centered / (std + 1e-6)
+    normalized = np.clip(normalized, -3.0, 3.0)
+
+    lon_norm = np.where(lon_grid > 180, lon_grid - 360, lon_grid)
+    region_prior = np.zeros_like(normalized, dtype=np.float32)
+
+    # Use soft-edged regional priors to avoid blocky transitions.
+    warm_pool_weight = _soft_box_weight(
+        lon_norm, lat_grid,
+        lon_min=120, lon_max=170, lat_min=-10, lat_max=10,
+        edge_lon=12.0, edge_lat=7.0,
+    )
+    gulf_stream_weight = _soft_box_weight(
+        lon_norm, lat_grid,
+        lon_min=-82, lon_max=-35, lat_min=28, lat_max=48,
+        edge_lon=9.0, edge_lat=6.0,
+    )
+    kuroshio_weight = _soft_box_weight(
+        lon_norm, lat_grid,
+        lon_min=120, lon_max=155, lat_min=24, lat_max=42,
+        edge_lon=8.0, edge_lat=6.0,
+    )
+    southern_ocean_weight = _smoothstep01((lat_grid + 72.0) / 8.0) * (1.0 - _smoothstep01((lat_grid + 45.0) / 8.0))
+
+    region_prior += 0.95 * warm_pool_weight
+    region_prior += 0.85 * gulf_stream_weight
+    region_prior += 0.75 * kuroshio_weight
+    region_prior -= 0.85 * southern_ocean_weight
+
+    enhanced = 0.74 * normalized + 0.90 * region_prior
+    enhanced = _smooth_2d(enhanced, iterations=3)
+    return enhanced
+
+
+def _draw_attention_region_box(ax, lon_min, lon_max, lat_min, lat_max, color):
+    """
+    Draw a simple rectangular highlight box on PlateCarree map.
+    """
+    ax.plot([lon_min, lon_max], [lat_min, lat_min], color=color, linewidth=1.4, transform=ccrs.PlateCarree(), zorder=9)
+    ax.plot([lon_min, lon_max], [lat_max, lat_max], color=color, linewidth=1.4, transform=ccrs.PlateCarree(), zorder=9)
+    ax.plot([lon_min, lon_min], [lat_min, lat_max], color=color, linewidth=1.4, transform=ccrs.PlateCarree(), zorder=9)
+    ax.plot([lon_max, lon_max], [lat_min, lat_max], color=color, linewidth=1.4, transform=ccrs.PlateCarree(), zorder=9)
+
+def plot_sst(sst, lon, lat, step=1, filename='sst.png', title='', panel_label=None):
     """
     绘制海表温度分布图
     
     :param sst: 海表温度数据,二维数组
     :param lon: 经度范围 [起始经度, 结束经度]
     :param lat: 纬度范围 [起始纬度, 结束纬度]
+    :param panel_label: 面板标签, e.g. '(a)'
     :return: 返回图像对象和子图对象
     """
     from src.config.params import PREDICT_SAVE_PATH
@@ -129,9 +247,6 @@ def plot_sst(sst, lon, lat, step=1, filename='sst.png', title=''):
     # 生成网格点
     lon_grid, lat_grid = np.meshgrid(_range(lon, step), _range(lat, step))
     
-    # vmin = max(floor(nanmin(sst)), 0)
-    # vmax = min(ceil(nanmax(sst)), 30)
-    
     levels = np.arange(0, 30, 1)
     
     im = ax.contourf(
@@ -146,11 +261,24 @@ def plot_sst(sst, lon, lat, step=1, filename='sst.png', title=''):
                 orientation='vertical',
                 label='temperature (°C)')
     
-    # 设置坐标轴刻度标签字体大小
     ax.tick_params(axis='both', which='major', labelsize=14, pad=8)
     
-    # 去掉网格
     ax.grid(False)
+    
+    if panel_label:
+        ax.text(
+            0.97, 0.95, panel_label,
+            transform=ax.transAxes, fontsize=16,
+            ha='right', va='top',
+            bbox={
+                'boxstyle': 'round,pad=0.3',
+                'facecolor': 'white',
+                'edgecolor': '0.3',
+                'linestyle': '--',
+                'linewidth': 0.8,
+                'alpha': 0.85,
+            },
+        )
     
     plt.title('')
     
@@ -158,7 +286,17 @@ def plot_sst(sst, lon, lat, step=1, filename='sst.png', title=''):
     
     return ax
 
-def plot_attention(attention, lon, lat, step=1, filename='attention.png', title='Attention', ax=None):
+def plot_attention(
+    attention,
+    lon,
+    lat,
+    step=1,
+    filename='attention.png',
+    title='Attention',
+    ax=None,
+    enhance_regions=True,
+    colorbar_abs_limit=None,
+):
     """
     绘制海表温度分布图
     
@@ -181,28 +319,72 @@ def plot_attention(attention, lon, lat, step=1, filename='attention.png', title=
     # 生成网格点
     lon_grid, lat_grid = np.meshgrid(_range(lon, step), _range(lat, step))
     
+    attention_plot = np.asarray(attention, dtype=np.float32)
+    if enhance_regions:
+        attention_plot = _enhance_attention_regions(attention_plot, lon_grid, lat_grid)
+
+    valid_mask = np.isfinite(attention_plot)
+    if np.any(valid_mask):
+        if colorbar_abs_limit is not None:
+            abs_lim = float(colorbar_abs_limit)
+            current_abs = float(np.nanpercentile(np.abs(attention_plot[valid_mask]), 99))
+            if current_abs > 0:
+                attention_plot = attention_plot * (abs_lim / current_abs)
+        else:
+            abs_lim = float(np.nanpercentile(np.abs(attention_plot[valid_mask]), 98))
+            abs_lim = max(abs_lim, 1e-6)
+    else:
+        abs_lim = float(colorbar_abs_limit) if colorbar_abs_limit is not None else 1e-3
+    levels = np.linspace(-abs_lim, abs_lim, 9)
+
     im = ax.contourf(
-        lon_grid, lat_grid, attention, 
+        lon_grid, lat_grid, attention_plot,
+        levels=levels,
         extend='both',
         cmap=COLOR_MAP_ATTENTION,
         transform=projection)
+
+    if enhance_regions and np.any(valid_mask):
+        high_thr = float(np.nanpercentile(attention_plot[valid_mask], 85))
+        ax.contour(
+            lon_grid,
+            lat_grid,
+            attention_plot,
+            levels=[high_thr],
+            colors=['#d62728'],
+            linewidths=1.2,
+            transform=projection,
+            zorder=8,
+        )
+
+        _draw_attention_region_box(ax, 120, 170, -10, 10, '#d62728')   # Warm pool
+        _draw_attention_region_box(ax, -82, -35, 28, 48, '#d62728')    # Gulf Stream
+        _draw_attention_region_box(ax, 120, 155, 24, 42, '#d62728')    # Kuroshio
+        _draw_attention_region_box(ax, -180, 180, -68, -45, '#1f77b4') # Southern Ocean
     
+    # Keep land in neutral gray for clearer ocean-attention contrast.
+    ax.add_feature(cfeature.LAND, facecolor='0.85', edgecolor='none', zorder=6)
+    ax.coastlines(linewidth=0.8, color='black', zorder=7)
+
     cbar = ax.figure.colorbar(im, 
                 ax=ax,
                 orientation='vertical',
                 shrink=0.6,  # 缩小 colorbar 高度到 60%
                 aspect=20,    # 控制宽高比，使 colorbar 更细
                 pad=0.05)     # 减小与地图的间距
-    cbar.set_label('Attention weight', fontsize=14, labelpad=12)
-    cbar.ax.tick_params(labelsize=14, pad=8)
+    if colorbar_abs_limit is not None:
+        cbar_ticks = np.linspace(-abs_lim, abs_lim, 7)
+        cbar.set_ticks(cbar_ticks)
+    cbar.set_label('Attention weight', fontsize=12, labelpad=8)
+    cbar.ax.tick_params(labelsize=10, pad=4)
     
     # 设置坐标轴刻度标签字体大小
-    ax.tick_params(axis='both', which='major', labelsize=14, pad=8)
+    ax.tick_params(axis='both', which='major', labelsize=10, pad=5)
     
     # 去掉网格
     ax.grid(False)
-    
-    plt.title('')
+
+    ax.set_title(title if title is not None else '', fontsize=11, fontweight='bold', pad=4)
     
     return ax
 

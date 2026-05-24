@@ -274,7 +274,8 @@ class UNet3DNatureAnalyzer:
         Figure 2: Feature Maps Through Encoder-Decoder
         """
         # 提取特征
-        sample_input = torch.from_numpy(sample_data).unsqueeze(0).unsqueeze(0).float()
+        device = next(self.model.parameters()).device
+        sample_input = torch.from_numpy(sample_data).unsqueeze(0).unsqueeze(0).float().to(device)
         
         feature_maps = {}
         def get_activation(name):
@@ -295,18 +296,38 @@ class UNet3DNatureAnalyzer:
         for hook in hooks:
             hook.remove()
         
-        # 绘制
-        fig = plt.figure(figsize=(12, 8))
-        
-        layer_names = ['(a) Input\nSST', '(b) Inc\n[64ch]', '(c) Down1\n[128ch]', 
-                      '(d) Down2\n[256ch]', '(e) Down3\n[512ch]', '(f) Down4\n[1024ch]',
-                      '(g) Up1\n[512ch]', '(h) Up2\n[256ch]', '(i) Up3\n[128ch]', 
-                      '(j) Up4\n[64ch]', '(k) Output\n[10ch]']
+        def _channel_label(tensor):
+            return f'[{tensor.shape[1]}ch]'
+
+        layer_names = [
+            '(a) Input SST',
+            f'(b) Inc {_channel_label(feature_maps["inc"])}',
+            f'(c) Down1 {_channel_label(feature_maps["down1"])}',
+            f'(d) Down2 {_channel_label(feature_maps["down2"])}',
+            f'(e) Down3 {_channel_label(feature_maps["down3"])}',
+            f'(f) Down4 {_channel_label(feature_maps["down4"])}',
+            f'(g) Up1 {_channel_label(feature_maps["up1"])}',
+            f'(h) Up2 {_channel_label(feature_maps["up2"])}',
+            f'(i) Up3 {_channel_label(feature_maps["up3"])}',
+            f'(j) Up4 {_channel_label(feature_maps["up4"])}',
+            f'(k) Output [{output.shape[1]}ch]',
+        ]
         layer_keys = [None, 'inc', 'down1', 'down2', 'down3', 'down4',
                       'up1', 'up2', 'up3', 'up4', None]
+
+        # 绘制：两列排版，便于论文版面中保持单个面板可读性。
+        n_cols = 2
+        n_rows = int(np.ceil(len(layer_keys) / n_cols))
+        fig, axes = plt.subplots(
+            n_rows,
+            n_cols,
+            figsize=(12, 18),
+            subplot_kw={'projection': ccrs.PlateCarree()},
+        )
         
+        axes_flat = axes.ravel()
         for idx, (layer_name, layer_key) in enumerate(zip(layer_names, layer_keys)):
-            ax = plt.subplot(3, 4, idx + 1, projection=ccrs.PlateCarree())
+            ax = axes_flat[idx]
             
             if layer_key is None:
                 if idx == 0:
@@ -317,17 +338,20 @@ class UNet3DNatureAnalyzer:
                 data = feature_maps[layer_key][0, 0].cpu().numpy()
             
             cmap = 'RdYlBu_r' if idx <= 5 else 'viridis'
-            im = ax.imshow(data, cmap=cmap, origin='upper',
+            im = ax.imshow(data, cmap=cmap, origin='lower',
                           extent=[-180, 180, -80, 80], transform=ccrs.PlateCarree())
             
             ax.coastlines(linewidth=0.3)
             ax.add_feature(cfeature.LAND, facecolor='lightgray', alpha=0.2)
-            ax.set_title('')
+            ax.set_title(layer_name, fontsize=16, fontweight='bold', pad=12)
             ax.set_xticks([])
             ax.set_yticks([])
             
             plt.colorbar(im, ax=ax, orientation='horizontal', pad=0.02, 
-                        fraction=0.05, aspect=30)
+                        fraction=0.05, aspect=30).ax.tick_params(labelsize=12, pad=4)
+
+        for ax in axes_flat[len(layer_names):]:
+            ax.axis('off')
         
         plt.tight_layout()
         save_path = self.output_dir / 'Figure2_FeatureMaps.png'
@@ -364,7 +388,8 @@ class UNet3DNatureAnalyzer:
             
             return model.outc(x)
         
-        sample_input = torch.from_numpy(sample_data).unsqueeze(0).unsqueeze(0).float()
+        device = next(self.model.parameters()).device
+        sample_input = torch.from_numpy(sample_data).unsqueeze(0).unsqueeze(0).float().to(device)
         
         self.model.eval()
         
@@ -372,49 +397,52 @@ class UNet3DNatureAnalyzer:
             output_with_skip = self.model(sample_input)
             output_no_skip = forward_no_skip(self.model, sample_input)
         
-        # 绘制对比
-        fig, axes = plt.subplots(2, 5, figsize=(14, 6),
-                                subplot_kw={'projection': ccrs.PlateCarree()})
+        # 绘制对比：每行一个深度，左列保留跳跃连接，右列移除跳跃连接。
+        fig, axes = plt.subplots(
+            5,
+            2,
+            figsize=(10, 14),
+            subplot_kw={'projection': ccrs.PlateCarree()},
+        )
         
         depth_indices = [0, 2, 4, 6, 8]
         depth_labels = ['Surface', '50m', '150m', '400m', '900m']
         
         for i, (depth_idx, depth_name) in enumerate(zip(depth_indices, depth_labels)):
             # With skip connections
-            ax1 = axes[0, i]
+            ax1 = axes[i, 0]
             data_skip = output_with_skip[0, depth_idx].cpu().numpy()
-            im1 = ax1.imshow(data_skip, cmap='RdYlBu_r', origin='upper',
+            im1 = ax1.imshow(data_skip, cmap='RdYlBu_r', origin='lower',
                             extent=[-180, 180, -80, 80], transform=ccrs.PlateCarree(),
                             vmin=-2, vmax=30)
             ax1.coastlines(linewidth=0.3)
             ax1.add_feature(cfeature.LAND, facecolor='gray', alpha=0.3)
-            
-            if i == 0:
-                ax1.set_ylabel('With Skip\nConnections', fontsize=14, fontweight='bold', labelpad=12)
-            ax1.set_title('')
+
+            ax1.set_ylabel(depth_name, fontsize=14, fontweight='bold', labelpad=12)
+            ax1.set_title('With Skip Connections' if i == 0 else '', fontsize=16, fontweight='bold', pad=10)
             ax1.set_xticks([])
             ax1.set_yticks([])
             
             # Without skip connections
-            ax2 = axes[1, i]
+            ax2 = axes[i, 1]
             data_no_skip = output_no_skip[0, depth_idx].cpu().numpy()
-            im2 = ax2.imshow(data_no_skip, cmap='RdYlBu_r', origin='upper',
+            im2 = ax2.imshow(data_no_skip, cmap='RdYlBu_r', origin='lower',
                             extent=[-180, 180, -80, 80], transform=ccrs.PlateCarree(),
                             vmin=-2, vmax=30)
             ax2.coastlines(linewidth=0.3)
             ax2.add_feature(cfeature.LAND, facecolor='gray', alpha=0.3)
-            
-            if i == 0:
-                ax2.set_ylabel('Without Skip\nConnections', fontsize=14, fontweight='bold', labelpad=12)
-            ax2.set_title('')
+
+            ax2.set_title('Without Skip Connections' if i == 0 else '', fontsize=16, fontweight='bold', pad=10)
             ax2.set_xticks([])
             ax2.set_yticks([])
         
-        # 添加统一的colorbar
-        cbar_ax = fig.add_axes([0.92, 0.15, 0.015, 0.7])
-        fig.colorbar(im1, cax=cbar_ax, label='Temperature (°C)')
+        # 添加底部共享 colorbar
+        fig.subplots_adjust(left=0.09, right=0.98, top=0.96, bottom=0.09, hspace=0.24, wspace=0.12)
+        cbar_ax = fig.add_axes([0.18, 0.04, 0.64, 0.018])
+        cbar = fig.colorbar(im1, cax=cbar_ax, orientation='horizontal')
+        cbar.set_label('Temperature (°C)', fontsize=14, labelpad=8)
+        cbar.ax.tick_params(labelsize=12, pad=4)
         
-        plt.tight_layout(rect=[0, 0, 0.9, 1.0])
         save_path = self.output_dir / 'Figure3_SkipConnections.png'
         plt.savefig(save_path, dpi=600, bbox_inches='tight')
         if verbose:
@@ -427,13 +455,19 @@ class UNet3DNatureAnalyzer:
         """
         Figure 4: NaN Handling Mechanism
         """
-        fig = plt.figure(figsize=(14, 6))
+        fig, axes = plt.subplots(
+            3,
+            2,
+            figsize=(12, 12),
+            subplot_kw={'projection': ccrs.PlateCarree()},
+        )
         
         # 准备数据
         nan_mask = np.isnan(sample_data)
         data_replaced = np.nan_to_num(sample_data, nan=0.0)
         
-        sample_input = torch.from_numpy(sample_data).unsqueeze(0).unsqueeze(0).float()
+        device = next(self.model.parameters()).device
+        sample_input = torch.from_numpy(sample_data).unsqueeze(0).unsqueeze(0).float().to(device)
         self.model.eval()
         with torch.no_grad():
             output = self.model(sample_input)
@@ -443,32 +477,39 @@ class UNet3DNatureAnalyzer:
         data_masked[nan_mask] = np.nan
         
         # 绘制
-        titles = ['(a) Input SST\n(Land as NaN)', 
-                 '(b) NaN Mask\n(Red=Land)', 
-                 '(c) Preprocessed\n(NaN→0)',
-                 '(d) Model Output\n(Raw)',
-                 '(e) Final Output\n(Land Restored)']
+        titles = ['(a) Input SST (Land as NaN)',
+                 '(b) NaN Mask (Red=Land)',
+                 '(c) Preprocessed (NaN→0)',
+                 '(d) Model Output (Raw)',
+                 '(e) Final Output (Land Restored)']
         
         datas = [sample_data, nan_mask.astype(float), data_replaced, data_raw, data_masked]
         cmaps = ['RdYlBu_r', 'RdYlGn_r', 'RdYlBu_r', 'RdYlBu_r', 'RdYlBu_r']
         
+        axes_flat = axes.ravel()
         for i, (title, data, cmap) in enumerate(zip(titles, datas, cmaps)):
-            ax = plt.subplot(1, 5, i+1, projection=ccrs.PlateCarree())
+            ax = axes_flat[i]
             
-            im = ax.imshow(data, cmap=cmap, origin='upper',
+            im = ax.imshow(data, cmap=cmap, origin='lower',
                           extent=[-180, 180, -80, 80], transform=ccrs.PlateCarree())
             ax.coastlines(linewidth=0.3)
             if i == 4:
                 ax.add_feature(cfeature.LAND, facecolor='gray', alpha=0.5)
             
-            ax.set_title('')
+            ax.set_title(title, fontsize=16, fontweight='bold', pad=12)
             ax.set_xticks([])
             ax.set_yticks([])
             
-            plt.colorbar(im, ax=ax, orientation='horizontal', pad=0.02,
-                        fraction=0.05, aspect=20)
+            cbar = plt.colorbar(im, ax=ax, orientation='horizontal', pad=0.05,
+                               fraction=0.08, aspect=18)
+            if cmap == 'RdYlBu_r':
+                cbar.set_label('Temperature (\u00b0C)', fontsize=14, labelpad=8)
+            cbar.ax.tick_params(labelsize=14, pad=5)
+
+        for ax in axes_flat[len(titles):]:
+            ax.axis('off')
         
-        plt.tight_layout()
+        fig.subplots_adjust(hspace=0.72, wspace=0.18)
         save_path = self.output_dir / 'Figure4_NaNHandling.png'
         plt.savefig(save_path, dpi=600, bbox_inches='tight')
         if verbose:

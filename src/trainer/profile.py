@@ -645,6 +645,8 @@ class ProfileTrainer:
             # 如果只有一个子图（虽然这里是2x2，但为了健壮性）
             axes = [axes]
         
+        panel_labels = ['(a)', '(b)', '(c)', '(d)']
+
         # 1. 绘制真值 (Argo)
         print('🎨 绘制 Argo')
         temp_true = self.profile_test[sample_idx]
@@ -652,7 +654,7 @@ class ProfileTrainer:
         temp_true_transposed = np.transpose(temp_true, (1, 0, 2))
         plot_3d_temperature(temp_true_transposed, lon, lat, depths, step=step,
                            label='Temperature (°C)', ax=axes[0], colorbar=False)
-        axes[0].set_title('')
+        axes[0].set_title(f'{panel_labels[0]}  Argo (Ground Truth)', fontsize=14, fontweight='bold')
         
         # 2. 绘制各模型预测
         model_info = {
@@ -677,7 +679,10 @@ class ProfileTrainer:
                 plot_3d_temperature(pred_transposed, lon, lat, 
                                    list(self.results[name]['depths']), 
                                    step=step, label='Temperature (°C)', ax=axes[plot_idx], colorbar=False)
-                axes[plot_idx].set_title('')
+                axes[plot_idx].set_title(
+                    f'{panel_labels[plot_idx]}  {model_info[name]} (RMSE: {rmse:.3f}\u00b0C)',
+                    fontsize=14, fontweight='bold',
+                )
                 plot_idx += 1
         
         # 隐藏多余的子图
