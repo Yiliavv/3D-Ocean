@@ -10,12 +10,27 @@
     ],
     "latex-workshop.latex.tools": [
         {
+            "name": "latexmk-xelatex",
+            "command": "latexmk",
+            "args": [
+                "-r",
+                "%DIR%/.latexmkrc",
+                "-cd",
+                "-xelatex",
+                "-interaction=nonstopmode",
+                "-file-line-error",
+                "-synctex=1",
+                "%DOC%"
+            ]
+        },
+        {
             "name": "xelatex",
             "command": "xelatex",
             "args": [
                 "-synctex=1",
                 "-interaction=nonstopmode",
                 "-file-line-error",
+                "-output-directory=%OUTDIR%",
                 "%DOC%"
             ]
         },
@@ -23,11 +38,17 @@
             "name": "bibtex",
             "command": "bibtex",
             "args": [
-                "%DOCFILE%"
+                "%OUTDIR%/%DOCFILE%"
             ]
         }
     ],
     "latex-workshop.latex.recipes": [
+        {
+            "name": "latexmk (xelatex)",
+            "tools": [
+                "latexmk-xelatex"
+            ]
+        },
         {
             "name": "xelatex",
             "tools": [
@@ -44,5 +65,8 @@
             ]
         }
     ],
-    "latex-workshop.latex.recipe.default": "xelatex"
+    "latex-workshop.latex.recipe.default": "first",
+    "latex-workshop.latex.outDir": "%DIR%/build",
+    "latex-workshop.latex.autoBuild.run": "onSave",
+    "latex-workshop.latex.build.forceRecipeUsage": true
 }

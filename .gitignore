@@ -11,8 +11,12 @@ doc/*
 doc/JGR/*
 doc/Paper/*
 !doc/JGR/agujournaltemplate.tex
-!doc/JGR/agujournaltemplate-zh.tex
-!doc/JGR/references.bib
+!doc/JGR/.latexmkrc
+!doc/JGR/images/
+!doc/JGR/images/**
+!doc/JGR/template/
+!doc/JGR/template/**
+doc/JGR/build/
 !doc/Journal_of_Remote_Sensing/main.tex
 !doc/Journal_of_Remote_Sensing/main-zh.tex
 !doc/Journal_of_Remote_Sensing/simple.tex

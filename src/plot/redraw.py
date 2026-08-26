@@ -236,11 +236,11 @@ def plot_era5_oisst_argo_raw_processed(
     output_dir=None,
     month_index=0,
     resolution=1,
+    include_argo=True,
 ):
     """
-    Plot a 3x2 comparison panel: ERA5/OISST/Argo raw vs processed SST.
+    Plot raw vs processed SST panels for ERA5/OISST, optionally including Argo.
     """
-    from src.dataset.Argo import Argo3DTemperatureDataset
     from src.dataset.ERA5 import ERA5SSTMonthlyDataset
     from src.dataset.OISST import OISSTMonthlyDataset
 
@@ -251,7 +251,9 @@ def plot_era5_oisst_argo_raw_processed(
 
     era5_ds = ERA5SSTMonthlyDataset(seq_len=1, lon=target_lon, lat=target_lat, resolution=resolution)
     oisst_ds = OISSTMonthlyDataset(seq_len=1, lon=target_lon, lat=target_lat, resolution=resolution)
-    argo_ds = Argo3DTemperatureDataset(lon=[0, 360], lat=target_lat, depth=[0, 1], resolution=resolution)
+    if include_argo:
+        from src.dataset.Argo import Argo3DTemperatureDataset
+        argo_ds = Argo3DTemperatureDataset(lon=[0, 360], lat=target_lat, depth=[0, 1], resolution=resolution)
 
     # Right column: dataset output.
     era5_processed = era5_ds.__read_sst__(month_index)
@@ -267,12 +269,6 @@ def plot_era5_oisst_argo_raw_processed(
         oisst_processed,
     )
     oisst_lat_proc = np.arange(target_lat[0], target_lat[1], resolution)
-
-    argo_processed, _ = argo_ds[month_index]
-    # Dataset output is latitude-flipped internally; flip back for this comparison figure.
-    argo_processed = argo_processed[::-1, :]
-    argo_lon_proc = np.arange(0, 360, resolution)
-    argo_lat_proc = np.arange(-80, 80, resolution)
 
     # Left column: raw source grids.
     era5_raw = era5_ds._sst_data[month_index, :, :] - 273.15
@@ -290,33 +286,45 @@ def plot_era5_oisst_argo_raw_processed(
     oisst_lon_raw, oisst_raw = _sort_lon_to_0_360(oisst_lon_raw, oisst_raw)
     oisst_lat_raw = oisst_ds._lat_data.copy()
 
-    argo_temp = argo_ds.data[month_index]['temp'].copy()
-    argo_temp[argo_temp > 99] = np.nan
-    # Keep Argo raw data in its original latitude orientation for this comparison.
-    argo_raw = np.transpose(argo_temp, (1, 0, 2))
-    argo_raw = np.round(argo_raw[:, :, 0].astype(np.float32), 3)
-    argo_raw[(argo_raw > 99) | (argo_raw < -10)] = np.nan
-    # User-requested visual inversion for the left (raw) Argo panel.
-    argo_raw = argo_raw[::-1, :]
-    argo_lon_raw = np.arange(0, 360, resolution)
-    # Pair with reversed latitude coordinates so map orientation remains unchanged.
-    argo_lat_raw = np.arange(-80, 80, resolution)[::-1]
-
     panel_data = [
         ('ERA5', era5_raw, era5_lon_raw, era5_lat_raw, era5_processed, era5_lon_proc, era5_lat_proc),
         ('OISST', oisst_raw, oisst_lon_raw, oisst_lat_raw, oisst_processed, oisst_lon_proc, oisst_lat_proc),
-        ('Argo', argo_raw, argo_lon_raw, argo_lat_raw, argo_processed, argo_lon_proc, argo_lat_proc),
     ]
+    if include_argo:
+        argo_processed, _ = argo_ds[month_index]
+        # Dataset output is latitude-flipped internally; flip back for this comparison figure.
+        argo_processed = argo_processed[::-1, :]
+        argo_lon_proc = np.arange(0, 360, resolution)
+        argo_lat_proc = np.arange(-80, 80, resolution)
 
+        argo_temp = argo_ds.data[month_index]['temp'].copy()
+        argo_temp[argo_temp > 99] = np.nan
+        # Keep Argo raw data in its original latitude orientation for this comparison.
+        argo_raw = np.transpose(argo_temp, (1, 0, 2))
+        argo_raw = np.round(argo_raw[:, :, 0].astype(np.float32), 3)
+        argo_raw[(argo_raw > 99) | (argo_raw < -10)] = np.nan
+        # User-requested visual inversion for the left (raw) Argo panel.
+        argo_raw = argo_raw[::-1, :]
+        argo_lon_raw = np.arange(0, 360, resolution)
+        # Pair with reversed latitude coordinates so map orientation remains unchanged.
+        argo_lat_raw = np.arange(-80, 80, resolution)[::-1]
+
+        panel_data.append(
+            ('Argo', argo_raw, argo_lon_raw, argo_lat_raw, argo_processed, argo_lon_proc, argo_lat_proc)
+        )
+
+    n_rows = len(panel_data)
     fig, axes = plt.subplots(
-        3,
+        n_rows,
         2,
-        figsize=(12, 10),
+        figsize=(12, 3.25 * n_rows + 0.25),
         sharex=True,
         subplot_kw={'projection': ccrs.PlateCarree()},
     )
+    if n_rows == 1:
+        axes = np.array([axes])
     # Keep subplot area symmetric and reserve a fixed strip for colorbar.
-    fig.subplots_adjust(left=0.12, right=0.84, bottom=0.08, top=0.96, hspace=0.12, wspace=0.25)
+    fig.subplots_adjust(left=0.12, right=0.84, bottom=0.10, top=0.96, hspace=0.16, wspace=0.25)
 
     subpanel_labels = ['a', 'b', 'c', 'd', 'e', 'f']
     color_mesh = None
@@ -352,12 +360,12 @@ def plot_era5_oisst_argo_raw_processed(
 
             _setup_geo_axes(
                 ax,
-                show_xlabel=(row_idx == 2),
+                show_xlabel=(row_idx == n_rows - 1),
                 show_ylabel=(col_idx == 0),
                 reverse_lat_axis=False,
             )
             # Enforce visual x-axis sharing: only bottom row shows x tick labels.
-            if row_idx < 2:
+            if row_idx < n_rows - 1:
                 ax.tick_params(labelbottom=False)
             if col_idx == 0:
                 ax.text(

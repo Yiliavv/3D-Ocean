@@ -19,6 +19,7 @@ from src.config.params import CHECKPOINT_SAVE_PATH
 
 RUN_ID = '2026-02-04-14-58'
 TEST_OFFSET = 520
+RUN_JGR_FIGURE1_ONLY = True
 RUN_UNET_ANALYSIS_ONLY = True
 UNET_CHECKPOINT_PATH = 'X:/WorkSpace/3D-Ocean/src/out/checkpoints/2026-05-22-21-48/UNet3D.ckpt'
 UNET_N_DEPTH = 58
@@ -101,6 +102,32 @@ def redraw_unet_analysis_figures():
     print(f'- {fig2["save_path"]}')
     print(f'- {fig3["save_path"]}')
     print(f'- {fig4["save_path"]}')
+
+
+def redraw_jgr_figure1():
+    """
+    Redraw the JGR SST source-comparison figure without Argo panels.
+    """
+    import matplotlib
+    matplotlib.use('Agg')
+    import matplotlib.pyplot as plt
+
+    from src.plot.redraw import plot_era5_oisst_argo_raw_processed
+
+    fig, save_path = plot_era5_oisst_argo_raw_processed(
+        filename='data_multi_source_comparison.png',
+        output_dir='doc/JGR/images',
+        month_index=0,
+        resolution=resolution,
+        include_argo=False,
+    )
+    plt.close(fig)
+    print(f'[OK] JGR Figure 1 saved to: {save_path}')
+
+
+if RUN_JGR_FIGURE1_ONLY:
+    redraw_jgr_figure1()
+    raise SystemExit(0)
 
 
 if RUN_UNET_ANALYSIS_ONLY:
